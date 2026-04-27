@@ -159,13 +159,14 @@ function renderStats() {
         <div class="profit-card-label">📊 Рентабельность</div>
     </div>`;
     
+    // Детализация по товарам
     html += `<div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
         <div class="table-wrapper">
             <table class="detail-table">
                 <thead>
                     <tr><th>Товар</th><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
-                <tr>
+                </tr>
                 </thead>
                 <tbody>`;
     for (const p of productStats) {
@@ -185,8 +186,10 @@ function renderStats() {
     html += `</tbody>
             </table>
         </div>
-    </div>
-    <div class="detail-section">
+    </div>`;
+    
+    // Детализация по типам мерча
+    html += `<div class="detail-section">
         <div class="detail-title">🏷️ Детализация по типам мерча</div>
         <div class="table-wrapper">
             <table class="detail-table">
@@ -211,23 +214,9 @@ function renderStats() {
             </table>
         </div>
     </div>`;
-    for (const t of typeDetails) {
-        const profitClass = t.profit >= 0 ? 'profit-positive' : 'profit-negative';
-        const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
-        html += `<tr>
-            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td>
-            <td class="text-right">${formatCurrency(t.revenue)}</td>
-            <td class="text-right">${formatCurrency(t.fullCost)}</td>
-            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
-            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
-        </tr>`;
-    }
-    html += `</tbody>
-        </table>
-        </div>
-    </div>
-    <div class="two-columns">
+    
+    // Самые продаваемые (две колонки)
+    html += `<div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <table class="detail-table-small">
@@ -239,7 +228,7 @@ function renderStats() {
     for (let i = 0; i < topByQty.length; i++) { 
         const p = topByQty[i]; 
         html += `<tr>
-            <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
+            <td class="text-right"><span class="popular-badge">${i + 1}</span></tr>
             <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td>
@@ -267,8 +256,10 @@ function renderStats() {
     html += `</tbody>
             </table>
         </div>
-    </div>
-    <div class="extra-costs-section">
+    </div>`;
+    
+    // Дополнительные расходы
+    html += `<div class="extra-costs-section">
         <div class="detail-title">➕ Дополнительные расходы</div>
         <div id="extra-costs-list">`;
     if (extraCosts.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных расходов</div>';
