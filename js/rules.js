@@ -129,7 +129,7 @@ function updateSelectedProductsDisplay() {
     else {
         const productNames = Array.from(selectedProducts).map(id => {
             const card = originalCardsData.find(c => c.id === id);
-            return card ? card.name : id;
+            return card ? `${card.type} ${card.name}` : id;
         }).join(', ');
         container.innerHTML = `<div class="selected-count">📦 Выбрано товаров: ${count}<br>${productNames}</div>`;
     }
@@ -145,8 +145,9 @@ function renderProductMultiSelect(preserveScroll = false) {
     let html = '<div class="multi-select-container">';
     originalCardsData.forEach(card => {
         const isSelected = selectedProducts.has(card.id);
+        const displayName = `${card.type} ${card.name}`;
         html += `<div class="multi-select-item ${isSelected ? 'selected' : ''}" onclick="toggleProductSelection(${card.id})">
-                    <span class="multi-select-item-label">${escapeHtml(card.name)}</span>
+                    <span class="multi-select-item-label">${escapeHtml(displayName)}</span>
                     ${isSelected ? '<span class="selected-mark">✓</span>' : ''}
                 </div>`;
     });
@@ -262,7 +263,7 @@ function renderRulesList() {
         else if (rule.type === 'product') {
             const productNames = rule.condition.productIds.map(id => {
                 const card = originalCardsData.find(c => c.id === id);
-                return card ? card.name : id;
+                return card ? `${card.type} ${card.name}` : id;
             }).join(', ');
             conditionText = `Товары: ${productNames.length > 30 ? productNames.substring(0, 30) + '...' : productNames}, от ${rule.condition.minQty} шт`;
         } else if (rule.type === 'price') conditionText = `Сумма: от ${rule.condition.minSum} ₽`;
