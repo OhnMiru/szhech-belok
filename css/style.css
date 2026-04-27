@@ -1707,7 +1707,6 @@ body.dark .extra-cost-amount {
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
-    vertical-align: middle;
 }
 
 .detail-table th,
@@ -2280,6 +2279,49 @@ body.dark .extra-cost-amount {
     text-align: right;
 }
 
+/* Компактная таблица для детализации */
+.detail-table-compact {
+    min-width: 500px;
+}
+
+.detail-table-compact th,
+.detail-table-compact td {
+    padding: 6px 4px;
+    font-size: 11px;
+}
+
+.detail-table-compact th:first-child,
+.detail-table-compact td:first-child {
+    padding-left: 8px;
+}
+
+.detail-table-compact th:last-child,
+.detail-table-compact td:last-child {
+    padding-right: 8px;
+}
+
+/* Стили для сообщений о приватности */
+.stats-privacy-message {
+    text-align: center;
+    padding: 40px;
+    font-size: 16px;
+    color: var(--text-muted);
+    background: var(--badge-bg);
+    border-radius: 20px;
+    margin: 20px 0;
+}
+
+/* Заголовок статистики участника */
+.stats-header-info {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border-color);
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--badge-text);
+}
+
 /* Адаптация для планшетов */
 @media (min-width: 768px) and (max-width: 1024px) {
     .stats-grid {
@@ -2358,6 +2400,16 @@ body.dark .extra-cost-amount {
         min-width: 520px;
     }
     
+    .detail-table-compact {
+        min-width: 450px;
+    }
+    
+    .detail-table-compact th,
+    .detail-table-compact td {
+        padding: 4px 3px;
+        font-size: 10px;
+    }
+    
     /* На телефоне таблицы Самые продаваемые друг под другом */
     .two-columns {
         display: flex;
@@ -2379,28 +2431,6 @@ body.dark .extra-cost-amount {
         line-height: 18px;
         margin-right: 4px;
     }
-}
-
-/* Стили для сообщений о приватности */
-.stats-privacy-message {
-    text-align: center;
-    padding: 40px;
-    font-size: 16px;
-    color: var(--text-muted);
-    background: var(--badge-bg);
-    border-radius: 20px;
-    margin: 20px 0;
-}
-
-/* Заголовок статистики участника */
-.stats-header-info {
-    text-align: center;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid var(--border-color);
-    font-size: 18px;
-    font-weight: bold;
-    color: var(--badge-text);
 }
 
 /* Для десктопов */
