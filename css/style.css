@@ -1707,6 +1707,7 @@ body.dark .extra-cost-amount {
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
+    vertical-align: middle;
 }
 
 .detail-table th,
