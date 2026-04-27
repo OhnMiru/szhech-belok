@@ -109,9 +109,7 @@ function renderGlobalStatsWithData(data) {
             <div class="participant-custom-select-dropdown" id="participantSelectDropdown">
                 <div class="participant-option selected" data-id="all">📊 Все участники</div>`;
     for (const p of (data.participants || [])) {
-        if (p.hideStats !== true || CURRENT_USER.role === 'organizer') {
-            html += `<div class="participant-option" data-id="${escapeHtml(p.id)}">${escapeHtml(p.name)} (${p.role === 'organizer' ? 'Организатор' : 'Художник'})</div>`;
-        }
+        html += `<div class="participant-option" data-id="${escapeHtml(p.id)}" data-hide-stats="${p.hideStats}" data-share-stats="${p.shareStats}" data-name="${escapeHtml(p.name)}" data-role="${p.role}">${escapeHtml(p.name)} (${p.role === 'organizer' ? 'Организатор' : 'Художник'})</div>`;
     }
     html += `</div></div><div id="participantStatsContainer"></div>`;
     container.innerHTML = html;
@@ -125,16 +123,42 @@ function renderGlobalStatsWithData(data) {
         document.querySelectorAll('.participant-option').forEach(opt => {
             opt.addEventListener('click', async (e) => {
                 const id = opt.dataset.id;
+                const hideStats = opt.dataset.hideStats === 'true';
+                const shareStats = opt.dataset.shareStats === 'true';
+                const participantName = opt.dataset.name;
+                const participantRole = opt.dataset.role;
+                
                 document.querySelectorAll('.participant-option').forEach(o => o.classList.remove('selected'));
                 opt.classList.add('selected');
                 const selectedName = opt.textContent.replace('📊 ', '');
                 trigger.textContent = selectedName.length > 30 ? selectedName.substring(0, 27) + '...' : selectedName;
                 dropdown.classList.remove('show');
+                
                 if (id === 'all') {
                     renderGlobalStatsContent(data);
                 } else {
-                    const userStats = await fetch(`${CENTRAL_API_URL}?action=getUserFullStats&participant=${CURRENT_USER.id}&targetUser=${encodeURIComponent(id)}&t=${Date.now()}`).then(r => r.json());
-                    renderSingleParticipantStats(userStats);
+                    if (hideStats && participantRole !== 'organizer') {
+                        const container = document.getElementById('participantStatsContainer');
+                        container.innerHTML = `<div class="stats-privacy-message">🔒 Участник не делится статистикой</div>`;
+                        return;
+                    }
+                    if (shareStats && participantRole !== 'organizer') {
+                        const container = document.getElementById('participantStatsContainer');
+                        container.innerHTML = `<div class="stats-privacy-message">🕊 Участник делится статистикой анонимно</div>`;
+                        return;
+                    }
+                    try {
+                        const userStats = await fetch(`${CENTRAL_API_URL}?action=getUserFullStats&participant=${CURRENT_USER.id}&targetUser=${encodeURIComponent(id)}&t=${Date.now()}`).then(r => r.json());
+                        if (userStats.error) {
+                            const container = document.getElementById('participantStatsContainer');
+                            container.innerHTML = `<div class="loading">Ошибка: ${userStats.error}</div>`;
+                        } else {
+                            renderUserFullStats(userStats, participantName);
+                        }
+                    } catch(e) {
+                        const container = document.getElementById('participantStatsContainer');
+                        container.innerHTML = `<div class="loading">Ошибка загрузки статистики пользователя</div>`;
+                    }
                 }
             });
         });
@@ -153,6 +177,7 @@ function renderGlobalStatsContent(data) {
     const totalGoods = data.totalGoods || 0;
     const avgCheck = data.avgCheck || 0;
     const profitMargin = totalRevenue > 0 ? (totalNetProfit / totalRevenue * 100) : 0;
+    
     let html = `<div class="stats-grid"><div class="stats-card"><div class="stats-card-value">${totalRevenue.toLocaleString()} ₽</div><div class="stats-card-label">💰 Общая выручка</div></div>
             <div class="stats-card"><div class="stats-card-value">${totalCost.toLocaleString()} ₽</div><div class="stats-card-label">📦 Общая себестоимость</div></div>
             <div class="stats-card"><div class="stats-card-value ${totalNetProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${totalNetProfit.toLocaleString()} ₽</div><div class="stats-card-label">📈 Общая чистая прибыль</div></div>
@@ -164,11 +189,14 @@ function renderGlobalStatsContent(data) {
         <div class="table-wrapper"><table class="detail-table"><thead><tr><th>Участник</th><th>Роль</th><th class="text-right">Выручка</th><th class="text-right">Чистая прибыль</th>
             <th class="text-right">Продано единиц</th><th class="text-right">Всего товаров</th><th class="text-right">Средний чек</th><th class="text-right">Рентабельность</th></tr></thead><tbody>`;
     for (const s of stats) {
+        let displayName = s.name;
         if (s.hideStats === true && CURRENT_USER.role !== 'organizer') continue;
+        if (s.hideStats === true && s.role !== 'organizer') displayName = "🔒 Скрыт";
+        else if (s.shareStats === true && s.role !== 'organizer') displayName = "🕊 Аноним";
         const profitClass = (s.netProfit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = (s.profitMargin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
         html += `<tr>
-                    <td>${escapeHtml(s.name)}</td>
+                    <td>${escapeHtml(displayName)}</td>
                     <td>${s.role === 'organizer' ? 'Организатор' : 'Художник'}</td>
                     <td class="text-right">${(s.totalRevenue || 0).toLocaleString()} ₽</td>
                     <td class="text-right ${profitClass}">${(s.netProfit || 0).toLocaleString()} ₽</td>
@@ -205,7 +233,7 @@ function renderGlobalStatsContent(data) {
             const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const pMarginClass = (p.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const displayName = `${p.type} ${p.name}`;
-            html += `</tr>
+            html += `<tr>
                         <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
                         <td>${escapeHtml(displayName)}</td>
                         <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
@@ -232,7 +260,7 @@ function renderGlobalStatsContent(data) {
                         <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
                         <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
-                    <tr>`;
+                    </tr>`;
         }
         html += `</tbody>}</div></div>`;
     }
@@ -255,6 +283,174 @@ function renderGlobalStatsContent(data) {
                 </div></div>`;
     }
 
+    container.innerHTML = html;
+}
+
+function renderUserFullStats(stats, participantName) {
+    const container = document.getElementById('participantStatsContainer');
+    if (!container) return;
+    
+    if (!stats || stats.error) {
+        container.innerHTML = `<div class="loading">Нет данных для отображения</div>`;
+        return;
+    }
+    
+    const totalRevenue = stats.totalRevenue || 0;
+    const totalCost = stats.totalCost || 0;
+    const totalNetProfit = stats.netProfit || 0;
+    const totalItemsSold = stats.totalItemsSold || 0;
+    const totalGoods = stats.totalGoods || 0;
+    const orderCount = stats.orderCount || 0;
+    const averageCheck = stats.averageCheck ? Math.ceil(stats.averageCheck) : 0;
+    const profitMargin = stats.profitMargin || 0;
+    const productDetails = stats.productDetails || [];
+    const typeDetails = stats.typeDetails || [];
+    const topProducts = stats.topProducts || [];
+    const topTypes = stats.topTypes || [];
+    const extraCostsUser = stats.extraCosts || [];
+    
+    const formatCurrency = (value) => value.toLocaleString('ru-RU') + ' ₽';
+    const formatNumber = (value) => value.toLocaleString('ru-RU');
+    const formatPercent = (value) => value.toFixed(1) + '%';
+    
+    let html = `<div class="stats-header-info" style="text-align: center; margin-bottom: 16px; color: var(--badge-text); font-weight: bold;">📊 Статистика участника: ${escapeHtml(participantName)}</div>`;
+    
+    html += `<div class="stats-grid">
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalRevenue)}</div><div class="stats-card-label">💰 Выручка</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCost)}</div><div class="stats-card-label">📦 Себестоимость всего товара</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(extraCostsUser.reduce((sum, c) => sum + (c.amount || 0), 0))}</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCost + extraCostsUser.reduce((sum, c) => sum + (c.amount || 0), 0))}</div><div class="stats-card-label">📉 Общие затраты</div></div>
+        <div class="stats-card desktop-only"><div class="stats-card-value ${totalNetProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(totalNetProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatNumber(totalGoods)}</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(stats.stockValue || 0)}</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
+    </div>`;
+    
+    html += `<div class="profit-mobile-row">
+        <div class="profit-mobile-card">
+            <div class="profit-mobile-value">${formatCurrency(totalNetProfit)}</div>
+            <div class="profit-mobile-label">📈 Чистая прибыль</div>
+        </div>
+        <div class="profit-mobile-card">
+            <div class="profit-mobile-value">${formatPercent(profitMargin)}</div>
+            <div class="profit-mobile-label">📊 Рентабельность</div>
+        </div>
+    </div>`;
+    
+    html += `<div class="profit-card-single">
+        <div class="profit-card-value">${formatPercent(profitMargin)}</div>
+        <div class="profit-card-label">📊 Рентабельность</div>
+    </div>`;
+    
+    html += `<div class="detail-section">
+        <div class="detail-title">📦 Детализация по товарам</div>
+        <div class="table-wrapper">
+            <table class="detail-table">
+                <thead>
+                    <tr><th>Товар</th><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                </tr>
+                </thead>
+                <tbody>`;
+    for (const p of productDetails) {
+        const profitClass = p.profit >= 0 ? 'profit-positive' : 'profit-negative';
+        const marginClass = p.margin >= 0 ? 'profit-positive' : 'profit-negative';
+        html += `<tr>
+            <td>${escapeHtml(p.name)}</td>
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td class="text-right">${p.qty} шт</td>
+            <td class="text-right">${p.stock || 0} шт</td>
+            <td class="text-right">${formatCurrency(p.revenue)}</td>
+            <td class="text-right">${formatCurrency(p.fullCost || 0)}</td>
+            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td>
+            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td>
+        </tr>`;
+    }
+    html += `</tbody>
+            </table>
+        </div>
+    </div>
+    <div class="detail-section">
+        <div class="detail-title">🏷️ Детализация по типам мерча</div>
+        <div class="table-wrapper">
+            <table class="detail-table">
+                <thead>
+                    <tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                </tr>
+                </thead>
+                <tbody>`;
+    for (const t of typeDetails) {
+        const profitClass = t.profit >= 0 ? 'profit-positive' : 'profit-negative';
+        const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
+        html += `<tr>
+            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+            <td class="text-right">${t.qty} шт</td>
+            <td class="text-right">${formatCurrency(t.revenue)}</td>
+            <td class="text-right">${formatCurrency(t.fullCost || 0)}</td>
+            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
+            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
+        </tr>`;
+    }
+    html += `</tbody>
+        </table>
+        </div>
+    </div>
+    <div class="two-columns">
+        <div class="detail-section">
+            <div class="detail-title">🏆 Самые продаваемые товары</div>
+            <table class="detail-table-small">
+                <thead>
+                    <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                </tr>
+                </thead>
+                <tbody>`;
+    for (let i = 0; i < topProducts.length; i++) { 
+        const p = topProducts[i]; 
+        const displayName = `${p.type} ${p.name}`;
+        html += `<tr>
+            <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
+            <td>${escapeHtml(displayName)}</td>
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td class="text-right">${p.qty} шт</td>
+        </tr>`;
+    }
+    html += `</tbody>
+            </table>
+        </div>
+        <div class="detail-section">
+            <div class="detail-title">🏆 Самые продаваемые типы</div>
+            <table class="detail-table-small">
+                <thead>
+                    <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                </tr>
+                </thead>
+                <tbody>`;
+    for (let i = 0; i < topTypes.length; i++) { 
+        const t = topTypes[i]; 
+        html += `<tr>
+            <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
+            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+            <td class="text-right">${t.qty} шт</td>
+        </tr>`;
+    }
+    html += `</tbody>
+            </table>
+        </div>
+    </div>
+    <div class="extra-costs-section">
+        <div class="detail-title">➕ Дополнительные расходы (участника)</div>
+        <div id="user-extra-costs-list">`;
+    if (extraCostsUser.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных расходов</div>';
+    for (const cost of extraCostsUser) {
+        html += `<div class="extra-cost-item">
+            <span class="extra-cost-name">${escapeHtml(cost.name)}</span>
+            <span class="extra-cost-amount">${cost.amount} ₽</span>
+        </div>`;
+    }
+    html += `</div>
+    </div>`;
+    
     container.innerHTML = html;
 }
 
@@ -285,58 +481,6 @@ async function addGlobalExtraCostFromModal() {
         window._globalStatsData = data;
         renderGlobalStatsContent(data);
     }
-}
-
-function renderSingleParticipantStats(stats) {
-    const container = document.getElementById('participantStatsContainer');
-    if (!container) return;
-    const profitClass = (stats.netProfit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-    const marginClass = (stats.profitMargin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-    let html = `<div class="stats-grid"><div class="stats-card"><div class="stats-card-value">${(stats.totalRevenue || 0).toLocaleString()} ₽</div><div class="stats-card-label">💰 Выручка</div></div>
-            <div class="stats-card"><div class="stats-card-value">${(stats.totalCost || 0).toLocaleString()} ₽</div><div class="stats-card-label">📦 Себестоимость</div></div>
-            <div class="stats-card"><div class="stats-card-value ${profitClass}">${(stats.netProfit || 0).toLocaleString()} ₽</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
-            <div class="stats-card"><div class="stats-card-value">${(stats.totalItemsSold || 0).toLocaleString()} шт</div><div class="stats-card-label">📊 Продано единиц</div></div>
-            <div class="stats-card"><div class="stats-card-value">${(stats.totalGoods || 0).toLocaleString()} шт</div><div class="stats-card-label">📦 Всего товаров</div></div>
-            <div class="stats-card"><div class="stats-card-value">${(stats.averageCheck || 0).toLocaleString()} ₽</div><div class="stats-card-label">💳 Средний чек</div></div></div>
-        <div class="stats-summary-compact"><div class="stats-summary-value ${marginClass}">${(stats.profitMargin || 0).toFixed(1)}%</div><div class="stats-summary-label">Рентабельность продаж</div></div>`;
-
-    if (stats.productDetails && stats.productDetails.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">📦 Детализация по товарам</div>
-        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
-        for (const p of stats.productDetails) {
-            const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            const pMarginClass = (p.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            const displayName = `${p.type} ${p.name}`;
-            html += `<tr>
-                        <td class="text-right"></td>
-                        <td>${escapeHtml(displayName)}</td>
-                        <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
-                        <td class="text-right">${p.qty} шт</td>
-                        <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
-                        <td class="text-right ${pProfitClass}">${p.profit.toLocaleString()} ₽</td>
-                        <td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td>
-                    </tr>`;
-        }
-        html += `</tbody>}</div></div>`;
-    }
-
-    if (stats.typeDetails && stats.typeDetails.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">🏷️ Детализация по типам мерча</div>
-        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
-        for (const t of stats.typeDetails) {
-            const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            html += `<tr>
-                        <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-                        <td class="text-right">${t.qty} шт</td>
-                        <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
-                        <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
-                        <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
-                    </tr>`;
-        }
-        html += `</tbody>}</div></div>`;
-    }
-    container.innerHTML = html;
 }
 
 function closeGlobalStatsModal() {
