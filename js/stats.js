@@ -133,21 +133,16 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCostAllGoods)}</div><div class="stats-card-label">📦 Себестоимость всего товара</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraCosts)}</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExpenses)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalStock)}</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalStockValue)}</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
     </div>
-    <div class="profit-summary">
-        <div class="profit-card">
-            <div class="profit-card-value">${formatCurrency(netProfit)}</div>
-            <div class="profit-card-label">📈 Чистая прибыль</div>
-        </div>
-        <div class="profit-card">
-            <div class="profit-card-value">${formatPercent(profitMargin)}</div>
-            <div class="profit-card-label">📊 Рентабельность</div>
-        </div>
+    <div class="profit-card-single">
+        <div class="profit-card-value">${formatPercent(profitMargin)}</div>
+        <div class="profit-card-label">📊 Рентабельность</div>
     </div>
     <div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
@@ -204,13 +199,12 @@ function renderStats() {
     <div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
-            <div class="table-wrapper">
-                <table class="detail-table-small">
-                    <thead>
-                        <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                    </tr>
-                    </thead>
-                    <tbody>`;
+            <table class="detail-table-small">
+                <thead>
+                    <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                </tr>
+                </thead>
+                <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
         const p = topByQty[i]; 
         html += `<tr>
@@ -221,18 +215,16 @@ function renderStats() {
         </tr>`; 
     }
     html += `</tbody>
-                </table>
-            </div>
+            </table>
         </div>
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
-            <div class="table-wrapper">
-                <table class="detail-table-small">
-                    <thead>
-                        <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                    </tr>
-                    </thead>
-                    <tbody>`;
+            <table class="detail-table-small">
+                <thead>
+                    <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                </tr>
+                </thead>
+                <tbody>`;
     for (let i = 0; i < topTypesByQty.length; i++) { 
         const t = topTypesByQty[i]; 
         html += `<tr>
@@ -242,8 +234,7 @@ function renderStats() {
         </tr>`; 
     }
     html += `</tbody>
-                </table>
-            </div>
+            </table>
         </div>
     </div>
     <div class="extra-costs-section">
