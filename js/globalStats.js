@@ -160,7 +160,8 @@ function renderGlobalStatsContent(data) {
             <div class="stats-card"><div class="stats-card-value">${totalGoods.toLocaleString()} шт</div><div class="stats-card-label">📦 Всего товаров</div></div>
             <div class="stats-card"><div class="stats-card-value">${avgCheck.toLocaleString()} ₽</div><div class="stats-card-label">💳 Средний чек</div></div></div>
         <div class="stats-summary-compact"><div class="stats-summary-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${profitMargin.toFixed(1)}%</div><div class="stats-summary-label">Общая рентабельность</div></div>
-        <div class="detail-section"><div class="detail-title">📊 Статистика по участникам</div><table class="detail-table"><thead><tr><th>Участник</th><th>Роль</th><th class="text-right">Выручка</th><th class="text-right">Чистая прибыль</th>
+        <div class="detail-section"><div class="detail-title">📊 Статистика по участникам</div>
+        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>Участник</th><th>Роль</th><th class="text-right">Выручка</th><th class="text-right">Чистая прибыль</th>
             <th class="text-right">Продано единиц</th><th class="text-right">Всего товаров</th><th class="text-right">Средний чек</th><th class="text-right">Рентабельность</th></tr></thead><tbody>`;
     for (const s of stats) {
         if (s.hideStats === true && CURRENT_USER.role !== 'organizer') continue;
@@ -177,10 +178,11 @@ function renderGlobalStatsContent(data) {
                     <td class="text-right ${marginClass}">${(s.profitMargin || 0).toFixed(1)}%</td>
                 </tr>`;
     }
-    html += `</tbody></table></div>`;
+    html += `</tbody>}</div></div>`;
 
     if (data.typeDetails && data.typeDetails.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">🏷️ Рентабельность по типам мерча</div><table class="detail-table"><thead><tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        html += `<div class="detail-section"><div class="detail-title">🏷️ Рентабельность по типам мерча</div>
+        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
         for (const t of data.typeDetails) {
             const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
@@ -192,18 +194,20 @@ function renderGlobalStatsContent(data) {
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody></table></div>`;
+        html += `</tbody>}</div></div>`;
     }
 
     if (data.topProducts && data.topProducts.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">🏆 Популярные позиции</div><table class="detail-table"><thead><tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></table></thead><tbody>`;
+        html += `<div class="detail-section"><div class="detail-title">🏆 Популярные позиции</div>
+        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
         for (let i = 0; i < data.topProducts.length; i++) {
             const p = data.topProducts[i];
             const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const pMarginClass = (p.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            html += `<tr>
+            const displayName = `${p.type} ${p.name}`;
+            html += `</tr>
                         <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-                        <td>${escapeHtml(p.name)}</td>
+                        <td>${escapeHtml(displayName)}</td>
                         <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
                         <td class="text-right">${p.qty} шт</td>
                         <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
@@ -211,11 +215,12 @@ function renderGlobalStatsContent(data) {
                         <td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody></table></div>`;
+        html += `</tbody>}</div></div>`;
     }
 
     if (data.topTypes && data.topTypes.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">🏆 Популярные типы мерча</div><table class="detail-table"><thead><tr><th>#</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        html += `<div class="detail-section"><div class="detail-title">🏆 Популярные типы мерча</div>
+        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>#</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
         for (let i = 0; i < data.topTypes.length; i++) {
             const t = data.topTypes[i];
             const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
@@ -227,9 +232,9 @@ function renderGlobalStatsContent(data) {
                         <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
                         <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
-                    </tr>`;
+                    <tr>`;
         }
-        html += `</tbody></table></div>`;
+        html += `</tbody>}</div></div>`;
     }
 
     if (CURRENT_USER.role === 'organizer') {
@@ -297,14 +302,14 @@ function renderSingleParticipantStats(stats) {
 
     if (stats.productDetails && stats.productDetails.length > 0) {
         html += `<div class="detail-section"><div class="detail-title">📦 Детализация по товарам</div>
-                 <div class="table-wrapper">
-                  <table class="detail-table"><thead><tr><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
         for (const p of stats.productDetails) {
             const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const pMarginClass = (p.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
+            const displayName = `${p.type} ${p.name}`;
             html += `<tr>
                         <td class="text-right"></td>
-                        <td>${escapeHtml(p.name)}</td>
+                        <td>${escapeHtml(displayName)}</td>
                         <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
                         <td class="text-right">${p.qty} шт</td>
                         <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
@@ -312,13 +317,12 @@ function renderSingleParticipantStats(stats) {
                         <td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody></tr></div></div>`;
+        html += `</tbody>}</div></div>`;
     }
 
     if (stats.typeDetails && stats.typeDetails.length > 0) {
         html += `<div class="detail-section"><div class="detail-title">🏷️ Детализация по типам мерча</div>
-                 <div class="table-wrapper">
-                  <table class="detail-table"><thead><tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
         for (const t of stats.typeDetails) {
             const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
