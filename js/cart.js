@@ -207,4 +207,66 @@ async function updateStock(index, delta, silent = false) {
         if (!result.success && !silent) { await loadData(true, true); showToast("Ошибка: " + (result.error || "неизвестная"), false); }
     } catch (error) {
         console.error(error);
-        add
+        addPendingOperation("update", `&row=${index}&delta=${delta}`);
+        if (!silent) showToast(`Операция сохранена для синхронизации`, true);
+    }
+    updateCardBadges();
+    if (!silent) {
+        if (delta === -1) { addSingleSaleToHistory(card.name, 1, card.price, false); showToast(`Продажа: ${card.name} -1 шт`, true); }
+        else if (delta === 1) { addSingleSaleToHistory(card.name, 1, card.price, true); showToast(`Возврат: ${card.name} +1 шт`, true); }
+    }
+}
+
+async function checkout() {
+    const items = Object.entries(cart).filter(([_, qty]) => qty > 0);
+    if (items.length === 0) { showToast("Нет товаров для продажи", false); return; }
+    let subtotal = 0;
+    for (const [idxStr, qty] of items) { const idx = parseInt(idxStr); const card = originalCardsData[idx]; subtotal += qty * card.price; }
+    let total = 0;
+    for (const [idxStr, qty] of items) { const idx = parseInt(idxStr); const card = originalCardsData[idx]; const best = getBestDiscountForItem(idx, card.price, qty, subtotal); total += best.price * qty; }
+    for (const [idxStr, qty] of items) { const idx = parseInt(idxStr); const card = originalCardsData[idx]; if (qty > card.stock) { showToast(`Не хватает "${card.name}" (нужно ${qty}, есть ${card.stock})`, false); return; } }
+    const activeRules = checkRulesForCart();
+    if (activeRules.length > 0) { let rulesMessage = "Не забудьте:\n"; for (const rule of activeRules) rulesMessage += `• ${rule.message}\n`; showToast(rulesMessage, true); }
+    const historyItems = items.map(([idxStr, qty]) => { const idx = parseInt(idxStr); const card = originalCardsData[idx]; return { name: card.name, qty: qty, price: card.price }; });
+    addToHistory(historyItems, total, 'basket', false);
+    const cartCopy = { ...cart };
+    closeCartModal();
+    cart = {};
+    itemDiscounts = {};
+    selectedDiscountProducts.clear();
+    updateCartUI();
+    for (const [idxStr, qty] of Object.entries(cartCopy)) {
+        if (qty === 0) continue;
+        const idx = parseInt(idxStr);
+        const card = originalCardsData[idx];
+        const newStock = card.stock - qty;
+        card.stock = newStock;
+        const cards = document.querySelectorAll('.card');
+        let targetCard = null;
+        for (let i = 0; i < cards.length; i++) {
+            const minusBtn = cards[i].querySelector('.minus');
+            if (minusBtn && parseInt(minusBtn.dataset.index) === idx) { targetCard = cards[i]; break; }
+        }
+        if (targetCard) {
+            const stockSpan = targetCard.querySelector('.stock');
+            if (stockSpan) stockSpan.textContent = `Остаток: ${newStock} шт`;
+            if (newStock === 0) targetCard.classList.add('out-of-stock');
+            else targetCard.classList.remove('out-of-stock');
+        }
+    }
+    (async () => {
+        for (const [idxStr, qty] of Object.entries(cartCopy)) {
+            if (qty === 0) continue;
+            const idx = parseInt(idxStr);
+            for (let i = 0; i < qty; i++) {
+                if (!isOnline) {
+                    addPendingOperation("update", `&row=${idx}&delta=-1`);
+                } else {
+                    try { await fetch(buildApiUrl("update", `&row=${idx}&delta=-1`)); } catch(e) { addPendingOperation("update", `&row=${idx}&delta=-1`); }
+                }
+            }
+        }
+        showUpdateTime();
+    })();
+    showToast(`Продажа на ${Math.max(0, total).toFixed(2)} ₽ завершена!`, true);
+}
