@@ -1,0 +1,260 @@
+// ========== ИСТОРИЯ ==========
+function saveHistoryToLocal() {
+    localStorage.setItem('merch_sales_history', JSON.stringify(salesHistory));
+}
+
+function loadHistoryFromLocal() {
+    const saved = localStorage.getItem('merch_sales_history');
+    if (saved) salesHistory = JSON.parse(saved);
+    else salesHistory = [];
+}
+
+async function syncFullHistoryToServer() {
+    if (!isOnline) {
+        addPendingOperation("syncFullHistory", `&data=${encodeURIComponent(JSON.stringify(salesHistory))}`);
+        return;
+    }
+    try {
+        const data = encodeURIComponent(JSON.stringify(salesHistory));
+        await fetch(buildApiUrl("syncFullHistory", `&data=${data}`));
+    } catch(e) { 
+        console.error(e); 
+        addPendingOperation("syncFullHistory", `&data=${encodeURIComponent(JSON.stringify(salesHistory))}`);
+    }
+}
+
+async function loadHistoryFromServer() {
+    if (!isOnline) {
+        loadHistoryFromLocal();
+        return false;
+    }
+    try {
+        const response = await fetch(buildApiUrl("getFullHistory"));
+        const data = await response.json();
+        if (data && data.history) {
+            salesHistory = data.history;
+            saveHistoryToLocal();
+            if (document.getElementById('historyModal')?.style.display === 'block') renderHistoryList();
+            return true;
+        }
+        return false;
+    } catch(e) { return false; }
+}
+
+async function loadHistory() {
+    const loaded = await loadHistoryFromServer();
+    if (!loaded) loadHistoryFromLocal();
+}
+
+function saveHistory() {
+    saveHistoryToLocal();
+    syncFullHistoryToServer();
+}
+
+function addToHistory(items, total, method, isReturn = false) {
+    const entry = {
+        id: Date.now() + Math.random(),
+        date: new Date().toISOString(),
+        items: items.map(item => ({ name: item.name, qty: item.qty, price: item.price })),
+        total: total,
+        method: method,
+        isReturn: isReturn,
+        hidden: false
+    };
+    salesHistory.unshift(entry);
+    if (salesHistory.length > 200) salesHistory = salesHistory.slice(0, 200);
+    saveHistory();
+    if (document.getElementById('historyModal')?.style.display === 'block') renderHistoryList();
+}
+
+function addSingleSaleToHistory(name, qty, price, isReturn = false) {
+    addToHistory([{ name: name, qty: qty, price: price }], qty * price, 'single', isReturn);
+}
+
+async function hideHistoryEntry(id) {
+    if (!isOnline) {
+        const entry = salesHistory.find(e => e.id == id);
+        if (entry) entry.hidden = true;
+        saveHistory();
+        addPendingOperation("hideHistoryEntry", `&id=${id}`);
+        renderHistoryList();
+        showToast("Запись скрыта (будет синхронизировано позже)", true);
+        return;
+    }
+    try {
+        await fetch(buildApiUrl("hideHistoryEntry", `&id=${id}`));
+        const entry = salesHistory.find(e => e.id == id);
+        if (entry) entry.hidden = true;
+        saveHistory();
+        renderHistoryList();
+        showToast("Запись скрыта", true);
+    } catch(e) {
+        const entry = salesHistory.find(e => e.id == id);
+        if (entry) entry.hidden = true;
+        saveHistory();
+        addPendingOperation("hideHistoryEntry", `&id=${id}`);
+        showToast("Запись скрыта (будет синхронизировано позже)", true);
+    }
+}
+
+async function cancelHistoryEntry(id) {
+    const entry = salesHistory.find(e => e.id == id);
+    if (!entry) return;
+    if (entry.isReturn) {
+        showToast("Отмена возврата не поддерживается", false);
+        return;
+    }
+    
+    if (!isOnline) {
+        addPendingOperation("cancelHistoryEntry", `&id=${id}`);
+        showToast("Отмена продажи будет выполнена при восстановлении соединения", true);
+        return;
+    }
+    
+    try {
+        const response = await fetch(buildApiUrl("cancelHistoryEntry", `&id=${id}`));
+        const result = await response.json();
+        if (result.success) {
+            entry.hidden = true;
+            saveHistory();
+            await loadData(true, false);
+            renderHistoryList();
+            showToast("Продажа отменена, остатки восстановлены", true);
+        } else {
+            showToast("Ошибка отмены: " + (result.error || "неизвестная"), false);
+        }
+    } catch(e) {
+        addPendingOperation("cancelHistoryEntry", `&id=${id}`);
+        showToast("Отмена продажи будет выполнена при восстановлении соединения", true);
+    }
+}
+
+function setHistoryMethodFilter(filter) {
+    historyMethodFilter = filter;
+    document.querySelectorAll('[data-method]').forEach(btn => {
+        if (btn.dataset.method === filter) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+    renderHistoryList();
+}
+
+function setHistoryTypeFilter(filter) {
+    historyTypeFilter = filter;
+    document.querySelectorAll('[data-type]').forEach(btn => {
+        if (btn.dataset.type === filter) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+    renderHistoryList();
+}
+
+function startHistoryAutoSync() {
+    if (historySyncInterval) clearInterval(historySyncInterval);
+    historySyncInterval = setInterval(async () => { await loadHistoryFromServer(); }, 60000);
+}
+
+function clearAllHistory() {
+    if (salesHistory.length === 0) {
+        showToast("История уже пуста", false);
+        return;
+    }
+    if (confirm("Удалить всю историю операций? Это действие нельзя отменить.")) {
+        salesHistory = [];
+        saveHistory();
+        renderHistoryList();
+        showToast("Вся история очищена", true);
+    }
+}
+
+function resetHistoryFilters() {
+    historyMethodFilter = "all";
+    historyTypeFilter = "all";
+    document.querySelectorAll('[data-method], [data-type]').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('[data-method="all"]')?.classList.add('active');
+    document.querySelector('[data-type="all"]')?.classList.add('active');
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const currentDay = now.getDate();
+    
+    const fromDay = document.getElementById('dateFromDay');
+    const fromMonth = document.getElementById('dateFromMonth');
+    const fromYear = document.getElementById('dateFromYear');
+    const fromHour = document.getElementById('timeFromHour');
+    const fromMinute = document.getElementById('timeFromMinute');
+    if (fromDay) fromDay.value = currentDay;
+    if (fromMonth) fromMonth.value = currentMonth;
+    if (fromYear) fromYear.value = currentYear;
+    if (fromHour) fromHour.value = 0;
+    if (fromMinute) fromMinute.value = 0;
+    
+    const toDay = document.getElementById('dateToDay');
+    const toMonth = document.getElementById('dateToMonth');
+    const toYear = document.getElementById('dateToYear');
+    const toHour = document.getElementById('timeToHour');
+    const toMinute = document.getElementById('timeToMinute');
+    if (toDay) toDay.value = currentDay;
+    if (toMonth) toMonth.value = currentMonth;
+    if (toYear) toYear.value = currentYear;
+    if (toHour) toHour.value = 23;
+    if (toMinute) toMinute.value = 59;
+    
+    const minPrice = document.getElementById('historyMinPrice');
+    const maxPrice = document.getElementById('historyMaxPrice');
+    if (minPrice) minPrice.value = '0';
+    if (maxPrice) maxPrice.value = '';
+    
+    renderHistoryList();
+}
+
+function renderHistoryList() {
+    const container = document.getElementById('history-list');
+    if (!container) return;
+    
+    const fromDate = getDateTimeFromSelects('dateFrom');
+    const toDate = getDateTimeFromSelects('dateTo');
+    const minPrice = parseInt(document.getElementById('historyMinPrice')?.value) || 0;
+    const maxPrice = parseInt(document.getElementById('historyMaxPrice')?.value) || Infinity;
+    
+    let filtered = salesHistory.filter(e => !e.hidden);
+    if (historyMethodFilter === 'basket') filtered = filtered.filter(e => e.method === 'basket');
+    else if (historyMethodFilter === 'single') filtered = filtered.filter(e => e.method === 'single');
+    if (historyTypeFilter === 'sale') filtered = filtered.filter(e => !e.isReturn);
+    else if (historyTypeFilter === 'return') filtered = filtered.filter(e => e.isReturn === true);
+    if (fromDate) filtered = filtered.filter(e => new Date(e.date) >= fromDate);
+    if (toDate) filtered = filtered.filter(e => new Date(e.date) <= toDate);
+    filtered = filtered.filter(e => e.total >= minPrice && e.total <= maxPrice);
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-cart">🍌 История пуста</div>';
+        return;
+    }
+    
+    let html = '';
+    for (const entry of filtered) {
+        const date = new Date(entry.date);
+        const dateStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const isBasket = entry.method === 'basket';
+        const isReturn = entry.isReturn;
+        let itemsHtml = '';
+        for (const item of entry.items) {
+            itemsHtml += `<div>• ${item.name}: ${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
+        }
+        const methodLabel = isBasket ? 'Корзина' : 'Поштучно';
+        const methodClass = isBasket ? 'history-badge-method-basket' : 'history-badge-method-single';
+        const actionLabel = isReturn ? 'Возврат' : 'Продажа';
+        const actionClass = isReturn ? 'history-badge-type-return' : 'history-badge-type-sale';
+        html += `<div class="history-item">
+                    <div class="history-content">
+                        <div class="history-date">${dateStr} <span class="history-badge ${methodClass}">${methodLabel}</span> <span class="history-badge ${actionClass}">${actionLabel}</span></div>
+                        <div class="history-details">${itemsHtml}</div>
+                        <div class="${isReturn ? 'history-return' : 'history-sale'}">${isReturn ? '↩️' : '💰'} Итого: ${entry.total} ₽</div>
+                    </div>
+                    <div class="history-buttons">
+                        ${!isReturn ? `<button class="history-cancel-btn" onclick="cancelHistoryEntry('${entry.id}')" title="Отменить продажу">↩️</button>` : ''}
+                        <button class="history-delete-btn" onclick="hideHistoryEntry('${entry.id}')" title="Скрыть запись">🗑</button>
+                    </div>
+                </div>`;
+    }
+    container.innerHTML = html;
+}
