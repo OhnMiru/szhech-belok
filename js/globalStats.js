@@ -104,11 +104,19 @@ function renderGlobalStatsWithData(data) {
     const container = document.getElementById('globalStats-content');
     if (!container) return;
 
+    // Фильтруем участников для селектора: только те, у кого hideStats = false и shareStats = false (открытая статистика)
+    let visibleParticipants = (data.participants || []).filter(p => p.hideStats !== true && p.shareStats !== true);
+    
+    // Сортируем: сначала художники по алфавиту, потом организаторы по алфавиту
+    const artists = visibleParticipants.filter(p => p.role === 'artist').sort((a, b) => a.name.localeCompare(b.name));
+    const organizers = visibleParticipants.filter(p => p.role === 'organizer').sort((a, b) => a.name.localeCompare(b.name));
+    const sortedParticipants = [...artists, ...organizers];
+
     let html = `<div class="participant-custom-select" id="participantSelectContainer">
             <div class="participant-custom-select-trigger" id="participantSelectTrigger">📊 Все участники</div>
             <div class="participant-custom-select-dropdown" id="participantSelectDropdown">
                 <div class="participant-option selected" data-id="all">📊 Все участники</div>`;
-    for (const p of (data.participants || [])) {
+    for (const p of sortedParticipants) {
         html += `<div class="participant-option" data-id="${escapeHtml(p.id)}" data-hide-stats="${p.hideStats}" data-share-stats="${p.shareStats}" data-name="${escapeHtml(p.name)}" data-role="${p.role}">${escapeHtml(p.name)} (${p.role === 'organizer' ? 'Организатор' : 'Художник'})</div>`;
     }
     html += `</div></div><div id="participantStatsContainer"></div>`;
@@ -137,14 +145,9 @@ function renderGlobalStatsWithData(data) {
                 if (id === 'all') {
                     renderGlobalStatsContent(data);
                 } else {
-                    if (hideStats && participantRole !== 'organizer') {
+                    if (hideStats || shareStats) {
                         const container = document.getElementById('participantStatsContainer');
-                        container.innerHTML = `<div class="stats-privacy-message">🔒 Участник не делится статистикой</div>`;
-                        return;
-                    }
-                    if (shareStats && participantRole !== 'organizer') {
-                        const container = document.getElementById('participantStatsContainer');
-                        container.innerHTML = `<div class="stats-privacy-message">🕊 Участник делится статистикой анонимно</div>`;
+                        container.innerHTML = `<div class="stats-privacy-message">${shareStats ? '🕊️ Аноним' : '🔒 Участник не делится статистикой'}</div>`;
                         return;
                     }
                     try {
@@ -169,48 +172,102 @@ function renderGlobalStatsWithData(data) {
 function renderGlobalStatsContent(data) {
     const container = document.getElementById('participantStatsContainer');
     if (!container) return;
-    const stats = data.stats || [];
+    
+    // Фильтруем участников для таблицы: только те, у кого hideStats !== true (скрытые исключаем)
+    let visibleStats = (data.stats || []).filter(s => s.hideStats !== true);
+    
+    // Анонимные помечаем, остальных оставляем с именами
+    let processedStats = visibleStats.map(s => {
+        if (s.shareStats === true && s.role !== 'organizer') {
+            return { ...s, name: "Аноним 🕊️", isAnonymous: true };
+        }
+        return { ...s, isAnonymous: false };
+    });
+    
+    // Сортируем: сначала неанонимные по рентабельности, потом анонимные по рентабельности
+    const nonAnonymous = processedStats.filter(s => !s.isAnonymous).sort((a, b) => (b.profitMargin || 0) - (a.profitMargin || 0));
+    const anonymous = processedStats.filter(s => s.isAnonymous).sort((a, b) => (b.profitMargin || 0) - (a.profitMargin || 0));
+    const sortedStats = [...nonAnonymous, ...anonymous];
+    
     const totalRevenue = data.totalRevenue || 0;
     const totalCost = data.totalCost || 0;
     const totalNetProfit = data.totalNetProfit || 0;
     const totalItemsSold = data.totalItemsSold || 0;
     const totalGoods = data.totalGoods || 0;
-    const avgCheck = data.avgCheck || 0;
+    const avgCheck = data.avgCheck ? Math.ceil(data.avgCheck) : 0;
     const profitMargin = totalRevenue > 0 ? (totalNetProfit / totalRevenue * 100) : 0;
     
-    let html = `<div class="stats-grid"><div class="stats-card"><div class="stats-card-value">${totalRevenue.toLocaleString()} ₽</div><div class="stats-card-label">💰 Общая выручка</div></div>
-            <div class="stats-card"><div class="stats-card-value">${totalCost.toLocaleString()} ₽</div><div class="stats-card-label">📦 Общая себестоимость</div></div>
-            <div class="stats-card"><div class="stats-card-value ${totalNetProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${totalNetProfit.toLocaleString()} ₽</div><div class="stats-card-label">📈 Общая чистая прибыль</div></div>
-            <div class="stats-card"><div class="stats-card-value">${totalItemsSold.toLocaleString()} шт</div><div class="stats-card-label">📊 Продано единиц</div></div>
-            <div class="stats-card"><div class="stats-card-value">${totalGoods.toLocaleString()} шт</div><div class="stats-card-label">📦 Всего товаров</div></div>
-            <div class="stats-card"><div class="stats-card-value">${avgCheck.toLocaleString()} ₽</div><div class="stats-card-label">💳 Средний чек</div></div></div>
-        <div class="stats-summary-compact"><div class="stats-summary-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${profitMargin.toFixed(1)}%</div><div class="stats-summary-label">Общая рентабельность</div></div>
-        <div class="detail-section"><div class="detail-title">📊 Статистика по участникам</div>
-        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>Участник</th><th>Роль</th><th class="text-right">Выручка</th><th class="text-right">Чистая прибыль</th>
-            <th class="text-right">Продано единиц</th><th class="text-right">Всего товаров</th><th class="text-right">Средний чек</th><th class="text-right">Рентабельность</th></tr></thead><tbody>`;
-    for (const s of stats) {
-        let displayName = s.name;
-        if (s.hideStats === true && CURRENT_USER.role !== 'organizer') continue;
-        if (s.hideStats === true && s.role !== 'organizer') displayName = "🔒 Скрыт";
-        else if (s.shareStats === true && s.role !== 'organizer') displayName = "🕊 Аноним";
+    let html = `<div class="stats-grid">
+        <div class="stats-card"><div class="stats-card-value">${totalRevenue.toLocaleString()} ₽</div><div class="stats-card-label">💰 Общая выручка</div></div>
+        <div class="stats-card"><div class="stats-card-value">${totalCost.toLocaleString()} ₽</div><div class="stats-card-label">📦 Общая себестоимость</div></div>
+        <div class="stats-card"><div class="stats-card-value">${(data.totalExtraCosts || 0).toLocaleString()} ₽</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
+        <div class="stats-card"><div class="stats-card-value">${(totalCost + (data.totalExtraCosts || 0)).toLocaleString()} ₽</div><div class="stats-card-label">📉 Общие затраты</div></div>
+        <div class="stats-card desktop-only"><div class="stats-card-value ${totalNetProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${totalNetProfit.toLocaleString()} ₽</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
+        <div class="stats-card"><div class="stats-card-value">${totalItemsSold.toLocaleString()} шт</div><div class="stats-card-label">📊 Продано товаров</div></div>
+        <div class="stats-card"><div class="stats-card-value">${totalGoods.toLocaleString()} шт</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
+        <div class="stats-card"><div class="stats-card-value">${(data.totalStockValue || 0).toLocaleString()} ₽</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
+        <div class="stats-card"><div class="stats-card-value">${(data.totalOrders || 0).toLocaleString()}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
+        <div class="stats-card"><div class="stats-card-value">${avgCheck.toLocaleString()} ₽</div><div class="stats-card-label">💳 Средний чек</div></div>
+    </div>`;
+    
+    html += `<div class="profit-mobile-row">
+        <div class="profit-mobile-card">
+            <div class="profit-mobile-value">${totalNetProfit.toLocaleString()} ₽</div>
+            <div class="profit-mobile-label">📈 Чистая прибыль</div>
+        </div>
+        <div class="profit-mobile-card">
+            <div class="profit-mobile-value">${profitMargin.toFixed(1)}%</div>
+            <div class="profit-mobile-label">📊 Рентабельность</div>
+        </div>
+    </div>`;
+    
+    html += `<div class="profit-card-single">
+        <div class="profit-card-value">${profitMargin.toFixed(1)}%</div>
+        <div class="profit-card-label">📊 Рентабельность</div>
+    </div>`;
+    
+    // Таблица статистики по участникам
+    html += `<div class="detail-section">
+        <div class="detail-title">📊 Статистика по участникам</div>
+        <div class="table-wrapper">
+            <table class="detail-table">
+                <thead>
+                    <tr><th>Участник</th><th>Роль</th><th class="text-right">Выручка</th><th class="text-right">Чистая прибыль</th>
+                    <th class="text-right">Продано товаров</th><th class="text-right">Всего товаров</th><th class="text-right">Средний чек</th><th class="text-right">Рентабельность</th>
+                </tr>
+                </thead>
+                <tbody>`;
+    for (const s of sortedStats) {
         const profitClass = (s.netProfit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = (s.profitMargin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
+        const avgCheckValue = s.averageCheck ? Math.ceil(s.averageCheck) : 0;
         html += `<tr>
-                    <td>${escapeHtml(displayName)}</td>
+                    <td>${escapeHtml(s.name)}</td>
                     <td>${s.role === 'organizer' ? 'Организатор' : 'Художник'}</td>
                     <td class="text-right">${(s.totalRevenue || 0).toLocaleString()} ₽</td>
                     <td class="text-right ${profitClass}">${(s.netProfit || 0).toLocaleString()} ₽</td>
                     <td class="text-right">${(s.totalItemsSold || 0).toLocaleString()} шт</td>
                     <td class="text-right">${(s.totalGoods || 0).toLocaleString()} шт</td>
-                    <td class="text-right">${(s.averageCheck || 0).toLocaleString()} ₽</td>
+                    <td class="text-right">${avgCheckValue.toLocaleString()} ₽</td>
                     <td class="text-right ${marginClass}">${(s.profitMargin || 0).toFixed(1)}%</td>
                 </tr>`;
     }
-    html += `</tbody>}</div></div>`;
-
+    html += `</tbody>
+            </table>
+        </div>
+    </div>`;
+    
+    // Детализация по типам мерча
     if (data.typeDetails && data.typeDetails.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">🏷️ Рентабельность по типам мерча</div>
-        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        html += `<div class="detail-section">
+            <div class="detail-title">🏷️ Детализация по типам мерча</div>
+            <div class="table-wrapper">
+                <table class="detail-table">
+                    <thead>
+                        <tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                    </tr>
+                    </thead>
+                    <tbody>`;
         for (const t of data.typeDetails) {
             const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
@@ -222,51 +279,73 @@ function renderGlobalStatsContent(data) {
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody>}</div></div>`;
+        html += `</tbody>
+                </table>
+            </div>
+        </div>`;
     }
-
+    
+    // Самые продаваемые товары с добавлением колонки Участник
     if (data.topProducts && data.topProducts.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">🏆 Популярные позиции</div>
-        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        html += `<div class="detail-section">
+            <div class="detail-title">🏆 Самые продаваемые товары</div>
+            <div class="table-wrapper">
+                <table class="detail-table">
+                    <thead>
+                        <tr><th>#</th><th>Товар</th><th>Тип</th><th>Участник</th><th class="text-right">Продано, шт</th>
+                    </tr>
+                    </thead>
+                    <tbody>`;
         for (let i = 0; i < data.topProducts.length; i++) {
             const p = data.topProducts[i];
             const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const pMarginClass = (p.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const displayName = `${p.type} ${p.name}`;
+            const participantDisplay = p.participantName || (p.isAnonymous ? "Аноним 🕊️" : p.participantName);
             html += `<tr>
                         <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
                         <td>${escapeHtml(displayName)}</td>
                         <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+                        <td>${escapeHtml(participantDisplay)}</td>
                         <td class="text-right">${p.qty} шт</td>
-                        <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
-                        <td class="text-right ${pProfitClass}">${p.profit.toLocaleString()} ₽</td>
-                        <td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody>}</div></div>`;
+        html += `</tbody>
+                </table>
+            </div>
+        </div>`;
     }
-
+    
+    // Самые продаваемые типы
     if (data.topTypes && data.topTypes.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">🏆 Популярные типы мерча</div>
-        <div class="table-wrapper"><table class="detail-table"><thead><tr><th>#</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        html += `<div class="detail-section">
+            <div class="detail-title">🏆 Самые продаваемые типы</div>
+            <div class="table-wrapper">
+                <table class="detail-table">
+                    <thead>
+                        <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                    </tr>
+                    </thead>
+                    <tbody>`;
         for (let i = 0; i < data.topTypes.length; i++) {
             const t = data.topTypes[i];
-            const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             html += `<tr>
                         <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
                         <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
                         <td class="text-right">${t.qty} шт</td>
-                        <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
-                        <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
-                        <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody>}</div></div>`;
+        html += `</tbody>
+                </table>
+            </div>
+        </div>`;
     }
-
+    
+    // Общие расходы организатора (только для организатора)
     if (CURRENT_USER.role === 'organizer') {
-        html += `<div class="extra-costs-section"><div class="detail-title">➕ Общие расходы организатора</div><div id="global-extra-costs-list">`;
+        html += `<div class="extra-costs-section">
+            <div class="detail-title">➕ Общие расходы организатора</div>
+            <div id="global-extra-costs-list">`;
         if (globalExtraCosts.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных расходов</div>';
         for (let i = 0; i < globalExtraCosts.length; i++) {
             const cost = globalExtraCosts[i];
@@ -276,13 +355,15 @@ function renderGlobalStatsContent(data) {
                         <button class="extra-cost-delete" onclick="deleteGlobalExtraCost(${i})">🗑</button>
                     </div>`;
         }
-        html += `</div><div class="add-cost-form">
-                    <input type="text" id="newGlobalCostName" class="add-cost-input" placeholder="Название (аренда, доставка...)" autocomplete="off">
-                    <input type="number" id="newGlobalCostAmount" class="add-cost-input-number" placeholder="Сумма" value="0" step="100">
-                    <button class="add-cost-btn" onclick="addGlobalExtraCostFromModal()">➕ Добавить</button>
-                </div></div>`;
+        html += `</div>
+            <div class="add-cost-form">
+                <input type="text" id="newGlobalCostName" class="add-cost-input" placeholder="Название (аренда, доставка...)" autocomplete="off">
+                <input type="number" id="newGlobalCostAmount" class="add-cost-input-number" placeholder="Сумма" value="0" step="100">
+                <button class="add-cost-btn" onclick="addGlobalExtraCostFromModal()">➕ Добавить</button>
+            </div>
+        </div>`;
     }
-
+    
     container.innerHTML = html;
 }
 
@@ -308,6 +389,7 @@ function renderUserFullStats(stats, participantName) {
     const topProducts = stats.topProducts || [];
     const topTypes = stats.topTypes || [];
     const extraCostsUser = stats.extraCosts || [];
+    const totalExtraCosts = extraCostsUser.reduce((sum, c) => sum + (c.amount || 0), 0);
     
     const formatCurrency = (value) => value.toLocaleString('ru-RU') + ' ₽';
     const formatNumber = (value) => value.toLocaleString('ru-RU');
@@ -318,8 +400,8 @@ function renderUserFullStats(stats, participantName) {
     html += `<div class="stats-grid">
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalRevenue)}</div><div class="stats-card-label">💰 Выручка</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCost)}</div><div class="stats-card-label">📦 Себестоимость всего товара</div></div>
-        <div class="stats-card"><div class="stats-card-value">${formatCurrency(extraCostsUser.reduce((sum, c) => sum + (c.amount || 0), 0))}</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
-        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCost + extraCostsUser.reduce((sum, c) => sum + (c.amount || 0), 0))}</div><div class="stats-card-label">📉 Общие затраты</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraCosts)}</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCost + totalExtraCosts)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
         <div class="stats-card desktop-only"><div class="stats-card-value ${totalNetProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(totalNetProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalGoods)}</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
@@ -344,6 +426,7 @@ function renderUserFullStats(stats, participantName) {
         <div class="profit-card-label">📊 Рентабельность</div>
     </div>`;
     
+    // Детализация по товарам
     html += `<div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
         <div class="table-wrapper">
@@ -370,8 +453,10 @@ function renderUserFullStats(stats, participantName) {
     html += `</tbody>
             </table>
         </div>
-    </div>
-    <div class="detail-section">
+    </div>`;
+    
+    // Детализация по типам мерча
+    html += `<div class="detail-section">
         <div class="detail-title">🏷️ Детализация по типам мерча</div>
         <div class="table-wrapper">
             <table class="detail-table">
@@ -393,10 +478,12 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-        </table>
+            </table>
         </div>
-    </div>
-    <div class="two-columns">
+    </div>`;
+    
+    // Самые продаваемые товары и типы в две колонки
+    html += `<div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <table class="detail-table-small">
@@ -437,8 +524,10 @@ function renderUserFullStats(stats, participantName) {
     html += `</tbody>
             </table>
         </div>
-    </div>
-    <div class="extra-costs-section">
+    </div>`;
+    
+    // Дополнительные расходы участника
+    html += `<div class="extra-costs-section">
         <div class="detail-title">➕ Дополнительные расходы (участника)</div>
         <div id="user-extra-costs-list">`;
     if (extraCostsUser.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных расходов</div>';
