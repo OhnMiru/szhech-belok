@@ -24,14 +24,21 @@ function renderStats() {
     
     // Себестоимость всего товара на складе (полная себестоимость партии)
     let totalCostAllGoods = 0;
+    let totalStock = 0; // остаток в штуках
+    let totalStockValue = 0; // остаток в деньгах (по себестоимости)
+    
     const productFullCostMap = new Map(); // полная себестоимость каждого товара
     for (const card of originalCardsData) {
         const fullCost = (card.cost || 0) * (card.total || 0);
+        const stockValue = (card.cost || 0) * (card.stock || 0);
         totalCostAllGoods += fullCost;
+        totalStock += (card.stock || 0);
+        totalStockValue += stockValue;
         productFullCostMap.set(card.name, { 
             cost: card.cost || 0, 
             fullCost: fullCost,
             total: card.total || 0,
+            stock: card.stock || 0,
             soldQty: 0,
             revenue: 0
         });
@@ -64,6 +71,7 @@ function renderStats() {
             name: name,
             type: type,
             soldQty: data.soldQty,
+            stock: data.stock,
             revenue: data.revenue,
             fullCost: data.fullCost,
             profit: profit,
@@ -81,12 +89,10 @@ function renderStats() {
             typeStats[type] = { 
                 fullCost: 0, 
                 revenue: 0,
-                soldQty: 0,
-                totalQty: 0
+                soldQty: 0
             };
         }
         typeStats[type].fullCost += fullCost;
-        typeStats[type].totalQty += card.total || 0;
     }
     
     // Добавляем данные о продажах по типам
@@ -107,7 +113,6 @@ function renderStats() {
         return {
             type: type,
             soldQty: data.soldQty,
-            totalQty: data.totalQty,
             revenue: data.revenue,
             fullCost: data.fullCost,
             profit: profit,
@@ -128,33 +133,41 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCostAllGoods)}</div><div class="stats-card-label">📦 Себестоимость всего товара</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraCosts)}</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExpenses)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
-        <div class="stats-card"><div class="stats-card-value ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
-        <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано единиц</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatNumber(totalStock)}</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalStockValue)}</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
+        <!-- Эти две карточки будут скрыты на телефоне -->
+        <div class="stats-card profit-stat desktop-only"><div class="stats-card-value ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
+        <div class="stats-card profit-stat desktop-only"><div class="stats-card-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${formatPercent(profitMargin)}</div><div class="stats-card-label">📊 Рентабельность</div></div>
     </div>
-    <div class="stats-summary-compact">
-        <div class="stats-summary-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${formatPercent(profitMargin)}</div>
-        <div class="stats-summary-label">Общая рентабельность</div>
+    <div class="profit-summary mobile-only">
+        <div class="profit-card ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">
+            <div class="profit-card-value">${formatCurrency(netProfit)}</div>
+            <div class="profit-card-label">📈 Чистая прибыль</div>
+        </div>
+        <div class="profit-card ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">
+            <div class="profit-card-value">${formatPercent(profitMargin)}</div>
+            <div class="profit-card-label">📊 Рентабельность</div>
+        </div>
     </div>
     <div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
         <table class="detail-table">
             <thead>
-                <tr><th>Товар</th><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                <tr><th>Товар</th><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест. (всего)</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
                 </tr>
             </thead>
             <tbody>`;
     for (const p of productStats) {
-        const card = originalCardsData.find(c => c.name === p.name);
-        const stock = (card?.stock || 0);
         const profitClass = p.profit >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = p.margin >= 0 ? 'profit-positive' : 'profit-negative';
         html += `<tr>
             <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td>
-            <td class="text-right">${stock} шт</td>
+            <td class="text-right">${p.stock} шт</td>
             <td class="text-right">${formatCurrency(p.revenue)}</td>
             <td class="text-right">${formatCurrency(p.fullCost)}</td>
             <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td>
@@ -168,7 +181,7 @@ function renderStats() {
         <div class="detail-title">🏷️ Детализация по типам мерча</div>
         <table class="detail-table">
             <thead>
-                <tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Всего</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                <tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Выручка</th><th class="text-right">Себест. (всего)</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
                 </tr>
             </thead>
             <tbody>`;
@@ -178,7 +191,6 @@ function renderStats() {
         html += `<tr>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
             <td class="text-right">${t.soldQty} шт</td>
-            <td class="text-right">${t.totalQty} шт</td>
             <td class="text-right">${formatCurrency(t.revenue)}</td>
             <td class="text-right">${formatCurrency(t.fullCost)}</td>
             <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
@@ -226,7 +238,7 @@ function renderStats() {
         </tr>`; 
     }
     html += `</tbody>
-            </table>
+            <tr>
         </div>
     </div>
     <div class="extra-costs-section">
