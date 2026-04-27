@@ -32,19 +32,18 @@ function selectItemDiscountType(type, label) {
 function renderProductDiscountList() {
     const container = document.getElementById('productDiscountList');
     if (!container) return;
-    const cartProductNames = new Set();
-    for (const [idxStr, qty] of Object.entries(cart)) {
+    const cartProductIds = new Set();
+    for (const [idStr, qty] of Object.entries(cart)) {
         if (qty > 0) {
-            const idx = parseInt(idxStr);
-            const card = originalCardsData[idx];
-            if (card) cartProductNames.add(card.name);
+            const id = parseInt(idStr);
+            cartProductIds.add(id);
         }
     }
     let html = '<div class="product-select-list">';
     originalCardsData.forEach(card => {
-        if (cartProductNames.has(card.name)) {
-            const isSelected = selectedDiscountProducts.has(card.name);
-            html += `<div class="product-select-item ${isSelected ? 'selected' : ''}" onclick="toggleProductSelectionForDiscount('${escapeHtml(card.name)}')">
+        if (cartProductIds.has(card.id)) {
+            const isSelected = selectedDiscountProducts.has(card.id);
+            html += `<div class="product-select-item ${isSelected ? 'selected' : ''}" onclick="toggleProductSelectionForDiscount(${card.id})">
                         <span class="multi-select-item-label">${escapeHtml(card.name)}</span>${isSelected ? '<span class="product-select-check">✓</span>' : ''}
                     </div>`;
         }
@@ -53,9 +52,9 @@ function renderProductDiscountList() {
     container.innerHTML = html;
 }
 
-function toggleProductSelectionForDiscount(productName) {
-    if (selectedDiscountProducts.has(productName)) selectedDiscountProducts.delete(productName);
-    else selectedDiscountProducts.add(productName);
+function toggleProductSelectionForDiscount(productId) {
+    if (selectedDiscountProducts.has(productId)) selectedDiscountProducts.delete(productId);
+    else selectedDiscountProducts.add(productId);
     renderProductDiscountList();
 }
 
@@ -68,11 +67,10 @@ function toggleDiscountProductsList() {
 
 function selectAllProductsForDiscount() {
     selectedDiscountProducts.clear();
-    for (const [idxStr, qty] of Object.entries(cart)) {
+    for (const [idStr, qty] of Object.entries(cart)) {
         if (qty > 0) {
-            const idx = parseInt(idxStr);
-            const card = originalCardsData[idx];
-            if (card) selectedDiscountProducts.add(card.name);
+            const id = parseInt(idStr);
+            selectedDiscountProducts.add(id);
         }
     }
     renderProductDiscountList();
@@ -118,13 +116,9 @@ function applyItemDiscount() {
         showToast("Введите корректную сумму скидки", false);
         return;
     }
-    for (const productName of selectedDiscountProducts) {
-        const card = originalCardsData.find(c => c.name === productName);
-        if (card) {
-            const idx = originalCardsData.findIndex(c => c.name === productName);
-            if (!itemDiscounts[idx]) itemDiscounts[idx] = {};
-            itemDiscounts[idx] = { type: type, value: value };
-        }
+    for (const productId of selectedDiscountProducts) {
+        if (!itemDiscounts[productId]) itemDiscounts[productId] = {};
+        itemDiscounts[productId] = { type: type, value: value };
     }
     selectedDiscountProducts.clear();
     discountProductListVisible = false;
@@ -140,12 +134,12 @@ function resetItemDiscounts() {
     showToast("Скидки на товары сброшены", true);
 }
 
-function getBestDiscountForItem(idx, originalPrice, qty, subtotal) {
+function getBestDiscountForItem(id, originalPrice, qty, subtotal) {
     let finalPrice = originalPrice;
     let discountValue = 0;
     let discountType = null;
-    if (itemDiscounts[idx]) {
-        const disc = itemDiscounts[idx];
+    if (itemDiscounts[id]) {
+        const disc = itemDiscounts[id];
         discountType = disc.type;
         if (disc.type === 'percent') { finalPrice = originalPrice * (1 - disc.value / 100); discountValue = disc.value; }
         else if (disc.type === 'fixed') { finalPrice = Math.max(0, originalPrice - disc.value); discountValue = disc.value; }
