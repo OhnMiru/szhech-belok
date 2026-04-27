@@ -55,7 +55,7 @@ function addToHistory(items, total, method, isReturn = false) {
     const entry = {
         id: Date.now() + Math.random(),
         date: new Date().toISOString(),
-        items: items.map(item => ({ name: item.name, qty: item.qty, price: item.price })),
+        items: items.map(item => ({ id: item.id, name: item.name, qty: item.qty, price: item.price })),
         total: total,
         method: method,
         isReturn: isReturn,
@@ -67,8 +67,8 @@ function addToHistory(items, total, method, isReturn = false) {
     if (document.getElementById('historyModal')?.style.display === 'block') renderHistoryList();
 }
 
-function addSingleSaleToHistory(name, qty, price, isReturn = false) {
-    addToHistory([{ name: name, qty: qty, price: price }], qty * price, 'single', isReturn);
+function addSingleSaleToHistory(item, qty, isReturn = false) {
+    addToHistory([{ id: item.id, name: item.name, qty: qty, price: item.price }], qty * item.price, 'single', isReturn);
 }
 
 async function hideHistoryEntry(id) {
