@@ -34,9 +34,9 @@ function closeCartModal() {
     if (modal) modal.style.display = 'none'; 
 }
 
-function openEditProductModal(index) {
-    currentEditIndex = index;
-    const card = originalCardsData[index];
+function openEditProductModal(id) {
+    currentEditId = id;
+    const card = originalCardsData.find(c => c.id === id);
     if (card) {
         document.getElementById('editTotal').value = card.total;
         document.getElementById('editStock').value = card.stock;
@@ -46,7 +46,7 @@ function openEditProductModal(index) {
 
 function closeEditProductModal() {
     document.getElementById('editProductModal').style.display = 'none';
-    currentEditIndex = null;
+    currentEditId = null;
 }
 
 function showHistory() { 
@@ -60,5 +60,31 @@ function showHistory() {
 
 function closeHistory() { 
     const modal = document.getElementById('historyModal'); 
+    if (modal) modal.style.display = 'none'; 
+}
+
+function showGlobalStats() {
+    const modal = document.getElementById('globalStatsModal');
+    if (!modal) return;
+    modal.style.display = 'block';
+    const container = document.getElementById('globalStats-content');
+    container.innerHTML = '<div class="loading">Загрузка статистики всех участников...</div>';
+    if (typeof loadGlobalExtraCosts === 'function') loadGlobalExtraCosts();
+    if (typeof renderGlobalStatsWithData === 'function') {
+        fetch(`${CENTRAL_API_URL}?action=getAllStatsFull&participant=${CURRENT_USER.id}&t=${Date.now()}`)
+            .then(r => r.json())
+            .then(data => {
+                window._globalStatsData = data;
+                renderGlobalStatsWithData(data);
+            })
+            .catch(() => {
+                container.innerHTML = '<div class="loading">Ошибка загрузки статистики</div>';
+                showToast("Ошибка загрузки статистики", false);
+            });
+    }
+}
+
+function closeGlobalStatsModal() { 
+    const modal = document.getElementById('globalStatsModal'); 
     if (modal) modal.style.display = 'none'; 
 }
