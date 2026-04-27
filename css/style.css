@@ -2213,27 +2213,27 @@ body.dark .extra-cost-amount {
 
 /* ========== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ СТАТИСТИКИ ========== */
 
-/* Плашка рентабельности на ноутбуке/планшете — узкая, по центру */
+/* Плашка рентабельности на ноутбуке/планшете — на всю ширину, вертикально меньше */
 .profit-card-single {
     background: var(--btn-bg);
     border-radius: 16px;
-    padding: 12px 12px;
+    padding: 8px 12px;
     text-align: center;
-    margin: 20px auto 24px auto;
+    margin: 20px 0 24px 0;
     box-shadow: 0 2px 8px var(--shadow);
-    max-width: 300px;
+    width: 100%;
 }
 
 .profit-card-single .profit-card-value {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: bold;
     color: white;
 }
 
 .profit-card-single .profit-card-label {
-    font-size: 13px;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.9);
-    margin-top: 6px;
+    margin-top: 4px;
     font-weight: 500;
 }
 
@@ -2357,7 +2357,9 @@ body.dark .extra-cost-amount {
         min-width: 520px;
     }
     
+    /* На телефоне таблицы Самые продаваемые друг под другом */
     .two-columns {
+        display: flex;
         flex-direction: column;
         gap: 16px;
     }
