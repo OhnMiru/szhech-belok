@@ -183,7 +183,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+        <tr>
         </div>
     </div>
     <div class="detail-section">
