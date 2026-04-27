@@ -1541,10 +1541,9 @@ body.dark .history-badge-type-return {
     transform: scale(0.95);
 }
 
-/* ========== СТАТИСТИКА ========== */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 12px;
     margin-bottom: 20px;
 }
@@ -1563,40 +1562,10 @@ body.dark .history-badge-type-return {
     margin-bottom: 6px;
 }
 
-.stats-card-value.profit-positive {
-    color: var(--profit-positive);
-}
-
-.stats-card-value.profit-negative {
-    color: var(--profit-negative);
-}
-
 .stats-card-label {
     font-size: 11px;
     color: var(--text-muted);
     font-weight: bold;
-}
-
-/* Блок рентабельности на оранжевом фоне */
-.profit-summary {
-    background: var(--btn-bg);
-    border-radius: 16px;
-    padding: 12px 16px;
-    margin: 0 0 20px 0;
-    text-align: center;
-}
-
-.profit-card-value {
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
-}
-
-.profit-card-label {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.9);
-    margin-top: 4px;
-    font-weight: 500;
 }
 
 .extra-costs-section {
@@ -1697,6 +1666,27 @@ body.dark .extra-cost-amount {
     cursor: pointer;
     width: auto;
     height: auto;
+}
+
+.stats-summary-compact {
+    background: var(--btn-bg);
+    border-radius: 16px;
+    padding: 8px 16px;
+    margin: 16px 0 20px 0;
+    text-align: center;
+}
+
+.stats-summary-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+}
+
+.stats-summary-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 2px;
+    font-weight: bold;
 }
 
 .detail-section {
@@ -2221,232 +2211,26 @@ body.dark .extra-cost-amount {
     flex-shrink: 0;
 }
 
-/* ========== МОБИЛЬНАЯ АДАПТАЦИЯ ========== */
-@media (max-width: 500px) {
-    button {
-        width: 48px;
-        height: 48px;
-        font-size: 22px;
-    }
-    .add-to-cart {
-        width: 42px;
-        height: 42px;
-        font-size: 18px;
-    }
-    .name {
-        font-size: 18px;
-    }
-    .stock {
-        font-size: 18px;
-    }
-    .type-badge {
-        font-size: 10px;
-        padding: 1px 6px;
-    }
-    .custom-select-trigger {
-        padding: 8px 24px 8px 10px;
-        font-size: 12px;
-    }
-    .cart-fab {
-        bottom: 70px;
-        right: 12px;
-        width: 50px;
-        height: 50px;
-        font-size: 22px;
-    }
-    .info {
-        padding-right: 40px;
-    }
-    .cart-qty-badge {
-        top: 4px;
-        right: 8px;
-        font-size: 10px;
-        padding: 1px 6px;
-    }
-    .price-step-btn {
-        width: 38px;
-        height: 38px;
-        font-size: 16px;
-    }
-    .modal-content {
-        width: calc(100% - 30px);
-        margin: 15px auto;
-    }
-    .modal-close-btn {
-        top: 8px;
-        right: 12px;
-        width: 32px;
-        height: 32px;
-        font-size: 18px;
-    }
-
-    /* На телефоне: 3 колонки для показателей */
-    .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
-
-    .stats-card {
-        padding: 8px 4px;
-    }
-
-    .stats-card-value {
-        font-size: 14px;
-    }
-
-    .stats-card-label {
-        font-size: 9px;
-    }
-
-    /* На телефоне: чистая прибыль скрывается, рентабельность остаётся снизу */
-    .stats-card:last-child {
-        display: none;
-    }
-
-    /* На телефоне: блок рентабельности */
-    .profit-summary {
-        margin: 0 0 16px 0;
-        padding: 10px 12px;
-    }
-
-    .profit-card-value {
-        font-size: 20px;
-    }
-
-    .profit-card-label {
-        font-size: 10px;
-    }
-
-    /* Адаптация таблиц */
-    .detail-table th,
-    .detail-table td {
-        font-size: 10px;
-        padding: 6px 3px;
-    }
-
-    /* Две колонки в одну на телефоне */
-    .two-columns {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-}
-
-/* ========== ТЁМНАЯ ТЕМА - ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ========== */
-body.dark .stats-card-value,
-body.dark .detail-table td,
-body.dark .detail-table th,
-body.dark .detail-title,
-body.dark .stats-card-label,
-body.dark .extra-cost-name,
-body.dark .extra-cost-amount,
-body.dark .discount-title,
-body.dark .discount-custom-select-trigger,
-body.dark .discount-select-option,
-body.dark .cart-item-name,
-body.dark .cart-item-price,
-body.dark .cart-total,
-body.dark .cart-qty-btn,
-body.dark .edit-label,
-body.dark .edit-input,
-body.dark .discount-action-btn,
-body.dark .discount-products-btn,
-body.dark .discount-all-btn,
-body.dark .discount-none-btn {
-    color: #f5e6c4 !important;
-}
-
-body.dark .stats-card {
-    background: var(--card-bg);
-}
-
-body.dark .detail-table th {
-    background: var(--badge-bg);
-}
-/* Обёртка для таблиц с горизонтальной прокруткой на мобильных */
-.table-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin-bottom: 12px;
-}
-
-.detail-table {
-    min-width: 600px;
-    width: 100%;
-}
-
-/* Для мобильных устройств */
-@media (max-width: 500px) {
-    .detail-table {
-        min-width: 500px;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
-    
-    .stats-card {
-        padding: 8px 4px;
-    }
-    
-    .stats-card-value {
-        font-size: 14px;
-    }
-    
-    .stats-card-label {
-        font-size: 9px;
-    }
-    
-    /* Плашка чистой прибыли на телефоне — такой же стиль как у рентабельности */
-    .net-profit-stat .stats-card-value,
-    .profit-stat .stats-card-value {
-        color: var(--stock-color) !important;
-    }
-    
-    .net-profit-stat .stats-card-label,
-    .profit-stat .stats-card-label {
-        color: var(--price-color) !important;
-    }
-}
-
-/* Для планшетов и ноутбуков чистая прибыль — обычный цвет */
-@media (min-width: 501px) {
-    .net-profit-stat .stats-card-value {
-        color: var(--stock-color) !important;
-    }
-    
-    .profit-stat .stats-card-value {
-        color: var(--stock-color) !important;
-    }
-}
-
 /* ========== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ СТАТИСТИКИ ========== */
 
-/* Блок чистой прибыли и рентабельности */
-.profit-summary {
-    display: flex;
-    gap: 12px;
-    margin: 20px 0 24px 0;
-}
-
-.profit-card {
-    flex: 1;
+/* Плашка рентабельности (для всех устройств) */
+.profit-card-single {
     background: var(--btn-bg);
     border-radius: 16px;
     padding: 16px 12px;
     text-align: center;
+    margin: 20px 0 24px 0;
     box-shadow: 0 2px 8px var(--shadow);
 }
 
-.profit-card-value {
-    font-size: 24px;
+.profit-card-single .profit-card-value {
+    font-size: 28px;
     font-weight: bold;
     color: white;
-    line-height: 1.3;
 }
 
-.profit-card-label {
-    font-size: 11px;
+.profit-card-single .profit-card-label {
+    font-size: 13px;
     color: rgba(255, 255, 255, 0.9);
     margin-top: 6px;
     font-weight: 500;
@@ -2461,14 +2245,32 @@ body.dark .detail-table th {
 
 /* Основные таблицы */
 .detail-table {
-    min-width: 600px;
+    min-width: 700px;
     width: 100%;
 }
 
-/* Маленькие таблицы для топов */
+/* Маленькие таблицы для топов (без скролла, нормальная ширина) */
 .detail-table-small {
-    min-width: 280px;
     width: 100%;
+    border-collapse: collapse;
+}
+
+.detail-table-small th,
+.detail-table-small td {
+    padding: 8px 6px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+}
+
+.detail-table-small th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--badge-bg);
+}
+
+.detail-table-small .text-right {
+    text-align: right;
 }
 
 /* Адаптация для планшетов */
@@ -2501,33 +2303,51 @@ body.dark .detail-table th {
         font-size: 9px;
     }
     
-    .profit-summary {
+    /* Плашка рентабельности на телефоне скрыта */
+    .profit-card-single {
+        display: none;
+    }
+    
+    /* Две плашки на телефоне */
+    .profit-mobile-row {
+        display: flex;
         gap: 8px;
         margin: 16px 0 20px 0;
     }
     
-    .profit-card {
+    .profit-mobile-card {
+        flex: 1;
+        background: var(--btn-bg);
+        border-radius: 16px;
         padding: 12px 8px;
+        text-align: center;
+        box-shadow: 0 2px 8px var(--shadow);
     }
     
-    .profit-card-value {
+    .profit-mobile-card .profit-mobile-value {
         font-size: 16px;
+        font-weight: bold;
+        color: white;
     }
     
-    .profit-card-label {
+    .profit-mobile-card .profit-mobile-label {
         font-size: 10px;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 6px;
+        font-weight: 500;
     }
     
     .detail-table {
-        min-width: 480px;
-    }
-    
-    .detail-table-small {
-        min-width: 260px;
+        min-width: 520px;
     }
     
     .two-columns {
-        gap: 12px;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .detail-table-small {
+        margin-bottom: 8px;
     }
 }
 
@@ -2536,4 +2356,35 @@ body.dark .detail-table th {
     .detail-table-small {
         min-width: 300px;
     }
+}
+
+body.dark .stats-card-value,
+body.dark .detail-table td,
+body.dark .detail-table th,
+body.dark .detail-title,
+body.dark .stats-card-label,
+body.dark .extra-cost-name,
+body.dark .extra-cost-amount,
+body.dark .discount-title,
+body.dark .discount-custom-select-trigger,
+body.dark .discount-select-option,
+body.dark .cart-item-name,
+body.dark .cart-item-price,
+body.dark .cart-total,
+body.dark .cart-qty-btn,
+body.dark .edit-label,
+body.dark .edit-input,
+body.dark .discount-action-btn,
+body.dark .discount-products-btn,
+body.dark .discount-all-btn,
+body.dark .discount-none-btn {
+    color: #f5e6c4 !important;
+}
+
+body.dark .stats-card {
+    background: var(--card-bg);
+}
+
+body.dark .detail-table th {
+    background: var(--badge-bg);
 }
