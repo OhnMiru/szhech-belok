@@ -138,19 +138,8 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalStockValue)}</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
-        <!-- Эти две карточки будут скрыты на телефоне -->
-        <div class="stats-card profit-stat desktop-only"><div class="stats-card-value ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
-        <div class="stats-card profit-stat desktop-only"><div class="stats-card-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${formatPercent(profitMargin)}</div><div class="stats-card-label">📊 Рентабельность</div></div>
-    </div>
-    <div class="profit-summary mobile-only">
-        <div class="profit-card ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">
-            <div class="profit-card-value">${formatCurrency(netProfit)}</div>
-            <div class="profit-card-label">📈 Чистая прибыль</div>
-        </div>
-        <div class="profit-card ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">
-            <div class="profit-card-value">${formatPercent(profitMargin)}</div>
-            <div class="profit-card-label">📊 Рентабельность</div>
-        </div>
+        <div class="stats-card"><div class="stats-card-value ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
+        <div class="stats-card"><div class="stats-card-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${formatPercent(profitMargin)}</div><div class="stats-card-label">📊 Рентабельность</div></div>
     </div>
     <div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
@@ -238,7 +227,7 @@ function renderStats() {
         </tr>`; 
     }
     html += `</tbody>
-            <tr>
+        </table>
         </div>
     </div>
     <div class="extra-costs-section">
