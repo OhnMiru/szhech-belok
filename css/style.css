@@ -2316,4 +2316,98 @@
             box-shadow: 0 2px 8px var(--shadow);
             flex-shrink: 0;
         }
+
+        /* Стили для десктопа - показываем карточки прибыли в сетке */
+        .desktop-only {
+            display: flex;
+        }
+
+        .mobile-only {
+            display: none;
+        }
+
+        /* Стили для новых блоков прибыли и рентабельности (только для мобильных) */
+        .profit-summary {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0 20px 0;
+        }
+
+        .profit-card {
+            flex: 1;
+            background: var(--btn-bg);
+            border-radius: 16px;
+            padding: 16px 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px var(--shadow);
+        }        
+
+        .profit-card.profit-positive {
+            background: var(--profit-positive);
+        }
+        
+        .profit-card.profit-negative {
+            background: var(--profit-negative);
+        }
+
+        .profit-card-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            line-height: 1.3;
+        }
+
+        .profit-card-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 6px;
+            font-weight: 500;
+        }
+
+        /* Адаптация для мобильных устройств */
+        @media (max-width: 500px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+    
+            .stats-card {
+                padding: 8px 4px;
+            }
+    
+            .stats-card-value {
+                font-size: 14px;
+            }
+    
+            .stats-card-label {
+                font-size: 9px;
+            }
+            
+            /* На телефоне скрываем карточки прибыли из сетки */
+            .desktop-only {
+                display: none !important;
+            }
+    
+            /* На телефоне показываем отдельные карточки прибыли */
+            .mobile-only {
+                display: flex;
+            }
+    
+            .profit-summary {
+                gap: 8px;
+                margin: 12px 0 16px 0;
+            }
+    
+            .profit-card {
+                padding: 12px 8px;
+            }
+        
+            .profit-card-value {
+                font-size: 18px;
+            }
+    
+            .profit-card-label {
+                font-size: 10px;
+            }
+        }
     </style>
