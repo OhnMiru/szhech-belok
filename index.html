@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Банановый учёт мерча</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <button class="cart-fab" id="cartFab" onclick="openCartModal()">
+        🛒
+        <span class="cart-badge" id="cartCount">0</span>
+    </button>
+
+    <!-- ЭКРАН ВХОДА -->
+    <div id="loginOverlay" style="position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-color); z-index:2000; display:flex; align-items:center; justify-content:center;">
+        <div class="login-card">
+            <h2>Ясгу фд</h2>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">Заходите на пати</p>
+            <input type="text" id="loginInput" style="width:100%; padding:12px; font-size:16px; border:1px solid var(--border-color); border-radius:30px; outline:none; margin-bottom:12px; text-align:center; background:var(--card-bg); color:var(--text-primary);" placeholder="Логин" autofocus>
+            <div class="password-wrapper">
+                <input type="password" id="passwordInput" placeholder="Пароль">
+                <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">👁️</button>
+            </div>
+            <button id="loginBtn" style="background:var(--btn-bg); color:white; border:none; border-radius:30px; padding:12px 24px; font-size:16px; font-weight:500; width:100%; cursor:pointer;">🍌 Войти 🍌</button>
+            <div id="errorMsg" style="color:var(--minus-color); font-size:12px; margin-top:12px; display:none;"></div>
+        </div>
+    </div>
+    
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
+    <div id="mainContent" style="display:none;">
+        <div class="header-row">
+            <div class="title-area">
+                <h1 id="shopTitle">🍌 Учёт мерча</h1>
+                <span class="beta-badge">beta</span>
+            </div>
+            <div class="header-buttons">
+                <button class="theme-toggle" id="themeToggle">🌙</button>
+                <div class="settings-menu">
+                    <button class="settings-toggle" id="settingsToggle">⚙️</button>
+                    <div id="settingsDropdown" class="settings-dropdown hidden">
+                        <button id="shareStatsBtn" class="settings-btn">🔗 Делиться статистикой анонимно</button>
+                        <button id="hideStatsBtn" class="settings-btn">🚫 Не учитывать мою статистику</button>
+                        <button id="logoutBtn" class="settings-btn logout">🚪 Выйти</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="sub">Всё на благо ясгу фд! Всё на благо ясгу фд!</div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+            <button class="refresh-btn" onclick="loadData(true, true)">🔄 Обновить</button>
+            <button class="refresh-btn" id="rulesButton">📋 Правила</button>
+            <button class="history-btn" onclick="showHistory()">📜 История</button>
+            <button class="refresh-btn" id="statsButton">📊 Статистика</button>
+            <button class="refresh-btn" id="globalStatsBtn" style="display: none;">📊 Статистика всех</button>
+        </div>
+
+        <div id="progressContainer" class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+
+        <div class="search-panel">
+            <input type="text" id="searchInput" class="search-input" placeholder="Поиск по названию... ">
+            <div class="filter-row">
+                <div class="custom-select" id="typeFilterContainer">
+                    <div class="custom-select-trigger" id="typeFilterTrigger">Все типы мерча</div>
+                    <div class="custom-select-dropdown" id="typeFilterDropdown"></div>
+                </div>
+                <div class="custom-select" id="sortByContainer">
+                    <div class="custom-select-trigger" id="sortByTrigger">Без сортировки</div>
+                    <div class="custom-select-dropdown" id="sortByDropdown"></div>
+                </div>
+                <button id="resetFilters" class="reset-btn">✕</button>
+            </div>
+        </div>
+
+        <div id="cards-container">
+            <div class="loading">Загрузка...</div>
+        </div>
+        <div class="last-update" id="update-time"></div>
+        <div class="auto-refresh-badge">
+            <span class="dot"></span>
+            <span>Автообновление каждую минуту</span>
+        </div>
+        <div class="footer">
+            Намяукано | <a id="sheetLink" href="#" target="_blank">Синхронизация с таблицей</a>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="modal cart-modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="closeCartModal()">×</button>
+            <div class="modal-header">
+                <span>🛒 Корзина</span>
+            </div>
+            <div id="discount-panel" class="discount-section" style="display: none;"></div>
+            <div id="cart-items-list">
+                <div class="empty-cart">🍌 Корзина пуста</div>
+            </div>
+            <div id="cart-total" class="cart-total" style="display:none;">Итого: 0 ₽</div>
+            <div class="cart-actions" id="cart-actions" style="display:none;">
+                <button class="cart-gift" onclick="giftCart()">🎁 Подарить</button>
+                <button class="cart-clear" onclick="clearCart()">❌ Очистить</button>
+                <button class="cart-checkout" onclick="checkout()">✅ Продать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div id="rulesModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <button class="modal-close-btn" onclick="closeRulesModal()">×</button>
+            <div class="modal-header">
+                <span>📋 Правила для продавца</span>
+            </div>
+            <div class="rule-type-buttons">
+                <button class="rule-type-btn" data-type="type" onclick="selectRuleType('type')">📦 По типу</button>
+                <button class="rule-type-btn" data-type="product" onclick="selectRuleType('product')">🏷️ По товару</button>
+                <button class="rule-type-btn" data-type="price" onclick="selectRuleType('price')">💰 По сумме</button>
+                <button class="rule-type-btn" data-type="bonus" onclick="selectRuleType('bonus')">💵 Бонус</button>
+            </div>
+            <div id="ruleTypeContent"></div>
+            <button onclick="addStructuredRule()" style="background: var(--btn-bg); color: white; width: 100%; padding: 12px; border-radius: 30px; border: none; font-size: 14px; margin-top: 8px; cursor: pointer;">➕ Добавить правило</button>
+            <div style="font-weight: bold; margin: 20px 0 12px 0;">📋 Список правил</div>
+            <div id="rules-list" style="max-height: 300px; overflow-y: auto;">
+                <div class="empty-cart">📭 Нет добавленных правил. Создайте новое!</div>
+            </div>
+            <button onclick="deleteAllRules()" style="background: var(--minus-bg); color: var(--minus-color); width: 100%; padding: 12px; border-radius: 30px; border: none; font-size: 14px; margin-top: 12px; cursor: pointer;">🗑 Удалить все правила</button>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <button class="modal-close-btn" onclick="closeHistory()">×</button>
+            <div class="modal-header">
+                <span>📜 История операций</span>
+            </div>
+            <div class="history-filters">
+                <div class="history-filter-row">
+                    <div class="history-filter-buttons-group">
+                        <button class="history-filter-btn history-filter-btn-small" data-method="all" onclick="setHistoryMethodFilter('all')">Все</button>
+                        <button class="history-filter-btn history-filter-btn-large" data-method="basket" onclick="setHistoryMethodFilter('basket')">Корзина</button>
+                        <button class="history-filter-btn history-filter-btn-large" data-method="single" onclick="setHistoryMethodFilter('single')">Поштучно</button>
+                    </div>
+                    <div class="history-filter-buttons-group">
+                        <button class="history-filter-btn history-filter-btn-small" data-type="all" onclick="setHistoryTypeFilter('all')">Все</button>
+                        <button class="history-filter-btn history-filter-btn-large" data-type="sale" onclick="setHistoryTypeFilter('sale')">Продажи</button>
+                        <button class="history-filter-btn history-filter-btn-large" data-type="return" onclick="setHistoryTypeFilter('return')">Возвраты</button>
+                    </div>
+                </div>
+                <div class="history-filter-bottom">
+                    <div class="history-filter-left">
+                        <div class="custom-datetime" id="datetimeFromContainer">
+                            <span class="datetime-label">с</span>
+                            <div class="datetime-group">
+                                <select id="dateFromDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="dateFromMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="dateFromYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="timeFromHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="timeFromMinute" class="datetime-select"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-filter-left" style="margin-top: 8px;">
+                        <div class="custom-datetime" id="datetimeToContainer">
+                            <span class="datetime-label">по</span>
+                            <div class="datetime-group">
+                                <select id="dateToDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="dateToMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="dateToYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="timeToHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="timeToMinute" class="datetime-select"></select>
+                            </div>
+                        </div>
+                        <div class="history-price-filter">
+                            <span>💰</span>
+                            <input type="number" id="historyMinPrice" placeholder="0" value="0" step="100">
+                            <span class="history-price-separator">—</span>
+                            <input type="number" id="historyMaxPrice" placeholder="∞" step="100">
+                        </div>
+                    </div>
+                    <div class="history-filter-reset-row">
+                        <button class="history-filter-reset" onclick="resetHistoryFilters()">Сбросить</button>
+                    </div>
+                </div>
+            </div>
+            <button class="history-clear-btn" onclick="clearAllHistory()">🗑 Очистить всю историю</button>
+            <div id="history-list">
+                <div class="loading">Загрузка истории...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="statsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <button class="modal-close-btn" onclick="closeStatsModal()">×</button>
+            <div class="modal-header">
+                <span>📊 Статистика продаж</span>
+            </div>
+            <div id="stats-content">
+                <div class="loading">Загрузка статистики...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Stats Modal -->
+    <div id="globalStatsModal" class="modal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <button class="modal-close-btn" onclick="closeGlobalStatsModal()">×</button>
+            <div class="modal-header">
+                <span>📊 Статистика всех участников</span>
+            </div>
+            <div id="globalStats-content">
+                <div class="loading">Загрузка статистики...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="modal edit-product-modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="closeEditProductModal()">×</button>
+            <div class="modal-header">
+                <span>✏️ Редактирование товара</span>
+            </div>
+            <div id="edit-product-content">
+                <div class="edit-row">
+                    <span class="edit-label">Всего</span>
+                    <input type="number" id="editTotal" class="edit-input" value="0">
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Остаток</span>
+                    <input type="number" id="editStock" class="edit-input" value="0">
+                </div>
+                <div class="edit-buttons">
+                    <button class="edit-save-btn" onclick="saveProductChanges()">Сохранить</button>
+                    <button class="edit-cancel-btn" onclick="closeEditProductModal()">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/offline.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/datetime.js"></script>
+    <script src="js/extraCosts.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/rules.js"></script>
+    <script src="js/dragdrop.js"></script>
+    <script src="js/filters.js"></script>
+    <script src="js/discounts.js"></script>
+    <script src="js/editing.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/globalStats.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
