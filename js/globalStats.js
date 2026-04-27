@@ -229,7 +229,7 @@ function renderGlobalStatsContent(data) {
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody></table></div>`;
+        html += `</tbody><tr></div>`;
     }
     
     if (CURRENT_USER.role === 'organizer') {
