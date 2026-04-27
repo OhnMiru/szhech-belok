@@ -138,8 +138,16 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalStockValue)}</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
-        <div class="stats-card net-profit-stat"><div class="stats-card-value">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
-        <div class="stats-card profit-stat"><div class="stats-card-value">${formatPercent(profitMargin)}</div><div class="stats-card-label">📊 Рентабельность</div></div>
+    </div>
+    <div class="profit-summary">
+        <div class="profit-card">
+            <div class="profit-card-value">${formatCurrency(netProfit)}</div>
+            <div class="profit-card-label">📈 Чистая прибыль</div>
+        </div>
+        <div class="profit-card">
+            <div class="profit-card-value">${formatPercent(profitMargin)}</div>
+            <div class="profit-card-label">📊 Рентабельность</div>
+        </div>
     </div>
     <div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
@@ -190,14 +198,14 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+        </table>
         </div>
     </div>
     <div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
-                <table class="detail-table">
+                <table class="detail-table-small">
                     <thead>
                         <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
                     </tr>
@@ -219,7 +227,7 @@ function renderStats() {
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
             <div class="table-wrapper">
-                <table class="detail-table">
+                <table class="detail-table-small">
                     <thead>
                         <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
                     </tr>
