@@ -1543,7 +1543,7 @@ body.dark .history-badge-type-return {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(5, 1fr);
     gap: 12px;
     margin-bottom: 20px;
 }
@@ -2213,14 +2213,15 @@ body.dark .extra-cost-amount {
 
 /* ========== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ СТАТИСТИКИ ========== */
 
-/* Плашка рентабельности (для всех устройств) */
+/* Плашка рентабельности на ноутбуке/планшете — узкая, по центру */
 .profit-card-single {
     background: var(--btn-bg);
     border-radius: 16px;
-    padding: 16px 12px;
+    padding: 12px 12px;
     text-align: center;
-    margin: 20px 0 24px 0;
+    margin: 20px auto 24px auto;
     box-shadow: 0 2px 8px var(--shadow);
+    max-width: 300px;
 }
 
 .profit-card-single .profit-card-value {
@@ -2234,6 +2235,11 @@ body.dark .extra-cost-amount {
     color: rgba(255, 255, 255, 0.9);
     margin-top: 6px;
     font-weight: 500;
+}
+
+/* Мобильные плашки (скрыты на ноутбуке) */
+.profit-mobile-row {
+    display: none;
 }
 
 /* Обёртка для таблиц с горизонтальной прокруткой */
@@ -2274,7 +2280,12 @@ body.dark .extra-cost-amount {
 }
 
 /* Адаптация для планшетов */
-@media (min-width: 501px) and (max-width: 900px) {
+@media (min-width: 768px) and (max-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+    }
+    
     .detail-table-small {
         min-width: 250px;
     }
@@ -2303,12 +2314,17 @@ body.dark .extra-cost-amount {
         font-size: 9px;
     }
     
-    /* Плашка рентабельности на телефоне скрыта */
+    /* Скрываем карточку Чистой прибыли из сетки */
+    .desktop-only {
+        display: none;
+    }
+    
+    /* Скрываем десктопную плашку рентабельности */
     .profit-card-single {
         display: none;
     }
     
-    /* Две плашки на телефоне */
+    /* Показываем мобильные плашки */
     .profit-mobile-row {
         display: flex;
         gap: 8px;
@@ -2352,7 +2368,7 @@ body.dark .extra-cost-amount {
 }
 
 /* Для десктопов */
-@media (min-width: 901px) {
+@media (min-width: 1025px) {
     .detail-table-small {
         min-width: 300px;
     }
