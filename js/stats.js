@@ -133,18 +133,33 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCostAllGoods)}</div><div class="stats-card-label">📦 Себестоимость всего товара</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraCosts)}</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExpenses)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
-        <div class="stats-card"><div class="stats-card-value">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
+        <div class="stats-card desktop-only"><div class="stats-card-value">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalStock)}</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalStockValue)}</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
-    </div>
-    <div class="profit-card-single">
+    </div>`;
+    
+    // Мобильные плашки (видны только на телефоне)
+    html += `<div class="profit-mobile-row">
+        <div class="profit-mobile-card">
+            <div class="profit-mobile-value">${formatCurrency(netProfit)}</div>
+            <div class="profit-mobile-label">📈 Чистая прибыль</div>
+        </div>
+        <div class="profit-mobile-card">
+            <div class="profit-mobile-value">${formatPercent(profitMargin)}</div>
+            <div class="profit-mobile-label">📊 Рентабельность</div>
+        </div>
+    </div>`;
+    
+    // Десктопная плашка рентабельности (скрывается на телефоне)
+    html += `<div class="profit-card-single">
         <div class="profit-card-value">${formatPercent(profitMargin)}</div>
         <div class="profit-card-label">📊 Рентабельность</div>
-    </div>
-    <div class="detail-section">
+    </div>`;
+    
+    html += `<div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
         <div class="table-wrapper">
             <table class="detail-table">
