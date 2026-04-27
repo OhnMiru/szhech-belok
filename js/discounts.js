@@ -43,8 +43,9 @@ function renderProductDiscountList() {
     originalCardsData.forEach(card => {
         if (cartProductIds.has(card.id)) {
             const isSelected = selectedDiscountProducts.has(card.id);
+            const displayName = `${card.type} ${card.name}`;
             html += `<div class="product-select-item ${isSelected ? 'selected' : ''}" onclick="toggleProductSelectionForDiscount(${card.id})">
-                        <span class="multi-select-item-label">${escapeHtml(card.name)}</span>${isSelected ? '<span class="product-select-check">✓</span>' : ''}
+                        <span class="multi-select-item-label">${escapeHtml(displayName)}</span>${isSelected ? '<span class="product-select-check">✓</span>' : ''}
                     </div>`;
         }
     });
@@ -141,8 +142,13 @@ function getBestDiscountForItem(id, originalPrice, qty, subtotal) {
     if (itemDiscounts[id]) {
         const disc = itemDiscounts[id];
         discountType = disc.type;
-        if (disc.type === 'percent') { finalPrice = originalPrice * (1 - disc.value / 100); discountValue = disc.value; }
-        else if (disc.type === 'fixed') { finalPrice = Math.max(0, originalPrice - disc.value); discountValue = disc.value; }
+        if (disc.type === 'percent') {
+            finalPrice = originalPrice * (1 - disc.value / 100);
+            discountValue = disc.value;
+        } else if (disc.type === 'fixed') {
+            finalPrice = Math.max(0, originalPrice - disc.value);
+            discountValue = disc.value;
+        }
     }
     return { price: finalPrice, discountValue: discountValue, discountType: discountType };
 }
