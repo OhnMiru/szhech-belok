@@ -21,9 +21,15 @@ function getBestDiscountForItem(id, originalPrice, qty, subtotal) {
     if (itemDiscounts[id]) {
         const disc = itemDiscounts[id];
         discountType = disc.type;
-        if (disc.type === 'percent') { finalPrice = originalPrice * (1 - disc.value / 100); discountValue = disc.value; }
-        else if (disc.type === 'fixed') { finalPrice = Math.max(0, originalPrice - disc.value); discountValue = disc.value; }
+        if (disc.type === 'percent') { 
+            finalPrice = originalPrice * (1 - disc.value / 100);
+            discountValue = disc.value;
+        } else if (disc.type === 'fixed') { 
+            finalPrice = Math.max(0, originalPrice - disc.value);
+            discountValue = disc.value;
+        }
     }
+    finalPrice = Math.ceil(finalPrice);
     return { price: finalPrice, discountValue: discountValue, discountType: discountType };
 }
 
@@ -82,16 +88,18 @@ function updateCartUI() {
             if (best.discountType === 'percent') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue}%</div>`;
             else if (best.discountType === 'fixed') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue * qty} ₽</div>`;
         }
-        html += `<div class="cart-item ${isZero ? 'disabled' : ''}"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(card.name)}</div>
-                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${originalItemTotal.toFixed(2)} ₽</span> ${discountedItemTotal.toFixed(2)} ₽` : `${originalItemTotal.toFixed(2)} ₽`}</div>${discountText}</div>
+        const displayName = `${card.type} ${card.name}`;
+        html += `<div class="cart-item ${isZero ? 'disabled' : ''}"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(displayName)}</div>
+                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${originalItemTotal.toFixed(2)} ₽</span> ${Math.ceil(discountedItemTotal).toFixed(2)} ₽` : `${originalItemTotal.toFixed(2)} ₽`}</div>${discountText}</div>
                 <div class="cart-item-quantity"><button class="cart-qty-btn" onclick="changeCartQty(${id}, -1)" ${isZero ? 'disabled' : ''}>−</button><span class="cart-item-qty">${qty}</span><button class="cart-qty-btn" onclick="changeCartQty(${id}, 1)">+</button><button class="cart-item-remove" onclick="removeFromCart(${id})">🗑</button></div></div>`;
     }
     cartItemsDiv.innerHTML = html;
     if (cartTotalDiv) {
         cartTotalDiv.style.display = 'block';
         const hasAnyDiscount = Object.values(itemDiscounts).length > 0;
-        if (hasAnyDiscount) { let totalDiscountRub = subtotal - total; cartTotalDiv.innerHTML = `<span class="strikethrough">${subtotal.toFixed(2)} ₽</span> ${Math.max(0, total).toFixed(2)} ₽ (скидка ${totalDiscountRub.toFixed(2)} ₽)`; }
-        else { cartTotalDiv.innerHTML = `🍌 Итого: ${Math.max(0, total).toFixed(2)} ₽`; }
+        const roundedTotal = Math.ceil(total);
+        if (hasAnyDiscount) { let totalDiscountRub = subtotal - total; cartTotalDiv.innerHTML = `<span class="strikethrough">${subtotal.toFixed(2)} ₽</span> ${roundedTotal.toFixed(2)} ₽ (скидка ${totalDiscountRub.toFixed(2)} ₽)`; }
+        else { cartTotalDiv.innerHTML = `🍌 Итого: ${roundedTotal.toFixed(2)} ₽`; }
     }
     if (cartActionsDiv && totalPositiveCount > 0) cartActionsDiv.style.display = 'flex';
     else if (cartActionsDiv) cartActionsDiv.style.display = 'none';
@@ -106,7 +114,8 @@ function addToCart(id) {
     if (currentQty + 1 > card.stock) { showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); return; }
     cart[id] = currentQty + 1;
     updateCartUI();
-    showToast(`${card.name} +1`, true);
+    const displayName = `${card.type} ${card.name}`;
+    showToast(`${displayName} +1`, true);
 }
 
 function changeCartQty(id, delta) {
@@ -125,7 +134,10 @@ function removeFromCart(id) {
     delete cart[id];
     updateCartUI();
     const card = originalCardsData.find(c => c.id === id);
-    if (card) showToast(`${card.name} удалён из корзины`, true);
+    if (card) {
+        const displayName = `${card.type} ${card.name}`;
+        showToast(`${displayName} удалён из корзины`, true);
+    }
 }
 
 function clearCart() {
@@ -241,7 +253,8 @@ async function checkout() {
     const activeRules = checkRulesForCart();
     if (activeRules.length > 0) { let rulesMessage = "Не забудьте:\n"; for (const rule of activeRules) rulesMessage += `• ${rule.message}\n`; showToast(rulesMessage, true); }
     const historyItems = items.map(([idStr, qty]) => { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); return { id: card.id, name: card.name, qty: qty, price: card.price }; });
-    addToHistory(historyItems, total, 'basket', false);
+    const roundedTotal = Math.ceil(total);
+    addToHistory(historyItems, roundedTotal, 'basket', false);
     const cartCopy = { ...cart };
     closeCartModal();
     cart = {};
@@ -281,5 +294,5 @@ async function checkout() {
         }
         showUpdateTime();
     })();
-    showToast(`Продажа на ${Math.max(0, total).toFixed(2)} ₽ завершена!`, true);
+    showToast(`Продажа на ${roundedTotal.toFixed(2)} ₽ завершена!`, true);
 }
