@@ -166,7 +166,6 @@ function renderStats() {
     </div>
     <div class="detail-section">
         <div class="detail-title">🏷️ Детализация по типам мерча</div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">⚠️ Рентабельность считается от полной себестоимости всего товара этого типа</div>
         <table class="detail-table">
             <thead>
                 <tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Всего</th><th class="text-right">Выручка</th><th class="text-right">Себест. (всего)</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
