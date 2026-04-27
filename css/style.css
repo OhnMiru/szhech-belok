@@ -2362,3 +2362,60 @@ body.dark .stats-card {
 body.dark .detail-table th {
     background: var(--badge-bg);
 }
+/* Обёртка для таблиц с горизонтальной прокруткой на мобильных */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 12px;
+}
+
+.detail-table {
+    min-width: 600px;
+    width: 100%;
+}
+
+/* Для мобильных устройств */
+@media (max-width: 500px) {
+    .detail-table {
+        min-width: 500px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    
+    .stats-card {
+        padding: 8px 4px;
+    }
+    
+    .stats-card-value {
+        font-size: 14px;
+    }
+    
+    .stats-card-label {
+        font-size: 9px;
+    }
+    
+    /* Плашка чистой прибыли на телефоне — такой же стиль как у рентабельности */
+    .net-profit-stat .stats-card-value,
+    .profit-stat .stats-card-value {
+        color: var(--stock-color) !important;
+    }
+    
+    .net-profit-stat .stats-card-label,
+    .profit-stat .stats-card-label {
+        color: var(--price-color) !important;
+    }
+}
+
+/* Для планшетов и ноутбуков чистая прибыль — обычный цвет */
+@media (min-width: 501px) {
+    .net-profit-stat .stats-card-value {
+        color: var(--stock-color) !important;
+    }
+    
+    .profit-stat .stats-card-value {
+        color: var(--stock-color) !important;
+    }
+}
