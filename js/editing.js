@@ -1,7 +1,7 @@
 // ========== РЕДАКТИРОВАНИЕ ==========
-function openEditProductModal(index) {
-    currentEditIndex = index;
-    const card = originalCardsData[index];
+function openEditProductModal(id) {
+    currentEditId = id;
+    const card = originalCardsData.find(c => c.id === id);
     if (card) {
         document.getElementById('editTotal').value = card.total;
         document.getElementById('editStock').value = card.stock;
@@ -11,12 +11,12 @@ function openEditProductModal(index) {
 
 function closeEditProductModal() {
     document.getElementById('editProductModal').style.display = 'none';
-    currentEditIndex = null;
+    currentEditId = null;
 }
 
 async function saveProductChanges() {
-    if (currentEditIndex === null) return;
-    const card = originalCardsData[currentEditIndex];
+    if (currentEditId === null) return;
+    const card = originalCardsData.find(c => c.id === currentEditId);
     const newTotal = parseInt(document.getElementById('editTotal').value);
     const newStock = parseInt(document.getElementById('editStock').value);
     if (isNaN(newTotal) || isNaN(newStock) || newTotal < 0 || newStock < 0 || newStock > newTotal) {
@@ -28,18 +28,18 @@ async function saveProductChanges() {
     filterAndSort();
     
     if (!isOnline) {
-        addPendingOperation("updateTotal", `&row=${currentEditIndex}&newTotal=${newTotal}&newStock=${newStock}`);
+        addPendingOperation("updateTotal", `&id=${currentEditId}&newTotal=${newTotal}&newStock=${newStock}`);
         showToast(`Товар "${card.name}" обновлён (будет синхронизировано при восстановлении соединения)`, true);
         closeEditProductModal();
         return;
     }
     
     try {
-        await fetch(buildApiUrl("updateTotal", `&row=${currentEditIndex}&newTotal=${newTotal}&newStock=${newStock}`));
+        await fetch(buildApiUrl("updateTotal", `&id=${currentEditId}&newTotal=${newTotal}&newStock=${newStock}`));
         showToast(`Товар "${card.name}" обновлён`, true);
     } catch (e) {
         console.error(e);
-        addPendingOperation("updateTotal", `&row=${currentEditIndex}&newTotal=${newTotal}&newStock=${newStock}`);
+        addPendingOperation("updateTotal", `&id=${currentEditId}&newTotal=${newTotal}&newStock=${newStock}`);
         showToast(`Товар "${card.name}" обновлён (будет синхронизировано при восстановлении соединения)`, true);
     }
     closeEditProductModal();
