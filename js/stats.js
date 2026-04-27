@@ -20,12 +20,12 @@ function renderStats() {
         } 
         totalItemsSold += saleItems; 
     }
-    const averageCheck = orderCount > 0 ? totalRevenue / orderCount : 0;
+    const averageCheck = orderCount > 0 ? Math.ceil(totalRevenue / orderCount) : 0;
     
     // Себестоимость всего товара на складе (полная себестоимость партии)
     let totalCostAllGoods = 0;
-    let totalStock = 0; // остаток в штуках
-    let totalStockValue = 0; // остаток в деньгах (по себестоимости)
+    let totalStock = 0;
+    let totalStockValue = 0;
     
     const productFullCostMap = new Map();
     for (const card of originalCardsData) {
@@ -34,20 +34,21 @@ function renderStats() {
         totalCostAllGoods += fullCost;
         totalStock += (card.stock || 0);
         totalStockValue += stockValue;
-        productFullCostMap.set(card.name, { 
+        productFullCostMap.set(card.id, { 
             cost: card.cost || 0, 
             fullCost: fullCost,
             total: card.total || 0,
             stock: card.stock || 0,
+            name: card.name,
+            type: card.type,
             soldQty: 0,
             revenue: 0
         });
     }
     
-    // Собираем данные по продажам для каждого товара
     for (const sale of sales) {
         for (const item of sale.items) {
-            const productData = productFullCostMap.get(item.name);
+            const productData = productFullCostMap.get(item.id);
             if (productData) {
                 productData.soldQty += item.qty;
                 productData.revenue += item.qty * item.price;
@@ -60,16 +61,14 @@ function renderStats() {
     const netProfit = totalRevenue - totalExpenses;
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
     
-    // Статистика по товарам (с полной себестоимостью)
     const productStats = [];
-    for (const [name, data] of productFullCostMap) {
-        const card = originalCardsData.find(c => c.name === name);
-        const type = card?.type || "Другое";
+    for (const [id, data] of productFullCostMap) {
         const profit = data.revenue - data.fullCost;
         const margin = data.revenue > 0 ? (profit / data.revenue * 100) : 0;
         productStats.push({
-            name: name,
-            type: type,
+            id: id,
+            name: data.name,
+            type: data.type,
             soldQty: data.soldQty,
             stock: data.stock,
             revenue: data.revenue,
@@ -80,7 +79,6 @@ function renderStats() {
     }
     productStats.sort((a, b) => b.margin - a.margin);
     
-    // Статистика по типам мерча (с полной себестоимостью)
     const typeStats = {};
     for (const card of originalCardsData) {
         const type = card.type || "Другое";
@@ -95,10 +93,9 @@ function renderStats() {
         typeStats[type].fullCost += fullCost;
     }
     
-    // Добавляем данные о продажах по типам
     for (const sale of sales) {
         for (const item of sale.items) {
-            const card = originalCardsData.find(c => c.name === item.name);
+            const card = originalCardsData.find(c => c.id === item.id);
             const type = card?.type || "Другое";
             if (typeStats[type]) {
                 typeStats[type].revenue += item.qty * item.price;
@@ -120,7 +117,6 @@ function renderStats() {
         };
     }).sort((a, b) => b.margin - a.margin);
     
-    // Топ по количеству продаж
     const topByQty = [...productStats].sort((a, b) => b.soldQty - a.soldQty).slice(0, 5);
     const topTypesByQty = [...typeDetails].sort((a, b) => b.soldQty - a.soldQty).slice(0, 5);
     
@@ -141,7 +137,6 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
     </div>`;
     
-    // Мобильные плашки (видны только на телефоне)
     html += `<div class="profit-mobile-row">
         <div class="profit-mobile-card">
             <div class="profit-mobile-value">${formatCurrency(netProfit)}</div>
@@ -153,13 +148,11 @@ function renderStats() {
         </div>
     </div>`;
     
-    // Десктопная плашка рентабельности (скрывается на телефоне)
     html += `<div class="profit-card-single">
         <div class="profit-card-value">${formatPercent(profitMargin)}</div>
         <div class="profit-card-label">📊 Рентабельность</div>
     </div>`;
     
-    // Детализация по товарам
     html += `<div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
         <div class="table-wrapper">
@@ -173,7 +166,7 @@ function renderStats() {
         const profitClass = p.profit >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = p.margin >= 0 ? 'profit-positive' : 'profit-negative';
         html += `<tr>
-            <td>${escapeHtml(p.name)}</td>
+            <td>${escapeHtml(p.name)}<tr>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td>
             <td class="text-right">${p.stock} шт</td>
@@ -186,10 +179,8 @@ function renderStats() {
     html += `</tbody>
             </table>
         </div>
-    </div>`;
-    
-    // Детализация по типам мерча
-    html += `<div class="detail-section">
+    </div>
+    <div class="detail-section">
         <div class="detail-title">🏷️ Детализация по типам мерча</div>
         <div class="table-wrapper">
             <table class="detail-table">
@@ -211,12 +202,10 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+        </table>
         </div>
-    </div>`;
-    
-    // Самые продаваемые (две колонки)
-    html += `<div class="two-columns">
+    </div>
+    <div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <table class="detail-table-small">
@@ -227,12 +216,13 @@ function renderStats() {
                 <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
         const p = topByQty[i]; 
+        const displayName = `${p.type} ${p.name}`;
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td>${escapeHtml(p.name)}</td>
+            <td>${escapeHtml(displayName)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td>
-        </tr>`; 
+        </tr>`;
     }
     html += `</tbody>
             </table>
@@ -251,15 +241,13 @@ function renderStats() {
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
             <td class="text-right">${t.soldQty} шт</td>
-        </tr>`; 
+        </tr>`;
     }
     html += `</tbody>
             </table>
         </div>
-    </div>`;
-    
-    // Дополнительные расходы
-    html += `<div class="extra-costs-section">
+    </div>
+    <div class="extra-costs-section">
         <div class="detail-title">➕ Дополнительные расходы</div>
         <div id="extra-costs-list">`;
     if (extraCosts.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных расходов</div>';
