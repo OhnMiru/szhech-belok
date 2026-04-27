@@ -1,4 +1,87 @@
 // ========== ГЛОБАЛЬНАЯ СТАТИСТИКА ==========
+let globalExtraCosts = [];
+
+async function loadGlobalExtraCosts() {
+    if (!isOnline) {
+        const saved = localStorage.getItem('merch_global_costs');
+        if (saved) globalExtraCosts = JSON.parse(saved);
+        else globalExtraCosts = [];
+        return;
+    }
+    try {
+        const response = await fetch(buildApiUrl("getAllExtraCosts"));
+        const data = await response.json();
+        if (data && data.costs) {
+            globalExtraCosts = data.costs;
+            localStorage.setItem('merch_global_costs', JSON.stringify(globalExtraCosts));
+        }
+    } catch(e) {
+        const saved = localStorage.getItem('merch_global_costs');
+        if (saved) globalExtraCosts = JSON.parse(saved);
+        else globalExtraCosts = [];
+    }
+}
+
+async function addGlobalExtraCost(name, amount) {
+    if (!isOnline) {
+        const newId = Date.now();
+        globalExtraCosts.push({ id: newId, name: name, amount: amount });
+        localStorage.setItem('merch_global_costs', JSON.stringify(globalExtraCosts));
+        addPendingOperation("addExtraCostGlobal", `&name=${encodeURIComponent(name)}&amount=${amount}`);
+        showToast("Расход добавлен (будет синхронизирован позже)", true);
+        if (document.getElementById('globalStatsModal')?.style.display === 'block') {
+            renderGlobalStatsWithCosts();
+        }
+        return;
+    }
+    try {
+        const response = await fetch(buildApiUrl("addExtraCostGlobal", `&name=${encodeURIComponent(name)}&amount=${amount}`));
+        const result = await response.json();
+        if (result.success) {
+            await loadGlobalExtraCosts();
+            showToast("Расход добавлен", true);
+            if (document.getElementById('globalStatsModal')?.style.display === 'block') {
+                renderGlobalStatsWithCosts();
+            }
+        }
+    } catch(e) {
+        globalExtraCosts.push({ id: Date.now(), name: name, amount: amount });
+        localStorage.setItem('merch_global_costs', JSON.stringify(globalExtraCosts));
+        addPendingOperation("addExtraCostGlobal", `&name=${encodeURIComponent(name)}&amount=${amount}`);
+        showToast("Расход добавлен (будет синхронизирован позже)", true);
+    }
+}
+
+async function deleteGlobalExtraCost(index) {
+    const costId = globalExtraCosts[index].id;
+    if (!isOnline) {
+        globalExtraCosts.splice(index, 1);
+        localStorage.setItem('merch_global_costs', JSON.stringify(globalExtraCosts));
+        addPendingOperation("deleteExtraCostGlobal", `&id=${costId}`);
+        showToast("Расход удалён (будет синхронизирован позже)", true);
+        if (document.getElementById('globalStatsModal')?.style.display === 'block') {
+            renderGlobalStatsWithCosts();
+        }
+        return;
+    }
+    try {
+        const response = await fetch(buildApiUrl("deleteExtraCostGlobal", `&id=${costId}`));
+        const result = await response.json();
+        if (result.success) {
+            await loadGlobalExtraCosts();
+            showToast("Расход удалён", true);
+            if (document.getElementById('globalStatsModal')?.style.display === 'block') {
+                renderGlobalStatsWithCosts();
+            }
+        }
+    } catch(e) {
+        globalExtraCosts.splice(index, 1);
+        localStorage.setItem('merch_global_costs', JSON.stringify(globalExtraCosts));
+        addPendingOperation("deleteExtraCostGlobal", `&id=${costId}`);
+        showToast("Расход удалён (будет синхронизирован позже)", true);
+    }
+}
+
 async function showGlobalStats() {
     const modal = document.getElementById('globalStatsModal');
     if (!modal) return;
@@ -83,13 +166,16 @@ function renderGlobalStatsContent(data) {
         if (s.hideStats === true && CURRENT_USER.role !== 'organizer') continue;
         const profitClass = (s.netProfit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = (s.profitMargin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-        html += `<tr><td>${escapeHtml(s.name)}</td><td>${s.role === 'organizer' ? 'Организатор' : 'Художник'}</td>
-                <td class="text-right">${(s.totalRevenue || 0).toLocaleString()} ₽</td>
-                <td class="text-right ${profitClass}">${(s.netProfit || 0).toLocaleString()} ₽</td>
-                <td class="text-right">${(s.totalItemsSold || 0).toLocaleString()} шт</td>
-                <td class="text-right">${(s.totalGoods || 0).toLocaleString()} шт</td>
-                <td class="text-right">${(s.averageCheck || 0).toLocaleString()} ₽</td>
-                <td class="text-right ${marginClass}">${(s.profitMargin || 0).toFixed(1)}%</td></tr>`;
+        html += `<tr>
+                    <td>${escapeHtml(s.name)}</td>
+                    <td>${s.role === 'organizer' ? 'Организатор' : 'Художник'}</td>
+                    <td class="text-right">${(s.totalRevenue || 0).toLocaleString()} ₽</td>
+                    <td class="text-right ${profitClass}">${(s.netProfit || 0).toLocaleString()} ₽</td>
+                    <td class="text-right">${(s.totalItemsSold || 0).toLocaleString()} шт</td>
+                    <td class="text-right">${(s.totalGoods || 0).toLocaleString()} шт</td>
+                    <td class="text-right">${(s.averageCheck || 0).toLocaleString()} ₽</td>
+                    <td class="text-right ${marginClass}">${(s.profitMargin || 0).toFixed(1)}%</td>
+                </tr>`;
     }
     html += `</tbody></table></div>`;
     
@@ -98,11 +184,13 @@ function renderGlobalStatsContent(data) {
         for (const t of data.typeDetails) {
             const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            html += `<tr><td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-                    <td class="text-right">${t.qty} шт</td>
-                    <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
-                    <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
-                    <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td></tr>`;
+            html += `<tr>
+                        <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+                        <td class="text-right">${t.qty} шт</td>
+                        <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
+                        <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
+                        <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
+                    </tr>`;
         }
         html += `</tbody></table></div>`;
     }
@@ -113,13 +201,15 @@ function renderGlobalStatsContent(data) {
             const p = data.topProducts[i];
             const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const pMarginClass = (p.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            html += `<tr><td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-                    <td>${escapeHtml(p.name)}</td>
-                    <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
-                    <td class="text-right">${p.qty} шт</td>
-                    <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
-                    <td class="text-right ${pProfitClass}">${p.profit.toLocaleString()} ₽</td>
-                    <td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td></tr>`;
+            html += `<tr>
+                        <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
+                        <td>${escapeHtml(p.name)}</td>
+                        <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+                        <td class="text-right">${p.qty} шт</td>
+                        <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
+                        <td class="text-right ${pProfitClass}">${p.profit.toLocaleString()} ₽</td>
+                        <td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td>
+                    </tr>`;
         }
         html += `</tbody></table></div>`;
     }
@@ -130,12 +220,14 @@ function renderGlobalStatsContent(data) {
             const t = data.topTypes[i];
             const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            html += `<tr><td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-                    <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-                    <td class="text-right">${t.qty} шт</td>
-                    <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
-                    <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
-                    <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td></tr>`;
+            html += `<tr>
+                        <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
+                        <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+                        <td class="text-right">${t.qty} шт</td>
+                        <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
+                        <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
+                        <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
+                    </tr>`;
         }
         html += `</tbody></table></div>`;
     }
@@ -145,9 +237,17 @@ function renderGlobalStatsContent(data) {
         if (globalExtraCosts.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных расходов</div>';
         for (let i = 0; i < globalExtraCosts.length; i++) {
             const cost = globalExtraCosts[i];
-            html += `<div class="extra-cost-item"><span class="extra-cost-name">${escapeHtml(cost.name)}</span><span class="extra-cost-amount">${cost.amount} ₽</span><button class="extra-cost-delete" onclick="deleteGlobalExtraCost(${i})">🗑</button></div>`;
+            html += `<div class="extra-cost-item">
+                        <span class="extra-cost-name">${escapeHtml(cost.name)}</span>
+                        <span class="extra-cost-amount">${cost.amount} ₽</span>
+                        <button class="extra-cost-delete" onclick="deleteGlobalExtraCost(${i})">🗑</button>
+                    </div>`;
         }
-        html += `</div><div class="add-cost-form"><input type="text" id="newGlobalCostName" class="add-cost-input" placeholder="Название (аренда, доставка...)" autocomplete="off"><input type="number" id="newGlobalCostAmount" class="add-cost-input-number" placeholder="Сумма" value="0" step="100"><button class="add-cost-btn" onclick="addGlobalExtraCostFromModal()">➕ Добавить</button></div></div>`;
+        html += `</div><div class="add-cost-form">
+                    <input type="text" id="newGlobalCostName" class="add-cost-input" placeholder="Название (аренда, доставка...)" autocomplete="off">
+                    <input type="number" id="newGlobalCostAmount" class="add-cost-input-number" placeholder="Сумма" value="0" step="100">
+                    <button class="add-cost-btn" onclick="addGlobalExtraCostFromModal()">➕ Добавить</button>
+                </div></div>`;
     }
     
     container.innerHTML = html;
@@ -199,7 +299,15 @@ function renderSingleParticipantStats(stats) {
         for (const p of stats.productDetails) {
             const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const pMarginClass = (p.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            html += `<tr><td class="text-right"></td><td>${escapeHtml(p.name)}</td><td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td><td class="text-right">${p.qty} шт</td><td class="text-right">${p.revenue.toLocaleString()} ₽</td><td class="text-right ${pProfitClass}">${p.profit.toLocaleString()} ₽</td><td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td></tr>`;
+            html += `<tr>
+                        <td class="text-right"></td>
+                        <td>${escapeHtml(p.name)}</td>
+                        <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+                        <td class="text-right">${p.qty} шт</td>
+                        <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
+                        <td class="text-right ${pProfitClass}">${p.profit.toLocaleString()} ₽</td>
+                        <td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td>
+                    </tr>`;
         }
         html += `</tbody></table></div>`;
     }
@@ -208,7 +316,13 @@ function renderSingleParticipantStats(stats) {
         for (const t of stats.typeDetails) {
             const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            html += `<tr><td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td><td class="text-right">${t.qty} шт</td><td class="text-right">${t.revenue.toLocaleString()} ₽</td><td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td><td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td></tr>`;
+            html += `<tr>
+                        <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+                        <td class="text-right">${t.qty} шт</td>
+                        <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
+                        <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
+                        <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
+                    </tr>`;
         }
         html += `</tbody></table></div>`;
     }
