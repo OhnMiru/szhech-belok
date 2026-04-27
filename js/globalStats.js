@@ -94,16 +94,16 @@ async function showGlobalStats() {
         const data = await response.json();
         window._globalStatsData = data;
         renderGlobalStatsWithData(data);
-    } catch(e) { 
-        container.innerHTML = '<div class="loading">Ошибка загрузки статистики</div>'; 
-        showToast("Ошибка загрузки статистики", false); 
+    } catch(e) {
+        container.innerHTML = '<div class="loading">Ошибка загрузки статистики</div>';
+        showToast("Ошибка загрузки статистики", false);
     }
 }
 
 function renderGlobalStatsWithData(data) {
     const container = document.getElementById('globalStats-content');
     if (!container) return;
-    
+
     let html = `<div class="participant-custom-select" id="participantSelectContainer">
             <div class="participant-custom-select-trigger" id="participantSelectTrigger">📊 Все участники</div>
             <div class="participant-custom-select-dropdown" id="participantSelectDropdown">
@@ -115,9 +115,9 @@ function renderGlobalStatsWithData(data) {
     }
     html += `</div></div><div id="participantStatsContainer"></div>`;
     container.innerHTML = html;
-    
+
     renderGlobalStatsContent(data);
-    
+
     const trigger = document.getElementById('participantSelectTrigger');
     const dropdown = document.getElementById('participantSelectDropdown');
     if (trigger && dropdown) {
@@ -178,7 +178,7 @@ function renderGlobalStatsContent(data) {
                 </tr>`;
     }
     html += `</tbody></table></div>`;
-    
+
     if (data.typeDetails && data.typeDetails.length > 0) {
         html += `<div class="detail-section"><div class="detail-title">🏷️ Рентабельность по типам мерча</div><table class="detail-table"><thead><tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
         for (const t of data.typeDetails) {
@@ -194,9 +194,9 @@ function renderGlobalStatsContent(data) {
         }
         html += `</tbody></table></div>`;
     }
-    
+
     if (data.topProducts && data.topProducts.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">🏆 Популярные позиции</div><table class="detail-table"><thead><tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        html += `<div class="detail-section"><div class="detail-title">🏆 Популярные позиции</div><table class="detail-table"><thead><tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></table></thead><tbody>`;
         for (let i = 0; i < data.topProducts.length; i++) {
             const p = data.topProducts[i];
             const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
@@ -213,7 +213,7 @@ function renderGlobalStatsContent(data) {
         }
         html += `</tbody></table></div>`;
     }
-    
+
     if (data.topTypes && data.topTypes.length > 0) {
         html += `<div class="detail-section"><div class="detail-title">🏆 Популярные типы мерча</div><table class="detail-table"><thead><tr><th>#</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
         for (let i = 0; i < data.topTypes.length; i++) {
@@ -229,9 +229,9 @@ function renderGlobalStatsContent(data) {
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody><tr></div>`;
+        html += `</tbody></table></div>`;
     }
-    
+
     if (CURRENT_USER.role === 'organizer') {
         html += `<div class="extra-costs-section"><div class="detail-title">➕ Общие расходы организатора</div><div id="global-extra-costs-list">`;
         if (globalExtraCosts.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных расходов</div>';
@@ -249,7 +249,7 @@ function renderGlobalStatsContent(data) {
                     <button class="add-cost-btn" onclick="addGlobalExtraCostFromModal()">➕ Добавить</button>
                 </div></div>`;
     }
-    
+
     container.innerHTML = html;
 }
 
@@ -294,8 +294,11 @@ function renderSingleParticipantStats(stats) {
             <div class="stats-card"><div class="stats-card-value">${(stats.totalGoods || 0).toLocaleString()} шт</div><div class="stats-card-label">📦 Всего товаров</div></div>
             <div class="stats-card"><div class="stats-card-value">${(stats.averageCheck || 0).toLocaleString()} ₽</div><div class="stats-card-label">💳 Средний чек</div></div></div>
         <div class="stats-summary-compact"><div class="stats-summary-value ${marginClass}">${(stats.profitMargin || 0).toFixed(1)}%</div><div class="stats-summary-label">Рентабельность продаж</div></div>`;
+
     if (stats.productDetails && stats.productDetails.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">📦 Детализация по товарам</div><table class="detail-table"><thead><tr><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        html += `<div class="detail-section"><div class="detail-title">📦 Детализация по товарам</div>
+                 <div class="table-wrapper">
+                  <table class="detail-table"><thead><tr><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
         for (const p of stats.productDetails) {
             const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const pMarginClass = (p.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
@@ -309,10 +312,13 @@ function renderSingleParticipantStats(stats) {
                         <td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody></table></div>`;
+        html += `</tbody></tr></div></div>`;
     }
+
     if (stats.typeDetails && stats.typeDetails.length > 0) {
-        html += `<div class="detail-section"><div class="detail-title">🏷️ Детализация по типам мерча</div><table class="detail-table"><thead><tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
+        html += `<div class="detail-section"><div class="detail-title">🏷️ Детализация по типам мерча</div>
+                 <div class="table-wrapper">
+                  <table class="detail-table"><thead><tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead><tbody>`;
         for (const t of stats.typeDetails) {
             const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
@@ -324,12 +330,12 @@ function renderSingleParticipantStats(stats) {
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
                     </tr>`;
         }
-        html += `</tbody></table></div>`;
+        html += `</tbody>}</div></div>`;
     }
     container.innerHTML = html;
 }
 
-function closeGlobalStatsModal() { 
-    const modal = document.getElementById('globalStatsModal'); 
-    if (modal) modal.style.display = 'none'; 
+function closeGlobalStatsModal() {
+    const modal = document.getElementById('globalStatsModal');
+    if (modal) modal.style.display = 'none';
 }
