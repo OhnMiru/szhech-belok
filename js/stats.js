@@ -71,7 +71,6 @@ function renderStats() {
             name: name,
             type: type,
             soldQty: data.soldQty,
-            stock: data.stock,
             revenue: data.revenue,
             fullCost: data.fullCost,
             profit: profit,
@@ -139,13 +138,18 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
         <div class="stats-card"><div class="stats-card-value ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
-        <div class="stats-card"><div class="stats-card-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${formatPercent(profitMargin)}</div><div class="stats-card-label">📊 Рентабельность</div></div>
+    </div>
+    <div class="profit-summary">
+        <div class="profit-card ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">
+            <div class="profit-card-value">${formatPercent(profitMargin)}</div>
+            <div class="profit-card-label">📊 Рентабельность</div>
+        </div>
     </div>
     <div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
         <table class="detail-table">
             <thead>
-                <tr><th>Товар</th><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест. (всего)</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                <tr><th>Товар</th><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
                 </tr>
             </thead>
             <tbody>`;
@@ -156,7 +160,6 @@ function renderStats() {
             <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td>
-            <td class="text-right">${p.stock} шт</td>
             <td class="text-right">${formatCurrency(p.revenue)}</td>
             <td class="text-right">${formatCurrency(p.fullCost)}</td>
             <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td>
@@ -170,7 +173,7 @@ function renderStats() {
         <div class="detail-title">🏷️ Детализация по типам мерча</div>
         <table class="detail-table">
             <thead>
-                <tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Выручка</th><th class="text-right">Себест. (всего)</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                <tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
                 </tr>
             </thead>
             <tbody>`;
@@ -208,7 +211,7 @@ function renderStats() {
         </tr>`; 
     }
     html += `</tbody>
-            </table>
+            <table>
         </div>
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
