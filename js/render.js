@@ -8,7 +8,7 @@ function renderCards() {
         return;
     }
     currentFilteredData.forEach((card, displayIndex) => {
-        const originalIndex = originalCardsData.findIndex(orig => orig.name === card.name && orig.type === card.type);
+        const id = card.id;
         const type = card.type || "";
         const name = card.name || "Без названия";
         const total = typeof card.total === 'number' ? card.total : 0;
@@ -19,6 +19,7 @@ function renderCards() {
         const cardDiv = document.createElement('div');
         cardDiv.className = `card ${isOutOfStock ? 'out-of-stock' : ''}`;
         cardDiv.style.position = 'relative';
+        cardDiv.setAttribute('data-id', id);
         cardDiv.setAttribute('draggable', currentSortBy === 'custom');
         cardDiv.setAttribute('data-index', displayIndex);
         if (currentSortBy === 'custom') {
@@ -36,13 +37,13 @@ function renderCards() {
                     <span class="name">${escapeHtml(name)}</span>
                 </div>
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
-                <div class="total-row"><span class="total">📦 Всего: ${total} шт</span><button class="edit-icon" onclick="openEditProductModal(${originalIndex})">✏️</button></div>
+                <div class="total-row"><span class="total">📦 Всего: ${total} шт</span><button class="edit-icon" onclick="openEditProductModal(${id})">✏️</button></div>
                 <div class="price-row"><span class="price">💰 Цена: ${price} ₽</span></div>
             </div>
             <div class="buttons">
-                <button class="minus" data-index="${originalIndex}" data-delta="-1">−1</button>
-                <button class="plus" data-index="${originalIndex}" data-delta="+1">+1</button>
-                <button class="add-to-cart" data-index="${originalIndex}">➕</button>
+                <button class="minus" data-id="${id}" data-delta="-1">−1</button>
+                <button class="plus" data-id="${id}" data-delta="+1">+1</button>
+                <button class="add-to-cart" data-id="${id}">➕</button>
             </div>
         `;
         container.appendChild(cardDiv);
@@ -60,13 +61,13 @@ function renderCards() {
 
 function handleAddToCart(e) {
     const btn = e.currentTarget;
-    const index = parseInt(btn.dataset.index);
-    addToCart(index);
+    const id = parseInt(btn.dataset.id);
+    addToCart(id);
 }
 
 async function handleButtonClick(e) {
     const btn = e.currentTarget;
-    const index = parseInt(btn.dataset.index);
+    const id = parseInt(btn.dataset.id);
     const delta = parseInt(btn.dataset.delta);
-    await updateStock(index, delta);
+    await updateStock(id, delta);
 }
