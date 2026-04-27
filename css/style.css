@@ -2255,7 +2255,7 @@ body.dark .extra-cost-amount {
     width: 100%;
 }
 
-/* Маленькие таблицы для топов (без скролла, нормальная ширина) */
+/* Маленькие таблицы для топов */
 .detail-table-small {
     width: 100%;
     border-collapse: collapse;
@@ -2364,8 +2364,19 @@ body.dark .extra-cost-amount {
         gap: 16px;
     }
     
-    .detail-table-small {
-        margin-bottom: 8px;
+    /* Уменьшаем отступы и шрифты для маленьких таблиц на телефоне */
+    .detail-table-small th,
+    .detail-table-small td {
+        padding: 6px 4px;
+        font-size: 10px;
+    }
+    
+    .detail-table-small .popular-badge {
+        width: 18px;
+        height: 18px;
+        font-size: 9px;
+        line-height: 18px;
+        margin-right: 4px;
     }
 }
 
