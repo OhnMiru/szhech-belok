@@ -27,7 +27,7 @@ function renderStats() {
     let totalStock = 0; // остаток в штуках
     let totalStockValue = 0; // остаток в деньгах (по себестоимости)
     
-    const productFullCostMap = new Map(); // полная себестоимость каждого товара
+    const productFullCostMap = new Map();
     for (const card of originalCardsData) {
         const fullCost = (card.cost || 0) * (card.total || 0);
         const stockValue = (card.cost || 0) * (card.stock || 0);
@@ -228,7 +228,7 @@ function renderStats() {
     for (let i = 0; i < topByQty.length; i++) { 
         const p = topByQty[i]; 
         html += `<tr>
-            <td class="text-right"><span class="popular-badge">${i + 1}</span></tr>
+            <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td>
