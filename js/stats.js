@@ -141,7 +141,7 @@ function renderStats() {
         <div class="detail-title">📦 Детализация по товарам</div>
         <table class="detail-table">
             <thead>
-                <tr><th>Товар</th><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест. (всего)</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                <tr><th>Товар</th><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
                 </tr>
             </thead>
             <tbody>`;
@@ -168,7 +168,7 @@ function renderStats() {
         <div class="detail-title">🏷️ Детализация по типам мерча</div>
         <table class="detail-table">
             <thead>
-                <tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Всего</th><th class="text-right">Выручка</th><th class="text-right">Себест. (всего)</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                <tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Всего</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
                 </tr>
             </thead>
             <tbody>`;
