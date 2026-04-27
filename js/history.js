@@ -17,8 +17,8 @@ async function syncFullHistoryToServer() {
     try {
         const data = encodeURIComponent(JSON.stringify(salesHistory));
         await fetch(buildApiUrl("syncFullHistory", `&data=${data}`));
-    } catch(e) { 
-        console.error(e); 
+    } catch(e) {
+        console.error(e);
         addPendingOperation("syncFullHistory", `&data=${encodeURIComponent(JSON.stringify(salesHistory))}`);
     }
 }
@@ -38,7 +38,9 @@ async function loadHistoryFromServer() {
             return true;
         }
         return false;
-    } catch(e) { return false; }
+    } catch(e) {
+        return false;
+    }
 }
 
 async function loadHistory() {
@@ -104,13 +106,13 @@ async function cancelHistoryEntry(id) {
         showToast("Отмена возврата не поддерживается", false);
         return;
     }
-    
+
     if (!isOnline) {
         addPendingOperation("cancelHistoryEntry", `&id=${id}`);
         showToast("Отмена продажи будет выполнена при восстановлении соединения", true);
         return;
     }
-    
+
     try {
         const response = await fetch(buildApiUrl("cancelHistoryEntry", `&id=${id}`));
         const result = await response.json();
@@ -171,12 +173,12 @@ function resetHistoryFilters() {
     document.querySelectorAll('[data-method], [data-type]').forEach(btn => btn.classList.remove('active'));
     document.querySelector('[data-method="all"]')?.classList.add('active');
     document.querySelector('[data-type="all"]')?.classList.add('active');
-    
+
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
     const currentDay = now.getDate();
-    
+
     const fromDay = document.getElementById('dateFromDay');
     const fromMonth = document.getElementById('dateFromMonth');
     const fromYear = document.getElementById('dateFromYear');
@@ -187,7 +189,7 @@ function resetHistoryFilters() {
     if (fromYear) fromYear.value = currentYear;
     if (fromHour) fromHour.value = 0;
     if (fromMinute) fromMinute.value = 0;
-    
+
     const toDay = document.getElementById('dateToDay');
     const toMonth = document.getElementById('dateToMonth');
     const toYear = document.getElementById('dateToYear');
@@ -198,24 +200,24 @@ function resetHistoryFilters() {
     if (toYear) toYear.value = currentYear;
     if (toHour) toHour.value = 23;
     if (toMinute) toMinute.value = 59;
-    
+
     const minPrice = document.getElementById('historyMinPrice');
     const maxPrice = document.getElementById('historyMaxPrice');
     if (minPrice) minPrice.value = '0';
     if (maxPrice) maxPrice.value = '';
-    
+
     renderHistoryList();
 }
 
 function renderHistoryList() {
     const container = document.getElementById('history-list');
     if (!container) return;
-    
+
     const fromDate = getDateTimeFromSelects('dateFrom');
     const toDate = getDateTimeFromSelects('dateTo');
     const minPrice = parseInt(document.getElementById('historyMinPrice')?.value) || 0;
     const maxPrice = parseInt(document.getElementById('historyMaxPrice')?.value) || Infinity;
-    
+
     let filtered = salesHistory.filter(e => !e.hidden);
     if (historyMethodFilter === 'basket') filtered = filtered.filter(e => e.method === 'basket');
     else if (historyMethodFilter === 'single') filtered = filtered.filter(e => e.method === 'single');
@@ -224,12 +226,12 @@ function renderHistoryList() {
     if (fromDate) filtered = filtered.filter(e => new Date(e.date) >= fromDate);
     if (toDate) filtered = filtered.filter(e => new Date(e.date) <= toDate);
     filtered = filtered.filter(e => e.total >= minPrice && e.total <= maxPrice);
-    
+
     if (filtered.length === 0) {
         container.innerHTML = '<div class="empty-cart">🍌 История пуста</div>';
         return;
     }
-    
+
     let html = '';
     for (const entry of filtered) {
         const date = new Date(entry.date);
@@ -238,7 +240,9 @@ function renderHistoryList() {
         const isReturn = entry.isReturn;
         let itemsHtml = '';
         for (const item of entry.items) {
-            itemsHtml += `<div>• ${item.name}: ${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
+            const card = originalCardsData.find(c => c.id === item.id);
+            const displayName = card ? `${card.type} ${card.name}` : item.name;
+            itemsHtml += `<div>• ${displayName}: ${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
         }
         const methodLabel = isBasket ? 'Корзина' : 'Поштучно';
         const methodClass = isBasket ? 'history-badge-method-basket' : 'history-badge-method-single';
