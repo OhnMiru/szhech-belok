@@ -176,18 +176,11 @@ function renderGlobalStatsContent(data) {
     // Фильтруем участников для таблицы: только те, у кого hideStats !== true (скрытые исключаем)
     let visibleStats = (data.stats || []).filter(s => s.hideStats !== true);
     
-    // Анонимные помечаем, остальных оставляем с именами
-    let processedStats = visibleStats.map(s => {
-        if (s.shareStats === true && s.role !== 'organizer') {
-            return { ...s, name: "Аноним 🕊️", isAnonymous: true };
-        }
-        return { ...s, isAnonymous: false };
-    });
-    
-    // Сортируем: сначала неанонимные по рентабельности, потом анонимные по рентабельности
-    const nonAnonymous = processedStats.filter(s => !s.isAnonymous).sort((a, b) => (b.profitMargin || 0) - (a.profitMargin || 0));
-    const anonymous = processedStats.filter(s => s.isAnonymous).sort((a, b) => (b.profitMargin || 0) - (a.profitMargin || 0));
-    const sortedStats = [...nonAnonymous, ...anonymous];
+    // Сортируем: сначала художники по алфавиту, потом организаторы по алфавиту
+    const artistsStats = visibleStats.filter(s => s.role === 'artist' && !s.isAnonymous).sort((a, b) => a.name.localeCompare(b.name));
+    const anonymousStats = visibleStats.filter(s => s.isAnonymous).sort((a, b) => b.profitMargin - a.profitMargin);
+    const organizersStats = visibleStats.filter(s => s.role === 'organizer' && !s.isAnonymous).sort((a, b) => a.name.localeCompare(b.name));
+    const sortedStats = [...artistsStats, ...anonymousStats, ...organizersStats];
     
     const totalRevenue = data.totalRevenue || 0;
     const totalCost = data.totalCost || 0;
@@ -257,24 +250,27 @@ function renderGlobalStatsContent(data) {
         </div>
     </div>`;
     
-    // Детализация по типам мерча
+    // Детализация по типам мерча (с сортировкой по продажам)
     if (data.typeDetails && data.typeDetails.length > 0) {
+        const sortedTypeDetails = [...data.typeDetails].sort((a, b) => b.qty - a.qty);
         html += `<div class="detail-section">
             <div class="detail-title">🏷️ Детализация по типам мерча</div>
             <div class="table-wrapper">
                 <table class="detail-table">
                     <thead>
-                        <tr><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                        <tr><th>Тип</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th><th class="text-right">Средняя цена</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
                     </tr>
                     </thead>
                     <tbody>`;
-        for (const t of data.typeDetails) {
+        for (const t of sortedTypeDetails) {
             const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
+            const avgPrice = t.qty > 0 ? t.revenue / t.qty : 0;
             html += `<tr>
                         <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
                         <td class="text-right">${t.qty} шт</td>
                         <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
+                        <td class="text-right">${Math.ceil(avgPrice).toLocaleString()} ₽</td>
                         <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
                     </tr>`;
@@ -285,54 +281,33 @@ function renderGlobalStatsContent(data) {
         </div>`;
     }
     
-    // Самые продаваемые товары с добавлением колонки Участник
+    // Самые продаваемые товары с дополнительными колонками
     if (data.topProducts && data.topProducts.length > 0) {
+        const sortedTopProducts = [...data.topProducts].sort((a, b) => b.qty - a.qty);
         html += `<div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
                 <table class="detail-table">
                     <thead>
-                        <tr><th>#</th><th>Товар</th><th>Тип</th><th>Участник</th><th class="text-right">Продано, шт</th>
+                        <tr><th>#</th><th>Товар</th><th>Тип</th><th>Участник</th><th class="text-right">Цена</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th><th class="text-right">Продано, шт</th>
                     </tr>
                     </thead>
                     <tbody>`;
-        for (let i = 0; i < data.topProducts.length; i++) {
-            const p = data.topProducts[i];
+        for (let i = 0; i < sortedTopProducts.length; i++) {
+            const p = sortedTopProducts[i];
             const pProfitClass = (p.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
             const pMarginClass = (p.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
-            const displayName = `${p.type} ${p.name}`;
             const participantDisplay = p.participantName || (p.isAnonymous ? "Аноним 🕊️" : p.participantName);
             html += `<tr>
                         <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-                        <td>${escapeHtml(displayName)}</td>
+                        <td>${escapeHtml(p.name)}</td>
                         <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
                         <td>${escapeHtml(participantDisplay)}</td>
+                        <td class="text-right">${Math.ceil(p.price || 0).toLocaleString()} ₽</td>
+                        <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
+                        <td class="text-right ${pProfitClass}">${p.profit.toLocaleString()} ₽</td>
+                        <td class="text-right ${pMarginClass}">${p.margin.toFixed(1)}%</td>
                         <td class="text-right">${p.qty} шт</td>
-                    </tr>`;
-        }
-        html += `</tbody>
-                </table>
-            </div>
-        </div>`;
-    }
-    
-    // Самые продаваемые типы
-    if (data.topTypes && data.topTypes.length > 0) {
-        html += `<div class="detail-section">
-            <div class="detail-title">🏆 Самые продаваемые типы</div>
-            <div class="table-wrapper">
-                <table class="detail-table">
-                    <thead>
-                        <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                    </tr>
-                    </thead>
-                    <tbody>`;
-        for (let i = 0; i < data.topTypes.length; i++) {
-            const t = data.topTypes[i];
-            html += `<tr>
-                        <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-                        <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-                        <td class="text-right">${t.qty} шт</td>
                     </tr>`;
         }
         html += `</tbody>
@@ -455,32 +430,36 @@ function renderUserFullStats(stats, participantName) {
         </div>
     </div>`;
     
-    // Детализация по типам мерча
-    html += `<div class="detail-section">
-        <div class="detail-title">🏷️ Детализация по типам мерча</div>
-        <div class="table-wrapper">
-            <table class="detail-table">
-                <thead>
-                    <tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
-                </tr>
-                </thead>
-                <tbody>`;
-    for (const t of typeDetails) {
-        const profitClass = t.profit >= 0 ? 'profit-positive' : 'profit-negative';
-        const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
-        html += `<tr>
-            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.qty} шт</td>
-            <td class="text-right">${formatCurrency(t.revenue)}</td>
-            <td class="text-right">${formatCurrency(t.fullCost || 0)}</td>
-            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
-            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
-        </tr>`;
+    // Детализация по типам мерча (с сортировкой по продажам)
+    if (typeDetails && typeDetails.length > 0) {
+        const sortedTypeDetails = [...typeDetails].sort((a, b) => b.qty - a.qty);
+        html += `<div class="detail-section">
+            <div class="detail-title">🏷️ Детализация по типам мерча</div>
+            <div class="table-wrapper">
+                <table class="detail-table">
+                    <thead>
+                        <tr><th>Тип</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th><th class="text-right">Средняя цена</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                    </tr>
+                    </thead>
+                    <tbody>`;
+        for (const t of sortedTypeDetails) {
+            const tProfitClass = (t.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative';
+            const tMarginClass = (t.margin || 0) >= 0 ? 'profit-positive' : 'profit-negative';
+            const avgPrice = t.qty > 0 ? t.revenue / t.qty : 0;
+            html += `<tr>
+                        <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+                        <td class="text-right">${t.qty} шт</td>
+                        <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
+                        <td class="text-right">${Math.ceil(avgPrice).toLocaleString()} ₽</td>
+                        <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
+                        <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
+                    </tr>`;
+        }
+        html += `</tbody>
+                </table>
+            </div>
+        </div>`;
     }
-    html += `</tbody>
-            </table>
-        </div>
-    </div>`;
     
     // Самые продаваемые товары и типы в две колонки
     html += `<div class="two-columns">
@@ -522,7 +501,7 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+            <tr>
         </div>
     </div>`;
     
