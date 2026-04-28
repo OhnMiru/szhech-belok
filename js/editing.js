@@ -4,39 +4,64 @@ function openEditProductModal(id) {
     currentEditId = id;
     const card = originalCardsData.find(c => c.id === id);
     console.log("Found card:", card);
+    
     if (card) {
         const titleElement = document.getElementById('editTitle');
-        console.log("Title element:", titleElement);
         if (titleElement) {
             titleElement.textContent = `✏️ Редактирование товара №${card.id}`;
         }
-        document.getElementById('editType').value = card.type || "";
-        document.getElementById('editName').value = card.name || "";
-        document.getElementById('editStock').value = card.stock;
-        document.getElementById('editTotal').value = card.total;
-        document.getElementById('editPrice').value = card.price;
-        document.getElementById('editCost').value = card.cost || 0;
-        document.getElementById('editProductModal').style.display = 'block';
+        
+        const typeInput = document.getElementById('editType');
+        const nameInput = document.getElementById('editName');
+        const stockInput = document.getElementById('editStock');
+        const totalInput = document.getElementById('editTotal');
+        const priceInput = document.getElementById('editPrice');
+        const costInput = document.getElementById('editCost');
+        
+        console.log("Input elements found:", {
+            type: !!typeInput,
+            name: !!nameInput,
+            stock: !!stockInput,
+            total: !!totalInput,
+            price: !!priceInput,
+            cost: !!costInput
+        });
+        
+        if (typeInput) typeInput.value = card.type || "";
+        if (nameInput) nameInput.value = card.name || "";
+        if (stockInput) stockInput.value = card.stock;
+        if (totalInput) totalInput.value = card.total;
+        if (priceInput) priceInput.value = card.price;
+        if (costInput) costInput.value = card.cost || 0;
+        
+        const modal = document.getElementById('editProductModal');
+        if (modal) modal.style.display = 'block';
     } else {
         console.error("Card not found for id:", id);
     }
 }
 
 function closeEditProductModal() {
-    document.getElementById('editProductModal').style.display = 'none';
+    const modal = document.getElementById('editProductModal');
+    if (modal) modal.style.display = 'none';
     currentEditId = null;
 }
 
 async function saveProductChanges() {
     if (currentEditId === null) return;
     const card = originalCardsData.find(c => c.id === currentEditId);
+    if (!card) {
+        showToast("Товар не найден", false);
+        closeEditProductModal();
+        return;
+    }
     
-    const newType = document.getElementById('editType').value.trim();
-    const newName = document.getElementById('editName').value.trim();
-    const newStock = parseInt(document.getElementById('editStock').value);
-    const newTotal = parseInt(document.getElementById('editTotal').value);
-    const newPrice = parseFloat(document.getElementById('editPrice').value);
-    const newCost = parseFloat(document.getElementById('editCost').value);
+    const newType = document.getElementById('editType')?.value.trim() || "";
+    const newName = document.getElementById('editName')?.value.trim() || "";
+    const newStock = parseInt(document.getElementById('editStock')?.value || 0);
+    const newTotal = parseInt(document.getElementById('editTotal')?.value || 0);
+    const newPrice = parseFloat(document.getElementById('editPrice')?.value || 0);
+    const newCost = parseFloat(document.getElementById('editCost')?.value || 0);
     
     if (!newName) {
         showToast("Название товара обязательно", false);
