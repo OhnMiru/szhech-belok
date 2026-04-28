@@ -21,8 +21,17 @@ async function syncFullRulesToServer() {
 async function loadRulesFromServer() {
     if (!isOnline) {
         const saved = localStorage.getItem('merch_rules_structured');
-        if (saved) rulesList = JSON.parse(saved);
-        else rulesList = [];
+        if (saved) {
+            try {
+                rulesList = JSON.parse(saved);
+                // Фильтруем битые правила
+                rulesList = rulesList.filter(rule => rule && rule.type);
+            } catch(e) {
+                rulesList = [];
+            }
+        } else {
+            rulesList = [];
+        }
         renderRulesList();
         return false;
     }
@@ -31,6 +40,8 @@ async function loadRulesFromServer() {
         const data = await response.json();
         if (data && data.rules) {
             rulesList = data.rules;
+            // Фильтруем битые правила
+            rulesList = rulesList.filter(rule => rule && rule.type);
             localStorage.setItem('merch_rules_structured', JSON.stringify(rulesList));
             renderRulesList();
             return true;
@@ -43,8 +54,16 @@ async function loadRules() {
     const loaded = await loadRulesFromServer();
     if (!loaded) {
         const saved = localStorage.getItem('merch_rules_structured');
-        if (saved) rulesList = JSON.parse(saved);
-        else rulesList = [];
+        if (saved) {
+            try {
+                rulesList = JSON.parse(saved);
+                rulesList = rulesList.filter(rule => rule && rule.type);
+            } catch(e) {
+                rulesList = [];
+            }
+        } else {
+            rulesList = [];
+        }
         renderRulesList();
     }
 }
@@ -55,11 +74,13 @@ function saveRules() {
 }
 
 function deleteRule(index) {
-    rulesList.splice(index, 1);
-    saveRules();
-    renderRulesList();
-    updateCartUI();
-    showToast("Правило удалено", true);
+    if (rulesList[index]) {
+        rulesList.splice(index, 1);
+        saveRules();
+        renderRulesList();
+        updateCartUI();
+        showToast("Правило удалено", true);
+    }
 }
 
 function deleteAllRules() {
@@ -187,7 +208,7 @@ function renderRuleForm() {
     } else if (currentRuleType === 'product') {
         container.innerHTML = `
             <div id="productMultiSelectContainer"></div>
-            <input type="number" id="ruleProductQty" class="rule-styled-input" placeholder="Количество от (шт)" min="1" step="1">
+            <input type="number" id="ruleProductQty" class="rule-styled-input" placeholder="Количество от (шт)" min="1" step="1>
             <input type="text" id="ruleProductMessage" class="rule-styled-input" placeholder="Что выводить? (например: Наклейка на лист интерактива)">
         `;
         renderProductMultiSelect(false);
@@ -251,32 +272,62 @@ function addStructuredRule() {
 function renderRulesList() {
     const container = document.getElementById('rules-list');
     if (!container) return;
-    if (rulesList.length === 0) {
+    
+    // Фильтруем для отображения только валидные правила
+    const validRules = rulesList.filter(rule => rule && rule.type);
+    
+    if (validRules.length === 0) {
         container.innerHTML = '<div class="empty-cart">📭 Нет добавленных правил. Создайте новое!</div>';
         return;
     }
+    
     let html = '';
-    rulesList.forEach((rule, index) => {
+    for (let index = 0; index < validRules.length; index++) {
+        const rule = validRules[index];
         let conditionText = '';
         let statusText = rule.active !== false ? '✅' : '❌';
-        if (rule.type === 'type') conditionText = `Тип: ${rule.condition.typeName}, от ${rule.condition.minQty} шт`;
-        else if (rule.type === 'product') {
-            const productNames = rule.condition.productIds.map(id => {
-                const card = originalCardsData.find(c => c.id === id);
-                return card ? `${card.type} ${card.name}` : id;
-            }).join(', ');
-            conditionText = `Товары: ${productNames.length > 30 ? productNames.substring(0, 30) + '...' : productNames}, от ${rule.condition.minQty} шт`;
-        } else if (rule.type === 'price') conditionText = `Сумма: от ${rule.condition.minSum} ₽`;
-        else if (rule.type === 'bonus') conditionText = ``;
+        
+        try {
+            if (rule.type === 'type') {
+                if (rule.condition && rule.condition.typeName) {
+                    conditionText = `Тип: ${rule.condition.typeName}, от ${rule.condition.minQty} шт`;
+                } else {
+                    conditionText = `⚠️ Ошибка в правиле (тип)`;
+                }
+            } else if (rule.type === 'product') {
+                if (rule.condition && rule.condition.productIds && Array.isArray(rule.condition.productIds)) {
+                    const productNames = rule.condition.productIds.map(id => {
+                        const card = originalCardsData.find(c => c.id === id);
+                        return card ? `${card.type} ${card.name}` : id;
+                    }).join(', ');
+                    conditionText = `Товары: ${productNames.length > 30 ? productNames.substring(0, 30) + '...' : productNames}, от ${rule.condition.minQty} шт`;
+                } else {
+                    conditionText = `⚠️ Ошибка в правиле (товары)`;
+                }
+            } else if (rule.type === 'price') {
+                if (rule.condition && rule.condition.minSum) {
+                    conditionText = `Сумма: от ${rule.condition.minSum} ₽`;
+                } else {
+                    conditionText = `⚠️ Ошибка в правиле (сумма)`;
+                }
+            } else if (rule.type === 'bonus') {
+                conditionText = ``;
+            } else {
+                conditionText = `⚠️ Неизвестный тип правила`;
+            }
+        } catch(e) {
+            conditionText = `⚠️ Ошибка в правиле`;
+        }
+        
         html += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border-color);">
                     <div style="flex: 1;">
-                        <div style="font-size: 14px; font-weight: bold; color: var(--badge-text);">${rule.icon} ${escapeHtml(rule.message)}</div>
+                        <div style="font-size: 14px; font-weight: bold; color: var(--badge-text);">${rule.icon || '📋'} ${escapeHtml(rule.message || 'Без сообщения')}</div>
                         <div style="font-size: 11px; color: var(--text-muted);">${conditionText}</div>
                     </div>
-                    <button onclick="toggleRuleActive(${index})" style="background: none; border: none; font-size: 16px; cursor: pointer; width: 36px; height: 36px;">${statusText}</button>
-                    <button onclick="deleteRule(${index})" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--minus-color); width: 36px; height: 36px; box-shadow: none;">🗑</button>
+                    <button onclick="toggleRuleActive(${rulesList.indexOf(rule)})" style="background: none; border: none; font-size: 16px; cursor: pointer; width: 36px; height: 36px;">${statusText}</button>
+                    <button onclick="deleteRule(${rulesList.indexOf(rule)})" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--minus-color); width: 36px; height: 36px; box-shadow: none;">🗑</button>
                 </div>`;
-    });
+    }
     container.innerHTML = html;
 }
 
@@ -297,8 +348,10 @@ function closeRulesModal() {
 function checkRulesForCart() {
     const cartItems = Object.entries(cart);
     if (cartItems.length === 0 || !originalCardsData.length) return [];
+    
     const cartInfo = {};
     let totalPrice = 0;
+    
     for (const [idStr, qty] of cartItems) {
         if (qty === 0) continue;
         const id = parseInt(idStr);
@@ -309,24 +362,62 @@ function checkRulesForCart() {
             totalPrice += qty * card.price;
         }
     }
+    
     const typeQty = {};
-    for (const [id, info] of Object.entries(cartInfo)) if (info.type) typeQty[info.type] = (typeQty[info.type] || 0) + info.qty;
+    for (const [id, info] of Object.entries(cartInfo)) {
+        if (info.type) typeQty[info.type] = (typeQty[info.type] || 0) + info.qty;
+    }
+    
     const activeRules = [];
     for (const rule of rulesList) {
+        // Пропускаем битые правила
+        if (!rule || !rule.type) continue;
         if (rule.active === false) continue;
+        
         let isActive = false;
         let detailText = "";
-        if (rule.type === 'type') { const qty = typeQty[rule.condition.typeName] || 0; if (qty >= rule.condition.minQty) { isActive = true; detailText = `(в корзине ${qty} шт товаров типа "${rule.condition.typeName}", нужно от ${rule.condition.minQty})`; } }
-        else if (rule.type === 'product') { 
-            let totalQty = 0; 
-            for (const productId of rule.condition.productIds) {
-                totalQty += cartInfo[productId]?.qty || 0;
+        
+        try {
+            if (rule.type === 'type') {
+                if (rule.condition && rule.condition.typeName) {
+                    const qty = typeQty[rule.condition.typeName] || 0;
+                    if (qty >= rule.condition.minQty) {
+                        isActive = true;
+                        detailText = `(в корзине ${qty} шт товаров типа "${rule.condition.typeName}", нужно от ${rule.condition.minQty})`;
+                    }
+                }
             }
-            if (totalQty >= rule.condition.minQty) { isActive = true; detailText = `(в корзине ${totalQty} шт товаров из списка, нужно от ${rule.condition.minQty})`; } 
+            else if (rule.type === 'product') {
+                if (rule.condition && rule.condition.productIds && Array.isArray(rule.condition.productIds)) {
+                    let totalQty = 0;
+                    for (const productId of rule.condition.productIds) {
+                        totalQty += cartInfo[productId]?.qty || 0;
+                    }
+                    if (totalQty >= rule.condition.minQty) {
+                        isActive = true;
+                        detailText = `(в корзине ${totalQty} шт товаров из списка, нужно от ${rule.condition.minQty})`;
+                    }
+                }
+            }
+            else if (rule.type === 'price') {
+                if (rule.condition && rule.condition.minSum) {
+                    if (totalPrice >= rule.condition.minSum) {
+                        isActive = true;
+                        detailText = `(сумма ${totalPrice} ₽, нужно от ${rule.condition.minSum} ₽)`;
+                    }
+                }
+            }
+            else if (rule.type === 'bonus') {
+                isActive = true;
+                detailText = "";
+            }
+        } catch(e) {
+            console.warn("Ошибка при проверке правила:", e);
         }
-        else if (rule.type === 'price') { if (totalPrice >= rule.condition.minSum) { isActive = true; detailText = `(сумма ${totalPrice} ₽, нужно от ${rule.condition.minSum} ₽)`; } }
-        else if (rule.type === 'bonus') { isActive = true; detailText = ""; }
-        if (isActive) activeRules.push({ icon: rule.icon || "✨", message: rule.message, condition: detailText });
+        
+        if (isActive) {
+            activeRules.push({ icon: rule.icon || "✨", message: rule.message, condition: detailText });
+        }
     }
     return activeRules;
 }
