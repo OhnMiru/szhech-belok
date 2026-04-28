@@ -37,7 +37,7 @@ function renderCards() {
                     <span class="name">${escapeHtml(name)}</span>
                 </div>
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
-                <div class="total-row"><span class="total">📦 Всего: ${total} шт</span><button class="edit-icon" onclick="openEditProductModal(${card.id})">✏️</button></div>
+                <div class="total-row"><span class="total">📦 Всего: ${total} шт</span><button class="edit-icon" data-id="${card.id}">✏️</button></div>
                 <div class="price-row"><span class="price">💰 Цена: ${price} ₽</span></div>
             </div>
             <div class="buttons">
