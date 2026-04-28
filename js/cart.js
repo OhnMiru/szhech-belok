@@ -1,5 +1,5 @@
 // ========== КОРЗИНА ==========
-// Переменные cart, itemDiscounts, selectedDiscountProducts, discountProductListVisible, discountPanelOpen, cartBookingMap уже объявлены в config.js
+// Переменные cart, itemDiscounts, selectedDiscountProducts, discountProductListVisible, discountPanelOpen, cartBookingMap, bookings уже объявлены в config.js
 // Не объявляем их заново!
 
 function updateCardBadges() {
@@ -91,21 +91,27 @@ function updateCartUI() {
         const hasDiscount = best.discountValue > 0;
         let discountText = '';
         if (hasDiscount) {
+            const totalDiscountForItem = (card.price - best.price) * qty;
             if (best.discountType === 'percent') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue}%</div>`;
-            else if (best.discountType === 'fixed') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue} ₽/шт</div>`;
+            else if (best.discountType === 'fixed') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${Math.floor(totalDiscountForItem)} ₽</div>`;
         }
         const displayName = `${card.type} ${card.name}`;
         html += `<div class="cart-item ${isZero ? 'disabled' : ''}"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(displayName)}</div>
-                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${originalItemTotal.toFixed(2)} ₽</span> ${Math.ceil(discountedItemTotal).toFixed(2)} ₽` : `${originalItemTotal.toFixed(2)} ₽`}</div>${discountText}</div>
+                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${Math.floor(originalItemTotal)} ₽</span> ${Math.floor(discountedItemTotal)} ₽` : `${Math.floor(originalItemTotal)} ₽`}</div>${discountText}</div>
                 <div class="cart-item-quantity"><button class="cart-qty-btn" onclick="changeCartQty(${id}, -1)" ${isZero ? 'disabled' : ''}>−</button><span class="cart-item-qty">${qty}</span><button class="cart-qty-btn" onclick="changeCartQty(${id}, 1)">+</button><button class="cart-item-remove" onclick="removeFromCart(${id})">🗑</button></div></div>`;
     }
     cartItemsDiv.innerHTML = html;
     if (cartTotalDiv) {
         cartTotalDiv.style.display = 'block';
         const hasAnyDiscount = Object.values(itemDiscounts).length > 0;
-        const roundedTotal = Math.ceil(total);
-        if (hasAnyDiscount) { let totalDiscountRub = subtotal - total; cartTotalDiv.innerHTML = `<span class="strikethrough">${subtotal.toFixed(2)} ₽</span> ${roundedTotal.toFixed(2)} ₽ (скидка ${totalDiscountRub.toFixed(2)} ₽)`; }
-        else { cartTotalDiv.innerHTML = `🍌 Итого: ${roundedTotal.toFixed(2)} ₽`; }
+        const roundedTotal = Math.floor(total);
+        const roundedSubtotal = Math.floor(subtotal);
+        const totalDiscountRub = Math.floor(subtotal - total);
+        if (hasAnyDiscount) { 
+            cartTotalDiv.innerHTML = `<span class="strikethrough">${roundedSubtotal} ₽</span> ${roundedTotal} ₽ (скидка ${totalDiscountRub} ₽)`; 
+        } else { 
+            cartTotalDiv.innerHTML = `🍌 Итого: ${roundedTotal} ₽`; 
+        }
     }
     if (cartActionsDiv && totalPositiveCount > 0) cartActionsDiv.style.display = 'flex';
     else if (cartActionsDiv) cartActionsDiv.style.display = 'none';
@@ -131,13 +137,46 @@ function changeCartQty(id, delta) {
     const newQty = currentQty + delta;
     if (newQty < 0) return;
     if (newQty > card.stock) { showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); return; }
-    if (newQty === 0) delete cart[id];
-    else cart[id] = newQty;
+    if (newQty === 0) {
+        delete cart[id];
+        // Проверяем, был ли этот товар из бронирования
+        if (cartBookingMap && cartBookingMap[id] && cartBookingMap[id].length > 0) {
+            for (const bookingId of cartBookingMap[id]) {
+                const booking = bookings.find(b => b.id == bookingId);
+                if (booking && booking.status === "in_cart") {
+                    booking.status = "active";
+                    saveBookings();
+                    if (typeof renderBookingsList === 'function') {
+                        renderBookingsList();
+                    }
+                }
+            }
+            delete cartBookingMap[id];
+        }
+    } else {
+        cart[id] = newQty;
+    }
     updateCartUI();
 }
 
 function removeFromCart(id) {
     delete cart[id];
+    
+    // Проверяем, был ли этот товар из бронирования
+    if (cartBookingMap && cartBookingMap[id] && cartBookingMap[id].length > 0) {
+        for (const bookingId of cartBookingMap[id]) {
+            const booking = bookings.find(b => b.id == bookingId);
+            if (booking && booking.status === "in_cart") {
+                booking.status = "active";
+                saveBookings();
+                if (typeof renderBookingsList === 'function') {
+                    renderBookingsList();
+                }
+            }
+        }
+        delete cartBookingMap[id];
+    }
+    
     updateCartUI();
     const card = originalCardsData.find(c => c.id === id);
     if (card) {
@@ -147,11 +186,31 @@ function removeFromCart(id) {
 }
 
 function clearCart() {
+    // Возвращаем все брони из корзины в активные
+    if (cartBookingMap) {
+        for (const [idStr, bookingIds] of Object.entries(cartBookingMap)) {
+            for (const bookingId of bookingIds) {
+                const booking = bookings.find(b => b.id == bookingId);
+                if (booking && booking.status === "in_cart") {
+                    booking.status = "active";
+                    saveBookings();
+                }
+            }
+        }
+    }
+    
     cart = {};
     itemDiscounts = {};
     selectedDiscountProducts.clear();
-    cartBookingMap = {};
+    if (cartBookingMap) {
+        for (const id in cartBookingMap) {
+            delete cartBookingMap[id];
+        }
+    }
     updateCartUI();
+    if (typeof renderBookingsList === 'function') {
+        renderBookingsList();
+    }
     showToast(`Корзина очищена`, true);
 }
 
@@ -170,7 +229,11 @@ function giftCart() {
     cart = {};
     itemDiscounts = {};
     selectedDiscountProducts.clear();
-    cartBookingMap = {};
+    if (cartBookingMap) {
+        for (const id in cartBookingMap) {
+            delete cartBookingMap[id];
+        }
+    }
     updateCartUI();
     for (const [idStr, qty] of Object.entries(cartCopy)) {
         if (qty === 0) continue;
@@ -292,12 +355,15 @@ function applyItemDiscount() {
 }
 
 function applyCartDiscountToAll(type, totalDiscountValue) {
+    // Получаем все товары в корзине (каждая единица отдельно)
     const cartItems = [];
+    const itemQtys = {}; // общее количество каждого товара
     for (const [idStr, qty] of Object.entries(cart)) {
         if (qty > 0) {
             const id = parseInt(idStr);
             const card = originalCardsData.find(c => c.id === id);
             if (card) {
+                itemQtys[id] = qty;
                 for (let i = 0; i < qty; i++) {
                     cartItems.push({
                         id: id,
@@ -316,6 +382,7 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
     }
     
     if (type === 'percent') {
+        // Процентная скидка
         const percent = totalDiscountValue;
         const discountByItemId = {};
         
@@ -328,7 +395,7 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
         
         for (const [id, totalDiscountForItem] of Object.entries(discountByItemId)) {
             const numericId = parseInt(id);
-            const qty = cart[numericId] || 1;
+            const qty = itemQtys[numericId] || 1;
             const discountPerUnit = totalDiscountForItem / qty;
             
             if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
@@ -339,7 +406,10 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             };
         }
     } else {
+        // Фиксированная скидка в рублях - распределяем точно
         let remainingDiscount = totalDiscountValue;
+        
+        // Создаём массив цен каждой единицы товара
         let itemPrices = cartItems.map(item => ({
             id: item.id,
             originalPrice: item.originalPrice,
@@ -347,29 +417,32 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             name: item.name
         }));
         
-        let iteration = 0;
-        const maxIterations = 100;
+        // Сначала распределяем скидку с округлением вниз
+        const discountPerItem = Math.floor(remainingDiscount / itemPrices.length);
+        let usedDiscount = 0;
         
-        while (remainingDiscount > 0.01 && iteration < maxIterations) {
-            iteration++;
-            const activeItems = itemPrices.filter(item => item.currentPrice > 0);
-            if (activeItems.length === 0) break;
-            
-            const discountPerItem = remainingDiscount / activeItems.length;
-            let newRemainingDiscount = 0;
-            
-            for (const item of activeItems) {
-                let newPrice = item.currentPrice - discountPerItem;
-                if (newPrice < 0) {
-                    newRemainingDiscount += Math.abs(newPrice);
-                    item.currentPrice = 0;
-                } else {
-                    item.currentPrice = newPrice;
-                }
-            }
-            remainingDiscount = newRemainingDiscount;
+        for (const item of itemPrices) {
+            let newPrice = item.currentPrice - discountPerItem;
+            if (newPrice < 0) newPrice = 0;
+            const itemDiscount = item.currentPrice - newPrice;
+            usedDiscount += itemDiscount;
+            item.currentPrice = newPrice;
         }
         
+        remainingDiscount = totalDiscountValue - usedDiscount;
+        
+        // Распределяем остаток (1-2 рубля) по одному рублю на первые товары
+        let remainderIndex = 0;
+        while (remainingDiscount > 0 && remainderIndex < itemPrices.length) {
+            const item = itemPrices[remainderIndex];
+            if (item.currentPrice > 0) {
+                item.currentPrice = Math.max(0, item.currentPrice - 1);
+                remainingDiscount--;
+            }
+            remainderIndex++;
+        }
+        
+        // Собираем скидки по каждому ID товара
         const discountByItemId = {};
         for (const item of itemPrices) {
             const discountValue = item.originalPrice - item.currentPrice;
@@ -377,9 +450,10 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             discountByItemId[item.id] += discountValue;
         }
         
+        // Применяем скидки
         for (const [id, totalDiscountForItem] of Object.entries(discountByItemId)) {
             const numericId = parseInt(id);
-            const qty = cart[numericId] || 1;
+            const qty = itemQtys[numericId] || 1;
             const discountPerUnit = totalDiscountForItem / qty;
             
             if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
@@ -417,7 +491,7 @@ async function checkout() {
     const activeRules = checkRulesForCart();
     if (activeRules.length > 0) { let rulesMessage = "Не забудьте:\n"; for (const rule of activeRules) rulesMessage += `• ${rule.message}\n`; showToast(rulesMessage, true); }
     const historyItems = items.map(([idStr, qty]) => { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); return { id: card.id, name: card.name, qty: qty, price: card.price }; });
-    const roundedTotal = Math.ceil(total);
+    const roundedTotal = Math.floor(total);
     addToHistory(historyItems, roundedTotal, 'basket', false);
     const cartCopy = { ...cart };
     closeCartModal();
@@ -426,14 +500,18 @@ async function checkout() {
     selectedDiscountProducts.clear();
     
     // Очищаем бронирования, связанные с проданными товарами
-    for (const [idStr, bookingIds] of Object.entries(cartBookingMap)) {
-        for (const bookingId of bookingIds) {
-            if (typeof removeBookingFromCartAfterCheckout === 'function') {
-                removeBookingFromCartAfterCheckout(bookingId);
+    if (cartBookingMap) {
+        for (const [idStr, bookingIds] of Object.entries(cartBookingMap)) {
+            for (const bookingId of bookingIds) {
+                if (typeof removeBookingFromCartAfterCheckout === 'function') {
+                    removeBookingFromCartAfterCheckout(bookingId);
+                }
             }
         }
+        for (const id in cartBookingMap) {
+            delete cartBookingMap[id];
+        }
     }
-    cartBookingMap = {};
     
     updateCartUI();
     for (const [idStr, qty] of Object.entries(cartCopy)) {
@@ -469,5 +547,5 @@ async function checkout() {
         }
         showUpdateTime();
     })();
-    showToast(`Продажа на ${roundedTotal.toFixed(2)} ₽ завершена!`, true);
+    showToast(`Продажа на ${roundedTotal} ₽ завершена!`, true);
 }
