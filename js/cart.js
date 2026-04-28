@@ -1,5 +1,6 @@
 // ========== КОРЗИНА ==========
-let cartBookingMap = {};
+// Переменные cart, itemDiscounts, selectedDiscountProducts, discountProductListVisible, discountPanelOpen, cartBookingMap уже объявлены в config.js
+// Не объявляем их заново!
 
 function updateCardBadges() {
     document.querySelectorAll('.card').forEach(card => {
