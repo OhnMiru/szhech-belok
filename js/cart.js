@@ -356,7 +356,6 @@ function applyItemDiscount() {
 
 function applyCartDiscountToAll(type, totalDiscountValue) {
     if (type === 'percent') {
-        // Процентная скидка - сохраняем как percent
         const percent = totalDiscountValue;
         for (const [idStr, qty] of Object.entries(cart)) {
             if (qty > 0) {
@@ -369,22 +368,13 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             }
         }
     } else {
-        // Фиксированная скидка в рублях
-        // Собираем все единицы товаров в корзине
+        // Разворачиваем каждый товар в отдельные единицы
         const units = [];
-        const itemsInfo = {};
-        
         for (const [idStr, qty] of Object.entries(cart)) {
             if (qty > 0) {
                 const id = parseInt(idStr);
                 const card = originalCardsData.find(c => c.id === id);
                 if (card) {
-                    itemsInfo[id] = {
-                        id: id,
-                        originalPrice: card.price,
-                        qty: qty,
-                        name: card.name
-                    };
                     for (let i = 0; i < qty; i++) {
                         units.push({
                             id: id,
@@ -403,53 +393,63 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
         
         let remainingDiscount = totalDiscountValue;
         
-        // Пока есть остаток скидки и есть товары, которые не обнулились
+        // Первый проход: равномерно распределяем скидку на все единицы
+        const unitDiscounts = new Array(units.length).fill(0);
+        const equalShare = remainingDiscount / units.length;
+        
+        for (let i = 0; i < units.length; i++) {
+            let discountForUnit = equalShare;
+            if (discountForUnit > units[i].currentPrice) {
+                discountForUnit = units[i].currentPrice;
+            }
+            unitDiscounts[i] = discountForUnit;
+            units[i].currentPrice -= discountForUnit;
+            remainingDiscount -= discountForUnit;
+        }
+        
+        // Второй проход: пока есть остаток, распределяем его на единицы, которые ещё не обнулились
         let iteration = 0;
         const maxIterations = 100;
         
         while (remainingDiscount > 0.01 && iteration < maxIterations) {
             iteration++;
             
-            // Находим активные единицы (цена > 0)
-            const activeUnits = units.filter(u => u.currentPrice > 0);
-            if (activeUnits.length === 0) break;
-            
-            // Распределяем остаток поровну на активные единицы
-            const discountPerUnit = remainingDiscount / activeUnits.length;
-            
-            let distributedThisRound = 0;
-            let newRemainingDiscount = 0;
-            
-            for (const unit of activeUnits) {
-                let newPrice = unit.currentPrice - discountPerUnit;
-                if (newPrice < 0) {
-                    // Единица обнулилась, излишек скидки добавляем к остатку
-                    newRemainingDiscount += Math.abs(newPrice);
-                    unit.currentPrice = 0;
-                    distributedThisRound += unit.currentPrice;
-                } else {
-                    unit.currentPrice = newPrice;
-                    distributedThisRound += discountPerUnit;
+            const activeUnits = [];
+            for (let i = 0; i < units.length; i++) {
+                if (units[i].currentPrice > 0) {
+                    activeUnits.push(i);
                 }
             }
             
-            remainingDiscount = newRemainingDiscount;
+            if (activeUnits.length === 0) break;
+            
+            const additionalPerUnit = remainingDiscount / activeUnits.length;
+            let distributedThisRound = 0;
+            
+            for (const idx of activeUnits) {
+                const discountToApply = Math.min(additionalPerUnit, units[idx].currentPrice);
+                unitDiscounts[idx] += discountToApply;
+                units[idx].currentPrice -= discountToApply;
+                distributedThisRound += discountToApply;
+            }
+            
+            remainingDiscount -= distributedThisRound;
         }
         
         // Собираем скидки по каждому товару
         const discountsByItem = {};
-        for (const unit of units) {
-            const discountValue = unit.originalPrice - unit.currentPrice;
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
             if (!discountsByItem[unit.id]) {
                 discountsByItem[unit.id] = 0;
             }
-            discountsByItem[unit.id] += discountValue;
+            discountsByItem[unit.id] += unitDiscounts[i];
         }
         
         // Применяем скидки
         for (const [id, totalDiscount] of Object.entries(discountsByItem)) {
             const numericId = parseInt(id);
-            const qty = itemsInfo[numericId].qty;
+            const qty = cart[numericId] || 1;
             const discountPerUnit = totalDiscount / qty;
             
             if (discountPerUnit > 0) {
