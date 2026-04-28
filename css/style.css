@@ -2322,6 +2322,11 @@ body.dark .extra-cost-amount {
     color: var(--badge-text);
 }
 
+/* Отступ для блока дополнительных доходов */
+.extra-income-section {
+    margin-top: 24px;
+}
+
 /* Адаптация для планшетов */
 @media (min-width: 768px) and (max-width: 1024px) {
     .stats-grid {
@@ -2340,6 +2345,11 @@ body.dark .extra-cost-amount {
 
 /* Адаптация для мобильных устройств */
 @media (max-width: 500px) {
+    .two-columns {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
     .stats-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 8px;
