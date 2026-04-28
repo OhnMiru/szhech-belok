@@ -5,8 +5,15 @@ function saveHistoryToLocal() {
 
 function loadHistoryFromLocal() {
     const saved = localStorage.getItem('merch_sales_history');
-    if (saved) salesHistory = JSON.parse(saved);
-    else salesHistory = [];
+    if (saved) {
+        try {
+            salesHistory = JSON.parse(saved);
+        } catch(e) {
+            salesHistory = [];
+        }
+    } else {
+        salesHistory = [];
+    }
 }
 
 async function syncFullHistoryToServer() {
@@ -46,6 +53,8 @@ async function loadHistoryFromServer() {
 async function loadHistory() {
     const loaded = await loadHistoryFromServer();
     if (!loaded) loadHistoryFromLocal();
+    // Принудительно сохраняем в localStorage после загрузки
+    saveHistoryToLocal();
 }
 
 function saveHistory() {
