@@ -25,15 +25,12 @@ function renderStats() {
     // Себестоимость всего товара на складе (полная себестоимость партии)
     let totalCostAllGoods = 0;
     let totalStock = 0;
-    let totalStockValue = 0;
     
     const productFullCostMap = new Map();
     for (const card of originalCardsData) {
         const fullCost = (card.cost || 0) * (card.total || 0);
-        const stockValue = (card.cost || 0) * (card.stock || 0);
         totalCostAllGoods += fullCost;
         totalStock += (card.stock || 0);
-        totalStockValue += stockValue;
         productFullCostMap.set(card.id, { 
             cost: card.cost || 0, 
             fullCost: fullCost,
@@ -118,6 +115,7 @@ function renderStats() {
         };
     }).sort((a, b) => b.margin - a.margin);
     
+    const sortedTypeDetails = [...typeDetails].sort((a, b) => b.soldQty - a.soldQty);
     const topByQty = [...productStats].sort((a, b) => b.soldQty - a.soldQty).slice(0, 5);
     const topTypesByQty = [...typeDetails].sort((a, b) => b.soldQty - a.soldQty).slice(0, 5);
     
@@ -190,7 +188,7 @@ function renderStats() {
                 </tr>
                 </thead>
                 <tbody>`;
-    for (const t of typeDetails) {
+    for (const t of sortedTypeDetails) {
         const profitClass = t.profit >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
         html += `<tr>
@@ -209,12 +207,13 @@ function renderStats() {
     <div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
-            <table class="detail-table-small">
-                <thead>
-                    <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                </tr>
-                </thead>
-                <tbody>`;
+            <div class="table-wrapper">
+                <table class="detail-table-small">
+                    <thead>
+                        <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                    </tr>
+                    </thead>
+                    <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
         const p = topByQty[i]; 
         html += `<tr>
@@ -225,16 +224,18 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-            </tr>
+                </table>
+            </div>
         </div>
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
-            <table class="detail-table-small">
-                <thead>
-                    <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                </tr>
-                </thead>
-                <tbody>`;
+            <div class="table-wrapper">
+                <table class="detail-table-small">
+                    <thead>
+                        <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                    </tr>
+                    </thead>
+                    <tbody>`;
     for (let i = 0; i < topTypesByQty.length; i++) { 
         const t = topTypesByQty[i]; 
         html += `<tr>
@@ -244,7 +245,8 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+                </table>
+            </div>
         </div>
     </div>
     <div class="extra-costs-section">
