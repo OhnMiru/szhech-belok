@@ -336,7 +336,7 @@ function renderBookingsList() {
                     <table>
                 </div>
                 <div class="edit-buttons" style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px;">
-                    ${!isInCart ? `<button class="edit-save-btn" onclick="moveBookingToCart(${booking.id})" style="background: var(--btn-bg); color: white; border: none; border-radius: 30px; padding: 8px 16px; cursor: pointer;">🛒 В корзину</button>` : ''}
+                    ${!isInCart ? `<button class="edit-cancel-btn" onclick="cancelBooking(${booking.id}, true)" style="background: var(--minus-bg); color: var(--minus-color); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 16px; cursor: pointer;">❌ Отменить бронь</button>
                     <button class="edit-cancel-btn" onclick="cancelBooking(${booking.id}, true)" style="background: var(--minus-bg); color: var(--minus-color); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 16px; cursor: pointer;">❌ Отменить бронь</button>
                 </div>
             </div>`;
