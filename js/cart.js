@@ -1,9 +1,6 @@
 // ========== КОРЗИНА ==========
-let cart = {};
-let itemDiscounts = {};
-let selectedDiscountProducts = new Set();
-let discountProductListVisible = false;
-let discountPanelOpen = false;
+// Переменные cart, itemDiscounts, selectedDiscountProducts, discountProductListVisible, discountPanelOpen уже объявлены в config.js
+// Не объявляем их заново!
 
 function updateCardBadges() {
     document.querySelectorAll('.card').forEach(card => {
@@ -25,7 +22,6 @@ function getBestDiscountForItem(id, originalPrice, qty, subtotal) {
     let discountValue = 0;
     let discountType = null;
     
-    // Сначала применяем скидку на конкретный товар
     if (itemDiscounts[id]) {
         const disc = itemDiscounts[id];
         discountType = disc.type;
@@ -266,7 +262,6 @@ function applyItemDiscount() {
         return;
     }
     
-    // Проверяем, выбраны ли все товары в корзине
     const cartProductIds = new Set();
     for (const [idStr, qty] of Object.entries(cart)) {
         if (qty > 0) {
