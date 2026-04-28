@@ -40,4 +40,6 @@ let historyTypeFilter = "all";
 let bookingsList = [];
 let selectedBookingNickname = null;
 let selectedBookingItems = [];
+let bookings = [];
+let currentBookingProducts = new Map();
 let currentViewingBookingId = null;
