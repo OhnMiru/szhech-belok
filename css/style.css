@@ -2267,6 +2267,7 @@ body.dark .extra-cost-amount {
     text-align: left;
     border-bottom: 1px solid var(--border-color);
     font-size: 12px;
+    white-space: nowrap;
 }
 
 .detail-table-small th {
@@ -2432,6 +2433,7 @@ body.dark .extra-cost-amount {
     .detail-table-small td {
         padding: 6px 4px;
         font-size: 10px;
+        white-space: nowrap;
     }
     
     .detail-table-small .popular-badge {
