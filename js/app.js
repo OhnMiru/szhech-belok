@@ -15,6 +15,7 @@ function initApp() {
     loadData(true, true);
     startAutoRefresh();
     startHistoryAutoSync();
+    loadBookings();
 
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsDropdown = document.getElementById('settingsDropdown');
