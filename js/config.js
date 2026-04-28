@@ -37,3 +37,7 @@ let extraCosts = [];
 let salesHistory = [];
 let historyMethodFilter = "all";
 let historyTypeFilter = "all";
+let bookingsList = [];
+let selectedBookingNickname = null;
+let selectedBookingItems = [];
+let currentViewingBookingId = null;
