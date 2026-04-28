@@ -242,6 +242,166 @@ async function updateStock(id, delta, silent = false) {
     }
 }
 
+function applyItemDiscount() {
+    const typeSelect = document.getElementById('itemDiscountTypeSelect');
+    const type = typeSelect ? typeSelect.getAttribute('data-value') || 'percent' : 'percent';
+    const value = parseFloat(document.getElementById('itemDiscountValue').value) || 0;
+    
+    if (selectedDiscountProducts.size === 0) {
+        showToast("Выберите товары для скидки", false);
+        return;
+    }
+    if (value <= 0) {
+        showToast("Введите корректную сумму скидки", false);
+        return;
+    }
+    
+    // Проверяем, выбраны ли все товары в корзине
+    const cartProductIds = new Set();
+    for (const [idStr, qty] of Object.entries(cart)) {
+        if (qty > 0) {
+            const id = parseInt(idStr);
+            cartProductIds.add(id);
+        }
+    }
+    
+    const isAllProductsSelected = selectedDiscountProducts.size === cartProductIds.size && 
+                                   [...selectedDiscountProducts].every(id => cartProductIds.has(id));
+    
+    if (isAllProductsSelected) {
+        // Скидка на всю корзину - распределяем равномерно с перераспределением
+        applyCartDiscountToAll(type, value);
+    } else {
+        // Скидка на выбранные товары
+        for (const productId of selectedDiscountProducts) {
+            if (!itemDiscounts[productId]) itemDiscounts[productId] = {};
+            itemDiscounts[productId] = { type: type, value: value };
+        }
+        selectedDiscountProducts.clear();
+        discountProductListVisible = false;
+        const container = document.getElementById('productDiscountList');
+        if (container) container.style.display = 'none';
+        updateCartUI();
+        showToast("Скидка применена к выбранным товарам", true);
+    }
+}
+
+function applyCartDiscountToAll(type, totalDiscountValue) {
+    // Получаем все товары в корзине
+    const cartItems = [];
+    for (const [idStr, qty] of Object.entries(cart)) {
+        if (qty > 0) {
+            const id = parseInt(idStr);
+            const card = originalCardsData.find(c => c.id === id);
+            if (card) {
+                cartItems.push({
+                    id: id,
+                    originalPrice: card.price,
+                    qty: qty,
+                    totalPrice: card.price * qty,
+                    name: card.name,
+                    type: card.type
+                });
+            }
+        }
+    }
+    
+    if (cartItems.length === 0) {
+        showToast("Корзина пуста", false);
+        return;
+    }
+    
+    let newPrices = [];
+    
+    if (type === 'percent') {
+        // Процентная скидка: просто уменьшаем цену каждого товара на %
+        const percent = totalDiscountValue;
+        for (const item of cartItems) {
+            const discountedPrice = item.originalPrice * (1 - percent / 100);
+            newPrices.push({
+                id: item.id,
+                newPrice: Math.ceil(discountedPrice)
+            });
+        }
+    } else {
+        // Фиксированная скидка в рублях - распределяем равномерно с перераспределением
+        let remainingDiscount = totalDiscountValue;
+        let remainingItems = [...cartItems];
+        let results = [];
+        
+        // Инициализируем результаты исходными ценами
+        for (const item of cartItems) {
+            results.push({
+                id: item.id,
+                originalPrice: item.originalPrice,
+                currentPrice: item.originalPrice,
+                qty: item.qty,
+                totalPrice: item.totalPrice,
+                isZero: false
+            });
+        }
+        
+        // Пока есть остаток скидки и есть товары для распределения
+        while (remainingDiscount > 0 && remainingItems.length > 0) {
+            // Распределяем остаток скидки поровну на оставшиеся товары
+            const discountPerItem = Math.ceil(remainingDiscount / remainingItems.length);
+            let newRemainingDiscount = 0;
+            const newRemainingItems = [];
+            
+            for (const item of remainingItems) {
+                const result = results.find(r => r.id === item.id);
+                if (result && !result.isZero) {
+                    let newPrice = result.currentPrice - discountPerItem;
+                    if (newPrice <= 0) {
+                        // Товар обнулился, излишек скидки переходит в остаток
+                        newRemainingDiscount += Math.abs(newPrice);
+                        result.currentPrice = 0;
+                        result.isZero = true;
+                    } else {
+                        result.currentPrice = newPrice;
+                        newRemainingItems.push(item);
+                    }
+                }
+            }
+            
+            remainingDiscount = newRemainingDiscount;
+            remainingItems = newRemainingItems;
+        }
+        
+        // Сохраняем результаты
+        for (const result of results) {
+            newPrices.push({
+                id: result.id,
+                newPrice: Math.ceil(result.currentPrice)
+            });
+        }
+    }
+    
+    // Применяем новые цены как скидки на каждый товар
+    for (const priceInfo of newPrices) {
+        const discountValue = Math.max(0, originalCardsData.find(c => c.id === priceInfo.id).price - priceInfo.newPrice);
+        if (discountValue > 0) {
+            if (!itemDiscounts[priceInfo.id]) itemDiscounts[priceInfo.id] = {};
+            itemDiscounts[priceInfo.id] = { type: 'fixed', value: discountValue };
+        }
+    }
+    
+    // Очищаем выбранные товары
+    selectedDiscountProducts.clear();
+    discountProductListVisible = false;
+    const container = document.getElementById('productDiscountList');
+    if (container) container.style.display = 'none';
+    
+    updateCartUI();
+    showToast(`Скидка ${type === 'percent' ? totalDiscountValue + '%' : totalDiscountValue + ' ₽'} применена на всю корзину`, true);
+}
+
+function resetItemDiscounts() {
+    itemDiscounts = {};
+    updateCartUI();
+    showToast("Скидки на товары сброшены", true);
+}
+
 async function checkout() {
     const items = Object.entries(cart).filter(([_, qty]) => qty > 0);
     if (items.length === 0) { showToast("Нет товаров для продажи", false); return; }
