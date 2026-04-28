@@ -1,9 +1,15 @@
 // ========== РЕДАКТИРОВАНИЕ ==========
 function openEditProductModal(id) {
+    console.log("openEditProductModal called with id:", id);
     currentEditId = id;
     const card = originalCardsData.find(c => c.id === id);
+    console.log("Found card:", card);
     if (card) {
-        document.getElementById('editTitle').textContent = `✏️ Редактирование товара №${card.id}`;
+        const titleElement = document.getElementById('editTitle');
+        console.log("Title element:", titleElement);
+        if (titleElement) {
+            titleElement.textContent = `✏️ Редактирование товара №${card.id}`;
+        }
         document.getElementById('editType').value = card.type || "";
         document.getElementById('editName').value = card.name || "";
         document.getElementById('editStock').value = card.stock;
@@ -11,6 +17,8 @@ function openEditProductModal(id) {
         document.getElementById('editPrice').value = card.price;
         document.getElementById('editCost').value = card.cost || 0;
         document.getElementById('editProductModal').style.display = 'block';
+    } else {
+        console.error("Card not found for id:", id);
     }
 }
 
