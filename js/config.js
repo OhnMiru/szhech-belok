@@ -1,5 +1,5 @@
 // ========== НАСТРОЙКА ==========
-const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbzvzArJiFwmY6VcNwDtjc7ZoQBRTYLpw87xCMdUpxstIGjU9IJnuaGMNDlbQQfRlTjX/exec";
+const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbwhrDhXpmGw8U4NXua-rNN5mcfO9zB1-QoLhdNUqLexf34vDWhVokVCx_mRWp7qIx2P/exec";
 
 let CURRENT_USER = {
     id: null,
