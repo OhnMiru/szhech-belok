@@ -14,11 +14,13 @@ function loadPendingOperations() {
     }
 }
 
-async function processPendingOperations() {
+async function processPendingOperations(silent = false) {
     if (!isOnline) return;
     if (pendingOperations.length === 0) return;
     
-    showToast(`Синхронизация (${pendingOperations.length} операций)...`, true);
+    if (!silent) {
+        showToast(`Синхронизация (${pendingOperations.length} операций)...`, true);
+    }
     
     const failed = [];
     for (const op of pendingOperations) {
@@ -36,10 +38,14 @@ async function processPendingOperations() {
     
     if (failed.length === 0) {
         pendingOperations = [];
-        showToast("Все операции синхронизированы", true);
+        if (!silent) {
+            showToast("Все операции синхронизированы", true);
+        }
     } else {
         pendingOperations = failed;
-        showToast(`Не синхронизировано: ${failed.length} операций`, false);
+        if (!silent) {
+            showToast(`Не синхронизировано: ${failed.length} операций`, false);
+        }
     }
     savePendingOperations();
 }
@@ -48,14 +54,14 @@ function addPendingOperation(action, params) {
     pendingOperations.push({ action: action, params: params, timestamp: Date.now() });
     savePendingOperations();
     if (isOnline) {
-        processPendingOperations();
+        processPendingOperations(true); // silent mode
     }
 }
 
 window.addEventListener('online', () => {
     isOnline = true;
     showToast("Соединение восстановлено, синхронизация...", true);
-    processPendingOperations();
+    processPendingOperations(false);
     loadData(false, false);
 });
 
