@@ -133,8 +133,7 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExpenses)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
         <div class="stats-card desktop-only"><div class="stats-card-value">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
-        <div class="stats-card"><div class="stats-card-value">${formatNumber(totalStock)}</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
-        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalStockValue)}</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatNumber(totalStock)}</div><div class="stats-card-label">📦 Осталось товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
     </div>`;
@@ -179,7 +178,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-            <table>
+        </table>
         </div>
     </div>
     <div class="detail-section">
@@ -204,7 +203,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-        </tr>
+        </table>
         </div>
     </div>
     <div class="two-columns">
@@ -226,14 +225,14 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+            </tr>
         </div>
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
             <table class="detail-table-small">
                 <thead>
                     <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                </td>
+                </tr>
                 </thead>
                 <tbody>`;
     for (let i = 0; i < topTypesByQty.length; i++) { 
@@ -267,7 +266,7 @@ function renderStats() {
             <button class="add-cost-btn" onclick="addExtraCostFromModal()">➕ Добавить</button>
         </div>
     </div>
-    <div class="extra-income-section">
+    <div class="extra-income-section" style="margin-top: 24px;">
         <div class="detail-title">💵 Дополнительные доходы</div>
         <div id="extra-incomes-list">`;
     if (extraIncomes.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных доходов</div>';
