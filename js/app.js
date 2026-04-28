@@ -15,8 +15,9 @@ function initApp() {
     loadData(true, true);
     startAutoRefresh();
     startHistoryAutoSync();
-    loadBookings();
-
+    if (typeof loadBookings === 'function') {
+    loadBookings().catch(e => console.warn("Bookings load error:", e));
+}
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsDropdown = document.getElementById('settingsDropdown');
     const shareStatsBtn = document.getElementById('shareStatsBtn');
