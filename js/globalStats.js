@@ -526,7 +526,7 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+        </table>
         </div>
     </div>`;
     
@@ -563,7 +563,7 @@ function renderUserFullStats(stats, participantName) {
     
     // Самые продаваемые товары и типы в две колонки
     html += `<div class="two-columns">
-        <div class="detail-section">
+        <div class="detail-card">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
@@ -582,10 +582,10 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-                </table>
+                </tr>
             </div>
         </div>
-        <div class="detail-section">
+        <div class="detail-card">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
@@ -603,7 +603,7 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-                <tr>
+                <table>
             </div>
         </div>
     </div>`;
