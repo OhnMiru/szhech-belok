@@ -1,8 +1,5 @@
 // ========== БРОНИРОВАНИЯ ==========
-// Переменные объявлены в config.js, не объявляем заново!
-// let bookings = [];
-// let currentBookingProducts = new Map();
-// let currentViewingBookingId = null;
+// Переменные объявлены в config.js: bookings, currentBookingProducts, currentViewingBookingId
 
 function saveBookingsToLocal() {
     localStorage.setItem('merch_bookings', JSON.stringify(bookings));
@@ -120,48 +117,103 @@ function addBooking(nickname, items) {
     return true;
 }
 
-async function cancelBooking(bookingId) {
+async function deleteBooking(bookingId) {
     const booking = bookings.find(b => b.id == bookingId);
-    if (!booking) return;
+    if (!booking) return false;
     
     if (!isOnline) {
-        addPendingOperation("cancelBooking", `&id=${bookingId}`);
-        showToast("Отмена бронирования будет выполнена при восстановлении соединения", true);
-        booking.status = "cancelled";
+        addPendingOperation("deleteBooking", `&id=${bookingId}`);
+        booking.status = "deleted";
         saveBookings();
         renderBookingsList();
-        return;
+        return true;
     }
     
     try {
-        const response = await fetch(buildApiUrl("cancelBooking", `&id=${bookingId}`));
+        const response = await fetch(buildApiUrl("deleteBooking", `&id=${bookingId}`));
+        const result = await response.json();
+        if (result.success) {
+            booking.status = "deleted";
+            saveBookings();
+            renderBookingsList();
+            return true;
+        } else {
+            showToast("Ошибка удаления: " + (result.error || "неизвестная"), false);
+            return false;
+        }
+    } catch(e) {
+        addPendingOperation("deleteBooking", `&id=${bookingId}`);
+        booking.status = "deleted";
+        saveBookings();
+        renderBookingsList();
+        return true;
+    }
+}
+
+async function cancelBooking(bookingId, restoreStock = true) {
+    const booking = bookings.find(b => b.id == bookingId);
+    if (!booking) return false;
+    
+    if (restoreStock) {
+        // Восстанавливаем остатки на складе
+        for (const item of booking.items) {
+            const card = originalCardsData.find(c => c.id === item.id);
+            if (card) {
+                card.stock += item.qty;
+                const cardElement = document.querySelector(`.card[data-id="${item.id}"]`);
+                if (cardElement) {
+                    const stockSpan = cardElement.querySelector('.stock');
+                    if (stockSpan) stockSpan.textContent = `Остаток: ${card.stock} шт`;
+                    if (card.stock === 0) cardElement.classList.add('out-of-stock');
+                    else cardElement.classList.remove('out-of-stock');
+                }
+                
+                if (isOnline) {
+                    fetch(buildApiUrl("update", `&id=${item.id}&delta=+${item.qty}`)).catch(e => {
+                        addPendingOperation("update", `&id=${item.id}&delta=+${item.qty}`);
+                    });
+                } else {
+                    addPendingOperation("update", `&id=${item.id}&delta=+${item.qty}`);
+                }
+            }
+        }
+    }
+    
+    if (!isOnline) {
+        addPendingOperation("cancelBooking", `&id=${bookingId}&restoreStock=${restoreStock}`);
+        booking.status = "cancelled";
+        saveBookings();
+        renderBookingsList();
+        if (restoreStock) {
+            showToast("Бронирование отменено, товары возвращены на склад", true);
+        }
+        return true;
+    }
+    
+    try {
+        const response = await fetch(buildApiUrl("cancelBooking", `&id=${bookingId}&restoreStock=${restoreStock}`));
         const result = await response.json();
         if (result.success) {
             booking.status = "cancelled";
             saveBookings();
-            
-            // Восстанавливаем остатки локально
-            for (const item of booking.items) {
-                const card = originalCardsData.find(c => c.id === item.id);
-                if (card) {
-                    card.stock += item.qty;
-                    const cardElement = document.querySelector(`.card[data-id="${item.id}"]`);
-                    if (cardElement) {
-                        const stockSpan = cardElement.querySelector('.stock');
-                        if (stockSpan) stockSpan.textContent = `Остаток: ${card.stock} шт`;
-                        if (card.stock === 0) cardElement.classList.add('out-of-stock');
-                        else cardElement.classList.remove('out-of-stock');
-                    }
-                }
-            }
             renderBookingsList();
-            showToast("Бронирование отменено, товары возвращены на склад", true);
+            if (restoreStock) {
+                showToast("Бронирование отменено, товары возвращены на склад", true);
+            }
+            return true;
         } else {
             showToast("Ошибка отмены: " + (result.error || "неизвестная"), false);
+            return false;
         }
     } catch(e) {
-        addPendingOperation("cancelBooking", `&id=${bookingId}`);
-        showToast("Отмена бронирования будет выполнена при восстановлении соединения", true);
+        addPendingOperation("cancelBooking", `&id=${bookingId}&restoreStock=${restoreStock}`);
+        booking.status = "cancelled";
+        saveBookings();
+        renderBookingsList();
+        if (restoreStock) {
+            showToast("Бронирование будет отменено при восстановлении соединения", true);
+        }
+        return true;
     }
 }
 
@@ -169,48 +221,58 @@ function moveBookingToCart(bookingId) {
     const booking = bookings.find(b => b.id == bookingId);
     if (!booking) return;
     
+    // Добавляем товары в корзину с пометкой о бронировании
     for (const item of booking.items) {
         const currentQty = cart[item.id] || 0;
         cart[item.id] = currentQty + item.qty;
+        
+        // Сохраняем информацию о том, что этот товар из бронирования
+        if (!cartBookingMap[item.id]) {
+            cartBookingMap[item.id] = [];
+        }
+        if (!cartBookingMap[item.id].includes(bookingId)) {
+            cartBookingMap[item.id].push(bookingId);
+        }
     }
     
-    cancelBooking(bookingId);
+    // Отмечаем бронь как перенесённую в корзину, но не удаляем
+    booking.status = "in_cart";
+    saveBookings();
     updateCartUI();
     closeBookingsModal();
     openCartModal();
     showToast("Товары из бронирования добавлены в корзину", true);
 }
 
+function removeBookingFromCartAfterCheckout(bookingId) {
+    const booking = bookings.find(b => b.id == bookingId);
+    if (booking && (booking.status === "in_cart" || booking.status === "active")) {
+        booking.status = "completed";
+        saveBookings();
+        renderBookingsList();
+    }
+}
+
 function renderBookingsList() {
     const container = document.getElementById('bookings-content');
     if (!container) return;
     
-    const activeBookings = bookings.filter(b => b.status === "active");
+    const activeBookings = bookings.filter(b => b.status === "active" || b.status === "in_cart");
     
     let html = '';
     
-    // Список ников (если есть активные бронирования)
-    if (activeBookings.length > 0) {
-        html += `<div class="bookings-nicknames" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
-                    <div style="width: 100%; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">👤 Ники с активными бронями:</div>`;
-        for (const booking of activeBookings) {
-            html += `<button class="booking-nickname-btn" onclick="viewBookingDetails(${booking.id})" style="background: ${currentViewingBookingId === booking.id ? 'var(--btn-bg)' : 'var(--badge-bg)'}; border: 1px solid var(--border-color); border-radius: 30px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: ${currentViewingBookingId === booking.id ? 'white' : 'var(--text-primary)'};">${escapeHtml(booking.nickname)}</button>`;
-        }
-        html += `</div>`;
-    }
-    
-    // Форма добавления нового бронирования
+    // Форма добавления нового бронирования (сверху)
     html += `<div class="add-booking-form" style="margin-bottom: 20px; padding: 16px; background: var(--badge-bg); border-radius: 16px;">
-        <div style="font-weight: bold; margin-bottom: 12px;">➕ Новое бронирование</div>
+        <div style="font-weight: bold; margin-bottom: 12px; color: var(--badge-text);">➕ Новое бронирование</div>
         <div class="edit-row" style="margin-bottom: 12px;">
-            <span class="edit-label">Ник покупателя</span>
+            <span class="edit-label" style="color: var(--text-primary);">Ник покупателя</span>
             <input type="text" id="bookingNickname" class="edit-input" placeholder="Введите ник" style="flex: 2;">
         </div>
         <div class="edit-row" style="margin-bottom: 12px; flex-wrap: wrap;">
-            <span class="edit-label" style="min-width: 80px;">Товары</span>
+            <span class="edit-label" style="min-width: 80px; color: var(--text-primary);">Товары</span>
             <div style="flex: 2;">
                 <div class="discount-custom-select">
-                    <div class="discount-custom-select-trigger" id="bookingProductSelectTrigger" onclick="toggleBookingProductSelect()" style="background: var(--card-bg);">📦 Выберите товары</div>
+                    <div class="discount-custom-select-trigger" id="bookingProductSelectTrigger" onclick="toggleBookingProductSelect()" style="background: var(--card-bg); color: var(--text-primary);">📦 Выберите товары</div>
                     <div class="discount-custom-select-dropdown" id="bookingProductSelectDropdown" style="max-height: 250px; overflow-y: auto; width: 100%; min-width: 280px;"></div>
                 </div>
             </div>
@@ -219,10 +281,28 @@ function renderBookingsList() {
         <button class="edit-save-btn" onclick="createBooking()" style="width: auto; padding: 8px 24px; background: var(--btn-bg); color: white; border: none; border-radius: 30px; cursor: pointer;">📦 Забронировать</button>
     </div>`;
     
+    // Список клиентов с активными бронями
+    if (activeBookings.length > 0) {
+        html += `<div class="bookings-nicknames" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+                    <div style="width: 100%; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">👤 Клиенты, забронировавшие товары:</div>`;
+        for (const booking of activeBookings) {
+            let statusText = "";
+            let statusStyle = "";
+            if (booking.status === "in_cart") {
+                statusText = " (в корзине)";
+                statusStyle = "opacity: 0.7;";
+            }
+            html += `<button class="booking-nickname-btn" onclick="viewBookingDetails(${booking.id})" style="display: inline-block; white-space: nowrap; background: ${currentViewingBookingId === booking.id ? 'var(--btn-bg)' : 'var(--badge-bg)'}; border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 20px; font-size: 13px; cursor: pointer; color: ${currentViewingBookingId === booking.id ? 'white' : 'var(--text-primary)'}; margin-right: 0; ${statusStyle}">
+                            ${escapeHtml(booking.nickname)}${statusText}
+                        </button>`;
+        }
+        html += `</div>`;
+    }
+    
     // Детали выбранного бронирования
     if (currentViewingBookingId) {
         const booking = bookings.find(b => b.id == currentViewingBookingId);
-        if (booking && booking.status === "active") {
+        if (booking && (booking.status === "active" || booking.status === "in_cart")) {
             const date = new Date(booking.date);
             const dateStr = date.toLocaleString('ru-RU');
             let total = 0;
@@ -230,8 +310,10 @@ function renderBookingsList() {
                 total += item.price * item.qty;
             }
             
+            const isInCart = booking.status === "in_cart";
+            
             html += `<div class="booking-details" style="margin-top: 20px;">
-                <div class="detail-title">📋 Бронирование: ${escapeHtml(booking.nickname)} (${dateStr})</div>
+                <div class="detail-title" style="color: var(--badge-text);">📋 Бронирование: ${escapeHtml(booking.nickname)} (${dateStr})${isInCart ? ' — в корзине' : ''}</div>
                 <div class="table-wrapper">
                     <table class="detail-table-small" style="width: 100%;">
                         <thead>
@@ -253,18 +335,18 @@ function renderBookingsList() {
                         <td class="text-right">${total} ₽</td>
                       </tr>`;
             html += `</tbody>
-                    </table>
+                    <table>
                 </div>
                 <div class="edit-buttons" style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px;">
-                    <button class="edit-cancel-btn" onclick="cancelBooking(${booking.id})" style="background: var(--minus-bg); color: var(--minus-color); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 16px; cursor: pointer;">❌ Отменить бронь</button>
-                    <button class="edit-save-btn" onclick="moveBookingToCart(${booking.id})" style="background: var(--btn-bg); color: white; border: none; border-radius: 30px; padding: 8px 16px; cursor: pointer;">🛒 В корзину</button>
+                    ${!isInCart ? `<button class="edit-save-btn" onclick="moveBookingToCart(${booking.id})" style="background: var(--btn-bg); color: white; border: none; border-radius: 30px; padding: 8px 16px; cursor: pointer;">🛒 В корзину</button>` : ''}
+                    <button class="edit-cancel-btn" onclick="cancelBooking(${booking.id}, true)" style="background: var(--minus-bg); color: var(--minus-color); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 16px; cursor: pointer;">❌ Отменить бронь</button>
                 </div>
             </div>`;
         }
     }
     
     if (activeBookings.length === 0 && !currentViewingBookingId) {
-        html += `<div class="empty-cart" style="margin-top: 20px;">📭 Нет активных бронирований. Создайте новое!</div>`;
+        html += `<div class="empty-cart" style="margin-top: 20px; color: var(--text-muted);">📭 Нет активных бронирований. Создайте новое!</div>`;
     }
     
     container.innerHTML = html;
@@ -283,20 +365,20 @@ function renderBookingProductSelect() {
             const displayName = `${card.type} ${card.name}`;
             const product = currentBookingProducts.get(card.id);
             const qtyInCart = product?.qty || 0;
-            html += `<div class="product-select-item" onclick="toggleBookingProduct(${card.id}, '${escapeHtml(card.name)}', '${escapeHtml(card.type)}', ${card.price}, ${card.cost || 0})" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border-color);">
+            html += `<div class="product-select-item" onclick="toggleBookingProduct(${card.id}, '${escapeHtml(card.name)}', '${escapeHtml(card.type)}', ${card.price}, ${card.cost || 0})" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border-color);">
                         <div style="flex: 1;">
-                            <div>${escapeHtml(displayName)}</div>
+                            <div style="color: var(--text-primary);">${escapeHtml(displayName)}</div>
                             <div style="font-size: 11px; color: var(--text-muted);">В наличии: ${card.stock} шт, цена: ${card.price} ₽</div>
                         </div>
                         ${qtyInCart > 0 ? `<div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="cart-qty-btn" onclick="event.stopPropagation(); changeBookingProductQty(${card.id}, -1)" style="width: 28px; height: 28px;">−</button>
-                            <span style="min-width: 30px; text-align: center;">${qtyInCart}</span>
-                            <button class="cart-qty-btn" onclick="event.stopPropagation(); changeBookingProductQty(${card.id}, 1)" style="width: 28px; height: 28px;">+</button>
+                            <button class="cart-qty-btn" onclick="event.stopPropagation(); changeBookingProductQty(${card.id}, -1)" style="width: 28px; height: 28px; background: var(--badge-bg); color: var(--text-primary);">−</button>
+                            <span style="min-width: 30px; text-align: center; color: var(--text-primary);">${qtyInCart}</span>
+                            <button class="cart-qty-btn" onclick="event.stopPropagation(); changeBookingProductQty(${card.id}, 1)" style="width: 28px; height: 28px; background: var(--badge-bg); color: var(--text-primary);">+</button>
                         </div>` : '<span style="color: var(--text-muted);">➕ Выбрать</span>'}
                     </div>`;
         }
     });
-    container.innerHTML = html || '<div class="product-select-item">Нет доступных товаров</div>';
+    container.innerHTML = html || '<div class="product-select-item" style="color: var(--text-muted); padding: 12px; text-align: center;">Нет доступных товаров</div>';
 }
 
 function toggleBookingProductSelect() {
@@ -347,16 +429,16 @@ function renderSelectedBookingProducts() {
         return;
     }
     
-    let html = '<div style="font-size: 13px; font-weight: bold; margin-bottom: 8px;">Выбранные товары:</div>';
+    let html = '<div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">Выбранные товары:</div>';
     for (const [id, product] of currentBookingProducts) {
         const displayName = `${product.type} ${product.name}`;
         html += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
-                    <span>${escapeHtml(displayName)}</span>
+                    <span style="color: var(--text-primary);">${escapeHtml(displayName)}</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <button class="cart-qty-btn" onclick="changeBookingProductQty(${id}, -1)" style="width: 28px; height: 28px;">−</button>
-                        <span style="min-width: 30px; text-align: center;">${product.qty}</span>
-                        <button class="cart-qty-btn" onclick="changeBookingProductQty(${id}, 1)" style="width: 28px; height: 28px;">+</button>
-                        <button class="cart-item-remove" onclick="toggleBookingProduct(${id})" style="width: 28px; height: 28px;">🗑</button>
+                        <button class="cart-qty-btn" onclick="changeBookingProductQty(${id}, -1)" style="width: 28px; height: 28px; background: var(--badge-bg); color: var(--text-primary);">−</button>
+                        <span style="min-width: 30px; text-align: center; color: var(--text-primary);">${product.qty}</span>
+                        <button class="cart-qty-btn" onclick="changeBookingProductQty(${id}, 1)" style="width: 28px; height: 28px; background: var(--badge-bg); color: var(--text-primary);">+</button>
+                        <button class="cart-item-remove" onclick="toggleBookingProduct(${id})" style="width: 28px; height: 28px; background: none; color: var(--minus-color);">🗑</button>
                     </div>
                 </div>`;
     }
@@ -401,7 +483,7 @@ function createBooking() {
         renderSelectedBookingProducts();
         renderBookingProductSelect();
         
-        const newBooking = bookings.find(b => b.nickname === nickname && b.status === "active");
+        const newBooking = bookings.find(b => b.nickname === nickname && (b.status === "active" || b.status === "in_cart"));
         if (newBooking) {
             currentViewingBookingId = newBooking.id;
         }
@@ -452,6 +534,7 @@ window.closeBookingsModal = closeBookingsModal;
 window.createBooking = createBooking;
 window.cancelBooking = cancelBooking;
 window.moveBookingToCart = moveBookingToCart;
+window.removeBookingFromCartAfterCheckout = removeBookingFromCartAfterCheckout;
 window.viewBookingDetails = viewBookingDetails;
 window.toggleBookingProductSelect = toggleBookingProductSelect;
 window.toggleBookingProduct = toggleBookingProduct;
