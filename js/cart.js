@@ -1,291 +1,3 @@
-// ========== КОРЗИНА ==========
-function updateCardBadges() {
-    document.querySelectorAll('.card').forEach(card => {
-        const idAttr = card.getAttribute('data-id');
-        if (idAttr) {
-            const id = parseInt(idAttr);
-            let badge = card.querySelector('.cart-qty-badge');
-            if (cart.hasOwnProperty(id) && cart[id] > 0) {
-                if (!badge) { badge = document.createElement('div'); badge.className = 'cart-qty-badge'; card.style.position = 'relative'; card.appendChild(badge); }
-                badge.textContent = cart[id];
-                badge.style.background = 'var(--btn-bg)';
-            } else { if (badge) badge.remove(); }
-        }
-    });
-}
-
-function getBestDiscountForItem(id, originalPrice, qty, subtotal) {
-    let finalPrice = originalPrice;
-    let discountValue = 0;
-    let discountType = null;
-    if (itemDiscounts[id]) {
-        const disc = itemDiscounts[id];
-        discountType = disc.type;
-        if (disc.type === 'percent') { 
-            finalPrice = originalPrice * (1 - disc.value / 100);
-            discountValue = disc.value;
-        } else if (disc.type === 'fixed') { 
-            finalPrice = Math.max(0, originalPrice - disc.value);
-            discountValue = disc.value;
-        }
-    }
-    finalPrice = Math.ceil(finalPrice);
-    return { price: finalPrice, discountValue: discountValue, discountType: discountType };
-}
-
-function updateCartUI() {
-    const totalPositiveCount = Object.values(cart).reduce((a, b) => a + (b > 0 ? b : 0), 0);
-    const cartCountSpan = document.getElementById('cartCount');
-    if (cartCountSpan) cartCountSpan.textContent = totalPositiveCount;
-    const cartItemsDiv = document.getElementById('cart-items-list');
-    const cartTotalDiv = document.getElementById('cart-total');
-    const cartActionsDiv = document.getElementById('cart-actions');
-    const discountPanelDiv = document.getElementById('discount-panel');
-    if (!cartItemsDiv) return;
-    const hasAny = Object.keys(cart).length > 0;
-    if (discountPanelDiv) discountPanelDiv.style.display = hasAny ? 'block' : 'none';
-    if (!hasAny) {
-        cartItemsDiv.innerHTML = '<div class="empty-cart">🍌 Корзина пуста</div>';
-        if (cartTotalDiv) cartTotalDiv.style.display = 'none';
-        if (cartActionsDiv) cartActionsDiv.style.display = 'none';
-        updateCardBadges();
-        return;
-    }
-    let discountHtml = `<div class="discount-section"><div class="discount-header" onclick="toggleDiscountPanel()"><span class="discount-title">🎯 Скидки</span><span class="discount-chevron" id="discount-chevron">▼</span></div>
-            <div id="discount-content" class="discount-content" style="display: ${discountPanelOpen ? 'block' : 'none'};">
-                <div class="discount-group"><div class="discount-row">
-                    <div class="discount-custom-select"><div class="discount-custom-select-trigger" id="itemDiscountSelectTrigger" onclick="event.stopPropagation(); toggleItemDiscountSelect()">%</div>
-                    <div class="discount-custom-select-dropdown" id="itemDiscountSelectDropdown"><div class="discount-select-option" onclick="selectItemDiscountType('percent', '%')">%</div><div class="discount-select-option" onclick="selectItemDiscountType('fixed', '₽')">₽</div></div>
-                    <input type="hidden" id="itemDiscountTypeSelect" data-value="percent"></div>
-                    <div class="discount-amount-control"><input type="number" id="itemDiscountValue" class="discount-amount-input" placeholder="Сумма" value="0" onchange="updateItemDiscountFromInput()"><button class="discount-step-btn" onclick="changeItemDiscountValue(-1)">−</button><button class="discount-step-btn" onclick="changeItemDiscountValue(1)">+</button></div>
-                    <button class="discount-products-btn" onclick="toggleDiscountProductsList()">Товары</button><button class="discount-all-btn" onclick="selectAllProductsForDiscount()">Всё</button><button class="discount-none-btn" onclick="selectNoneProductsForDiscount()">Ничего</button>
-                </div><div id="productDiscountList" style="display: none; margin-top: 8px;"></div></div>
-                <div class="discount-buttons-row"><button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()">Отмена</button><button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()">Сбросить скидки</button><button class="discount-action-btn apply-btn" onclick="applyItemDiscount()">Применить</button></div>
-            </div></div>`;
-    if (discountPanelDiv) discountPanelDiv.innerHTML = discountHtml;
-    const activeRules = checkRulesForCart();
-    let total = 0;
-    let html = '';
-    if (activeRules.length > 0) {
-        html += `<div style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);"><div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">✨ Активные правила ✨</div>`;
-        for (const rule of activeRules) html += `<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); padding: 4px 0;"><span style="font-size: 16px;">${escapeHtml(rule.icon)}</span><span><span class="rule-text-bold">${escapeHtml(rule.message)}</span> <span class="rule-text-normal">${escapeHtml(rule.condition)}</span></span></div>`;
-        html += `</div>`;
-    }
-    let subtotal = 0;
-    for (const [idStr, qty] of Object.entries(cart)) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (card) subtotal += qty * card.price; }
-    for (const [idStr, qty] of Object.entries(cart)) {
-        const id = parseInt(idStr);
-        const card = originalCardsData.find(c => c.id === id);
-        if (!card) continue;
-        const best = getBestDiscountForItem(id, card.price, qty, subtotal);
-        const originalItemTotal = card.price * qty;
-        const discountedItemTotal = best.price * qty;
-        total += discountedItemTotal;
-        const isZero = qty === 0;
-        const hasDiscount = best.discountValue > 0;
-        let discountText = '';
-        if (hasDiscount) {
-            if (best.discountType === 'percent') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue}%</div>`;
-            else if (best.discountType === 'fixed') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue * qty} ₽</div>`;
-        }
-        const displayName = `${card.type} ${card.name}`;
-        html += `<div class="cart-item ${isZero ? 'disabled' : ''}"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(displayName)}</div>
-                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${originalItemTotal.toFixed(2)} ₽</span> ${Math.ceil(discountedItemTotal).toFixed(2)} ₽` : `${originalItemTotal.toFixed(2)} ₽`}</div>${discountText}</div>
-                <div class="cart-item-quantity"><button class="cart-qty-btn" onclick="changeCartQty(${id}, -1)" ${isZero ? 'disabled' : ''}>−</button><span class="cart-item-qty">${qty}</span><button class="cart-qty-btn" onclick="changeCartQty(${id}, 1)">+</button><button class="cart-item-remove" onclick="removeFromCart(${id})">🗑</button></div></div>`;
-    }
-    cartItemsDiv.innerHTML = html;
-    if (cartTotalDiv) {
-        cartTotalDiv.style.display = 'block';
-        const hasAnyDiscount = Object.values(itemDiscounts).length > 0;
-        const roundedTotal = Math.ceil(total);
-        if (hasAnyDiscount) { let totalDiscountRub = subtotal - total; cartTotalDiv.innerHTML = `<span class="strikethrough">${subtotal.toFixed(2)} ₽</span> ${roundedTotal.toFixed(2)} ₽ (скидка ${totalDiscountRub.toFixed(2)} ₽)`; }
-        else { cartTotalDiv.innerHTML = `🍌 Итого: ${roundedTotal.toFixed(2)} ₽`; }
-    }
-    if (cartActionsDiv && totalPositiveCount > 0) cartActionsDiv.style.display = 'flex';
-    else if (cartActionsDiv) cartActionsDiv.style.display = 'none';
-    updateCardBadges();
-}
-
-function addToCart(id) {
-    const card = originalCardsData.find(c => c.id === id);
-    if (!card) return;
-    if (card.stock <= 0) { showToast(`${card.name} закончился!`, false); return; }
-    const currentQty = cart[id] || 0;
-    if (currentQty + 1 > card.stock) { showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); return; }
-    cart[id] = currentQty + 1;
-    updateCartUI();
-    const displayName = `${card.type} ${card.name}`;
-    showToast(`${displayName} +1`, true);
-}
-
-function changeCartQty(id, delta) {
-    const card = originalCardsData.find(c => c.id === id);
-    if (!card) return;
-    const currentQty = cart[id] || 0;
-    const newQty = currentQty + delta;
-    if (newQty < 0) return;
-    if (newQty > card.stock) { showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); return; }
-    if (newQty === 0) delete cart[id];
-    else cart[id] = newQty;
-    updateCartUI();
-}
-
-function removeFromCart(id) {
-    delete cart[id];
-    updateCartUI();
-    const card = originalCardsData.find(c => c.id === id);
-    if (card) {
-        const displayName = `${card.type} ${card.name}`;
-        showToast(`${displayName} удалён из корзины`, true);
-    }
-}
-
-function clearCart() {
-    cart = {};
-    itemDiscounts = {};
-    selectedDiscountProducts.clear();
-    updateCartUI();
-    showToast(`Корзина очищена`, true);
-}
-
-function giftCart() {
-    const items = Object.entries(cart).filter(([_, qty]) => qty > 0);
-    if (items.length === 0) { showToast("Нет товаров для подарка", false); return; }
-    for (const [idStr, qty] of items) {
-        const id = parseInt(idStr);
-        const card = originalCardsData.find(c => c.id === id);
-        if (qty > card.stock) { showToast(`Не хватает "${card.name}" (нужно ${qty}, есть ${card.stock})`, false); return; }
-    }
-    const historyItems = items.map(([idStr, qty]) => { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); return { id: card.id, name: card.name, qty: qty, price: 0 }; });
-    addToHistory(historyItems, 0, 'gift', false);
-    const cartCopy = { ...cart };
-    closeCartModal();
-    cart = {};
-    itemDiscounts = {};
-    selectedDiscountProducts.clear();
-    updateCartUI();
-    for (const [idStr, qty] of Object.entries(cartCopy)) {
-        if (qty === 0) continue;
-        const id = parseInt(idStr);
-        const card = originalCardsData.find(c => c.id === id);
-        const newStock = card.stock - qty;
-        card.stock = newStock;
-        const cards = document.querySelectorAll('.card');
-        let targetCard = null;
-        for (let i = 0; i < cards.length; i++) {
-            const idAttr = cards[i].getAttribute('data-id');
-            if (idAttr && parseInt(idAttr) === id) { targetCard = cards[i]; break; }
-        }
-        if (targetCard) {
-            const stockSpan = targetCard.querySelector('.stock');
-            if (stockSpan) stockSpan.textContent = `Остаток: ${newStock} шт`;
-            if (newStock === 0) targetCard.classList.add('out-of-stock');
-            else targetCard.classList.remove('out-of-stock');
-        }
-    }
-    (async () => {
-        for (const [idStr, qty] of Object.entries(cartCopy)) {
-            if (qty === 0) continue;
-            const id = parseInt(idStr);
-            for (let i = 0; i < qty; i++) {
-                if (!isOnline) {
-                    addPendingOperation("update", `&id=${id}&delta=-1`);
-                } else {
-                    try { await fetch(buildApiUrl("update", `&id=${id}&delta=-1`)); } catch(e) { addPendingOperation("update", `&id=${id}&delta=-1`); }
-                }
-            }
-        }
-        showUpdateTime();
-    })();
-    showToast(`Подарок оформлен!`, true);
-}
-
-function openCartModal() {
-    const modal = document.getElementById('cartModal');
-    if (modal) { modal.style.display = 'block'; discountPanelOpen = false; }
-    updateCartUI();
-}
-
-function closeCartModal() { const modal = document.getElementById('cartModal'); if (modal) modal.style.display = 'none'; }
-
-async function updateStock(id, delta, silent = false) {
-    const card = originalCardsData.find(c => c.id === id);
-    if (!card) return;
-    const newStock = card.stock + delta;
-    if (newStock < 0) { if (!silent) showToast("Остаток не может быть меньше 0", false); return; }
-    card.stock = newStock;
-    filterAndSort();
-    
-    if (!isOnline) {
-        addPendingOperation("update", `&id=${id}&delta=${delta}`);
-        updateCardBadges();
-        if (!silent) {
-            if (delta === -1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, false); showToast(`Продажа: ${card.name} -1 шт (будет синхронизировано)`, true); }
-            else if (delta === 1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, true); showToast(`Возврат: ${card.name} +1 шт (будет синхронизировано)`, true); }
-        }
-        return;
-    }
-    
-    try {
-        const response = await fetch(buildApiUrl("update", `&id=${id}&delta=${delta}`));
-        const result = await response.json();
-        if (!result.success && !silent) { await loadData(true, true); showToast("Ошибка: " + (result.error || "неизвестная"), false); }
-    } catch (error) {
-        console.error(error);
-        addPendingOperation("update", `&id=${id}&delta=${delta}`);
-        if (!silent) showToast(`Операция сохранена для синхронизации`, true);
-    }
-    updateCardBadges();
-    if (!silent) {
-        if (delta === -1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, false); showToast(`Продажа: ${card.name} -1 шт`, true); }
-        else if (delta === 1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, true); showToast(`Возврат: ${card.name} +1 шт`, true); }
-    }
-}
-
-function applyItemDiscount() {
-    const typeSelect = document.getElementById('itemDiscountTypeSelect');
-    const type = typeSelect ? typeSelect.getAttribute('data-value') || 'percent' : 'percent';
-    const value = parseFloat(document.getElementById('itemDiscountValue').value) || 0;
-    
-    if (selectedDiscountProducts.size === 0) {
-        showToast("Выберите товары для скидки", false);
-        return;
-    }
-    if (value <= 0) {
-        showToast("Введите корректную сумму скидки", false);
-        return;
-    }
-    
-    // Проверяем, выбраны ли все товары в корзине
-    const cartProductIds = new Set();
-    for (const [idStr, qty] of Object.entries(cart)) {
-        if (qty > 0) {
-            const id = parseInt(idStr);
-            cartProductIds.add(id);
-        }
-    }
-    
-    const isAllProductsSelected = selectedDiscountProducts.size === cartProductIds.size && 
-                                   [...selectedDiscountProducts].every(id => cartProductIds.has(id));
-    
-    if (isAllProductsSelected) {
-        // Скидка на всю корзину - распределяем равномерно с перераспределением
-        applyCartDiscountToAll(type, value);
-    } else {
-        // Скидка на выбранные товары
-        for (const productId of selectedDiscountProducts) {
-            if (!itemDiscounts[productId]) itemDiscounts[productId] = {};
-            itemDiscounts[productId] = { type: type, value: value };
-        }
-        selectedDiscountProducts.clear();
-        discountProductListVisible = false;
-        const container = document.getElementById('productDiscountList');
-        if (container) container.style.display = 'none';
-        updateCartUI();
-        showToast("Скидка применена к выбранным товарам", true);
-    }
-}
-
 function applyCartDiscountToAll(type, totalDiscountValue) {
     // Получаем все товары в корзине
     const cartItems = [];
@@ -294,14 +6,15 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             const id = parseInt(idStr);
             const card = originalCardsData.find(c => c.id === id);
             if (card) {
-                cartItems.push({
-                    id: id,
-                    originalPrice: card.price,
-                    qty: qty,
-                    totalPrice: card.price * qty,
-                    name: card.name,
-                    type: card.type
-                });
+                // Добавляем каждый товар с учётом количества (каждая единица отдельно)
+                for (let i = 0; i < qty; i++) {
+                    cartItems.push({
+                        id: id,
+                        originalPrice: card.price,
+                        name: card.name,
+                        type: card.type
+                    });
+                }
             }
         }
     }
@@ -311,78 +24,97 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
         return;
     }
     
-    let newPrices = [];
-    
     if (type === 'percent') {
-        // Процентная скидка: просто уменьшаем цену каждого товара на %
+        // Процентная скидка
         const percent = totalDiscountValue;
         for (const item of cartItems) {
             const discountedPrice = item.originalPrice * (1 - percent / 100);
-            newPrices.push({
-                id: item.id,
-                newPrice: Math.ceil(discountedPrice)
-            });
+            const discountValue = item.originalPrice - discountedPrice;
+            
+            if (!itemDiscounts[item.id]) itemDiscounts[item.id] = {};
+            // Сохраняем сумму скидки на каждую единицу
+            const existingDiscount = itemDiscounts[item.id].valuePerItem || 0;
+            itemDiscounts[item.id] = { 
+                type: 'fixed', 
+                valuePerItem: existingDiscount + discountValue,
+                value: (existingDiscount + discountValue) * (cart[id] ? cart[id] : 1)
+            };
         }
     } else {
-        // Фиксированная скидка в рублях - распределяем равномерно с перераспределением
+        // Фиксированная скидка в рублях
         let remainingDiscount = totalDiscountValue;
-        let remainingItems = [...cartItems];
-        let results = [];
         
-        // Инициализируем результаты исходными ценами
-        for (const item of cartItems) {
-            results.push({
-                id: item.id,
-                originalPrice: item.originalPrice,
-                currentPrice: item.originalPrice,
-                qty: item.qty,
-                totalPrice: item.totalPrice,
-                isZero: false
-            });
-        }
+        // Создаём массив цен каждой единицы товара
+        let itemPrices = cartItems.map(item => ({
+            id: item.id,
+            originalPrice: item.originalPrice,
+            currentPrice: item.originalPrice,
+            name: item.name
+        }));
         
-        // Пока есть остаток скидки и есть товары для распределения
-        while (remainingDiscount > 0 && remainingItems.length > 0) {
-            // Распределяем остаток скидки поровну на оставшиеся товары
-            const discountPerItem = Math.ceil(remainingDiscount / remainingItems.length);
-            let newRemainingDiscount = 0;
-            const newRemainingItems = [];
+        // Пока есть остаток скидки и есть товары
+        let iteration = 0;
+        const maxIterations = 100; // защита от бесконечного цикла
+        
+        while (remainingDiscount > 0.01 && iteration < maxIterations) {
+            iteration++;
             
-            for (const item of remainingItems) {
-                const result = results.find(r => r.id === item.id);
-                if (result && !result.isZero) {
-                    let newPrice = result.currentPrice - discountPerItem;
-                    if (newPrice <= 0) {
-                        // Товар обнулился, излишек скидки переходит в остаток
-                        newRemainingDiscount += Math.abs(newPrice);
-                        result.currentPrice = 0;
-                        result.isZero = true;
-                    } else {
-                        result.currentPrice = newPrice;
-                        newRemainingItems.push(item);
-                    }
+            // Находим товары, которые ещё не обнулились
+            const activeItems = itemPrices.filter(item => item.currentPrice > 0);
+            if (activeItems.length === 0) break;
+            
+            // Распределяем остаток поровну на активные товары
+            const discountPerItem = remainingDiscount / activeItems.length;
+            
+            let newRemainingDiscount = 0;
+            
+            for (const item of activeItems) {
+                let newPrice = item.currentPrice - discountPerItem;
+                if (newPrice < 0) {
+                    // Товар обнулился, излишек скидки добавляем к остатку
+                    newRemainingDiscount += Math.abs(newPrice);
+                    item.currentPrice = 0;
+                } else {
+                    item.currentPrice = newPrice;
                 }
             }
             
             remainingDiscount = newRemainingDiscount;
-            remainingItems = newRemainingItems;
         }
         
-        // Сохраняем результаты
-        for (const result of results) {
-            newPrices.push({
-                id: result.id,
-                newPrice: Math.ceil(result.currentPrice)
-            });
+        // Собираем скидки по каждому ID товара (суммируем по всем единицам)
+        const discountByItemId = {};
+        for (const item of itemPrices) {
+            const discountValue = item.originalPrice - item.currentPrice;
+            if (!discountByItemId[item.id]) {
+                discountByItemId[item.id] = 0;
+            }
+            discountByItemId[item.id] += discountValue;
+        }
+        
+        // Применяем скидки
+        for (const [id, totalDiscountForItem] of Object.entries(discountByItemId)) {
+            const numericId = parseInt(id);
+            const qty = cart[numericId] || 1;
+            const discountPerUnit = totalDiscountForItem / qty;
+            
+            if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
+            itemDiscounts[numericId] = { 
+                type: 'fixed', 
+                value: discountPerUnit,
+                valuePerItem: discountPerUnit
+            };
         }
     }
     
-    // Применяем новые цены как скидки на каждый товар
-    for (const priceInfo of newPrices) {
-        const discountValue = Math.max(0, originalCardsData.find(c => c.id === priceInfo.id).price - priceInfo.newPrice);
-        if (discountValue > 0) {
-            if (!itemDiscounts[priceInfo.id]) itemDiscounts[priceInfo.id] = {};
-            itemDiscounts[priceInfo.id] = { type: 'fixed', value: discountValue };
+    // Обновляем итоговую цену в itemDiscounts для корректного отображения
+    for (const [idStr, qty] of Object.entries(cart)) {
+        const id = parseInt(idStr);
+        if (itemDiscounts[id] && itemDiscounts[id].type === 'fixed') {
+            // value уже хранит скидку на одну единицу
+            if (!itemDiscounts[id].value && itemDiscounts[id].valuePerItem) {
+                itemDiscounts[id].value = itemDiscounts[id].valuePerItem;
+            }
         }
     }
     
@@ -394,65 +126,4 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
     
     updateCartUI();
     showToast(`Скидка ${type === 'percent' ? totalDiscountValue + '%' : totalDiscountValue + ' ₽'} применена на всю корзину`, true);
-}
-
-function resetItemDiscounts() {
-    itemDiscounts = {};
-    updateCartUI();
-    showToast("Скидки на товары сброшены", true);
-}
-
-async function checkout() {
-    const items = Object.entries(cart).filter(([_, qty]) => qty > 0);
-    if (items.length === 0) { showToast("Нет товаров для продажи", false); return; }
-    let subtotal = 0;
-    for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); subtotal += qty * card.price; }
-    let total = 0;
-    for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); const best = getBestDiscountForItem(id, card.price, qty, subtotal); total += best.price * qty; }
-    for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (qty > card.stock) { showToast(`Не хватает "${card.name}" (нужно ${qty}, есть ${card.stock})`, false); return; } }
-    const activeRules = checkRulesForCart();
-    if (activeRules.length > 0) { let rulesMessage = "Не забудьте:\n"; for (const rule of activeRules) rulesMessage += `• ${rule.message}\n`; showToast(rulesMessage, true); }
-    const historyItems = items.map(([idStr, qty]) => { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); return { id: card.id, name: card.name, qty: qty, price: card.price }; });
-    const roundedTotal = Math.ceil(total);
-    addToHistory(historyItems, roundedTotal, 'basket', false);
-    const cartCopy = { ...cart };
-    closeCartModal();
-    cart = {};
-    itemDiscounts = {};
-    selectedDiscountProducts.clear();
-    updateCartUI();
-    for (const [idStr, qty] of Object.entries(cartCopy)) {
-        if (qty === 0) continue;
-        const id = parseInt(idStr);
-        const card = originalCardsData.find(c => c.id === id);
-        const newStock = card.stock - qty;
-        card.stock = newStock;
-        const cards = document.querySelectorAll('.card');
-        let targetCard = null;
-        for (let i = 0; i < cards.length; i++) {
-            const idAttr = cards[i].getAttribute('data-id');
-            if (idAttr && parseInt(idAttr) === id) { targetCard = cards[i]; break; }
-        }
-        if (targetCard) {
-            const stockSpan = targetCard.querySelector('.stock');
-            if (stockSpan) stockSpan.textContent = `Остаток: ${newStock} шт`;
-            if (newStock === 0) targetCard.classList.add('out-of-stock');
-            else targetCard.classList.remove('out-of-stock');
-        }
-    }
-    (async () => {
-        for (const [idStr, qty] of Object.entries(cartCopy)) {
-            if (qty === 0) continue;
-            const id = parseInt(idStr);
-            for (let i = 0; i < qty; i++) {
-                if (!isOnline) {
-                    addPendingOperation("update", `&id=${id}&delta=-1`);
-                } else {
-                    try { await fetch(buildApiUrl("update", `&id=${id}&delta=-1`)); } catch(e) { addPendingOperation("update", `&id=${id}&delta=-1`); }
-                }
-            }
-        }
-        showUpdateTime();
-    })();
-    showToast(`Продажа на ${roundedTotal.toFixed(2)} ₽ завершена!`, true);
 }
