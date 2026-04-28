@@ -139,7 +139,6 @@ function changeCartQty(id, delta) {
     if (newQty > card.stock) { showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); return; }
     if (newQty === 0) {
         delete cart[id];
-        // Проверяем, был ли этот товар из бронирования
         if (cartBookingMap && cartBookingMap[id] && cartBookingMap[id].length > 0) {
             for (const bookingId of cartBookingMap[id]) {
                 const booking = bookings.find(b => b.id == bookingId);
@@ -162,7 +161,6 @@ function changeCartQty(id, delta) {
 function removeFromCart(id) {
     delete cart[id];
     
-    // Проверяем, был ли этот товар из бронирования
     if (cartBookingMap && cartBookingMap[id] && cartBookingMap[id].length > 0) {
         for (const bookingId of cartBookingMap[id]) {
             const booking = bookings.find(b => b.id == bookingId);
@@ -186,7 +184,6 @@ function removeFromCart(id) {
 }
 
 function clearCart() {
-    // Возвращаем все брони из корзины в активные
     if (cartBookingMap) {
         for (const [idStr, bookingIds] of Object.entries(cartBookingMap)) {
             for (const bookingId of bookingIds) {
@@ -355,113 +352,124 @@ function applyItemDiscount() {
 }
 
 function applyCartDiscountToAll(type, totalDiscountValue) {
-    // Получаем все товары в корзине (каждая единица отдельно)
-    const cartItems = [];
-    const itemQtys = {}; // общее количество каждого товара
+    // Получаем все товары в корзине
+    const cartItemsInfo = [];
     for (const [idStr, qty] of Object.entries(cart)) {
         if (qty > 0) {
             const id = parseInt(idStr);
             const card = originalCardsData.find(c => c.id === id);
             if (card) {
-                itemQtys[id] = qty;
-                for (let i = 0; i < qty; i++) {
-                    cartItems.push({
-                        id: id,
-                        originalPrice: card.price,
-                        name: card.name,
-                        type: card.type
-                    });
-                }
+                cartItemsInfo.push({
+                    id: id,
+                    originalPrice: card.price,
+                    qty: qty,
+                    totalPrice: card.price * qty,
+                    name: card.name,
+                    type: card.type
+                });
             }
         }
     }
     
-    if (cartItems.length === 0) {
+    if (cartItemsInfo.length === 0) {
         showToast("Корзина пуста", false);
         return;
     }
     
     if (type === 'percent') {
-        // Процентная скидка
         const percent = totalDiscountValue;
-        const discountByItemId = {};
-        
-        for (const item of cartItems) {
+        for (const item of cartItemsInfo) {
             const discountedPrice = item.originalPrice * (1 - percent / 100);
-            const discountValue = item.originalPrice - discountedPrice;
-            if (!discountByItemId[item.id]) discountByItemId[item.id] = 0;
-            discountByItemId[item.id] += discountValue;
-        }
-        
-        for (const [id, totalDiscountForItem] of Object.entries(discountByItemId)) {
-            const numericId = parseInt(id);
-            const qty = itemQtys[numericId] || 1;
-            const discountPerUnit = totalDiscountForItem / qty;
+            const discountPerUnit = item.originalPrice - discountedPrice;
             
-            if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
-            itemDiscounts[numericId] = { 
+            if (!itemDiscounts[item.id]) itemDiscounts[item.id] = {};
+            itemDiscounts[item.id] = { 
                 type: 'fixed', 
                 value: discountPerUnit,
                 valuePerItem: discountPerUnit
             };
         }
     } else {
-        // Фиксированная скидка в рублях - распределяем точно
         let remainingDiscount = totalDiscountValue;
+        const itemsCount = cartItemsInfo.length;
         
-        // Создаём массив цен каждой единицы товара
-        let itemPrices = cartItems.map(item => ({
-            id: item.id,
-            originalPrice: item.originalPrice,
-            currentPrice: item.originalPrice,
-            name: item.name
-        }));
+        // Шаг 1: Равномерно распределяем скидку на все товары
+        const equalShare = remainingDiscount / itemsCount;
+        const results = [];
+        let totalUsedDiscount = 0;
         
-        // Сначала распределяем скидку с округлением вниз
-        const discountPerItem = Math.floor(remainingDiscount / itemPrices.length);
-        let usedDiscount = 0;
-        
-        for (const item of itemPrices) {
-            let newPrice = item.currentPrice - discountPerItem;
-            if (newPrice < 0) newPrice = 0;
-            const itemDiscount = item.currentPrice - newPrice;
-            usedDiscount += itemDiscount;
-            item.currentPrice = newPrice;
-        }
-        
-        remainingDiscount = totalDiscountValue - usedDiscount;
-        
-        // Распределяем остаток (1-2 рубля) по одному рублю на первые товары
-        let remainderIndex = 0;
-        while (remainingDiscount > 0 && remainderIndex < itemPrices.length) {
-            const item = itemPrices[remainderIndex];
-            if (item.currentPrice > 0) {
-                item.currentPrice = Math.max(0, item.currentPrice - 1);
-                remainingDiscount--;
+        for (let i = 0; i < cartItemsInfo.length; i++) {
+            const item = cartItemsInfo[i];
+            let discountForThisItem = equalShare;
+            
+            if (discountForThisItem > item.originalPrice) {
+                discountForThisItem = item.originalPrice;
             }
-            remainderIndex++;
+            
+            results.push({
+                id: item.id,
+                discountPerUnit: discountForThisItem,
+                originalPrice: item.originalPrice
+            });
+            
+            totalUsedDiscount += discountForThisItem;
         }
         
-        // Собираем скидки по каждому ID товара
-        const discountByItemId = {};
-        for (const item of itemPrices) {
-            const discountValue = item.originalPrice - item.currentPrice;
-            if (!discountByItemId[item.id]) discountByItemId[item.id] = 0;
-            discountByItemId[item.id] += discountValue;
+        remainingDiscount = totalDiscountValue - totalUsedDiscount;
+        
+        // Шаг 2: Пока есть остаток скидки, распределяем его на товары, которые могут его получить
+        let iteration = 0;
+        const maxIterations = 100;
+        
+        while (remainingDiscount > 0.01 && iteration < maxIterations) {
+            iteration++;
+            
+            // Находим товары, которые ещё не обнулились и могут получить дополнительную скидку
+            const eligibleItems = [];
+            for (let i = 0; i < results.length; i++) {
+                const item = cartItemsInfo[i];
+                const currentDiscount = results[i].discountPerUnit;
+                const maxPossibleDiscount = item.originalPrice;
+                
+                if (currentDiscount < maxPossibleDiscount - 0.01) {
+                    eligibleItems.push({
+                        index: i,
+                        id: item.id,
+                        currentDiscount: currentDiscount,
+                        maxPossibleDiscount: maxPossibleDiscount,
+                        originalPrice: item.originalPrice
+                    });
+                }
+            }
+            
+            if (eligibleItems.length === 0) break;
+            
+            // Распределяем остаток поровну на eligibleItems
+            const additionalDiscountPerItem = remainingDiscount / eligibleItems.length;
+            
+            let distributedThisRound = 0;
+            for (const eligible of eligibleItems) {
+                const maxAdditional = eligible.maxPossibleDiscount - eligible.currentDiscount;
+                const addDiscount = Math.min(additionalDiscountPerItem, maxAdditional);
+                results[eligible.index].discountPerUnit += addDiscount;
+                distributedThisRound += addDiscount;
+            }
+            
+            remainingDiscount -= distributedThisRound;
+            
+            if (Math.abs(remainingDiscount) < 0.01) break;
         }
         
         // Применяем скидки
-        for (const [id, totalDiscountForItem] of Object.entries(discountByItemId)) {
-            const numericId = parseInt(id);
-            const qty = itemQtys[numericId] || 1;
-            const discountPerUnit = totalDiscountForItem / qty;
-            
-            if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
-            itemDiscounts[numericId] = { 
-                type: 'fixed', 
-                value: discountPerUnit,
-                valuePerItem: discountPerUnit
-            };
+        for (const disc of results) {
+            if (disc.discountPerUnit > 0) {
+                if (!itemDiscounts[disc.id]) itemDiscounts[disc.id] = {};
+                itemDiscounts[disc.id] = { 
+                    type: 'fixed', 
+                    value: disc.discountPerUnit,
+                    valuePerItem: disc.discountPerUnit
+                };
+            }
         }
     }
     
@@ -499,7 +507,6 @@ async function checkout() {
     itemDiscounts = {};
     selectedDiscountProducts.clear();
     
-    // Очищаем бронирования, связанные с проданными товарами
     if (cartBookingMap) {
         for (const [idStr, bookingIds] of Object.entries(cartBookingMap)) {
             for (const bookingId of bookingIds) {
