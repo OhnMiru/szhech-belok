@@ -131,5 +131,18 @@ function renderBookingsList() {
     
     // Заполняем селектор товаров
     renderBookingProductSelect();
+
+// Делаем функции глобальными
+window.loadBookings = loadBookings;
+window.renderBookingsList = renderBookingsList;
+window.openBookingsModal = openBookingsModal;
+window.closeBookingsModal = closeBookingsModal;
+window.createBooking = createBooking;
+window.cancelBooking = cancelBooking;
+window.moveBookingToCart = moveBookingToCart;
+window.viewBookingDetails = viewBookingDetails;
+window.toggleBookingProductSelect = toggleBookingProductSelect;
+window.toggleBookingProduct = toggleBookingProduct;
+window.changeBookingProductQty = changeBookingProductQty;
     renderSelectedBookingProducts();
 }
