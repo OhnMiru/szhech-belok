@@ -1,21 +1,47 @@
 // ========== РЕДАКТИРОВАНИЕ ==========
+let currentEditId = null;
+
 function openEditProductModal(id) {
-    console.log("openEditProductModal started, id:", id);
-    console.log("Type of id:", typeof id);
-    
     const numericId = parseInt(id);
-    console.log("numericId:", numericId);
-    
     currentEditId = numericId;
-    console.log("currentEditId set to:", currentEditId);
     
-    // Просто проверяем, что переменная установилась
-    setTimeout(() => {
-        console.log("After timeout, currentEditId is:", currentEditId);
-    }, 100);
+    // Ищем карточку в данных
+    let card = originalCardsData.find(c => c.id === numericId);
     
-    // Показываем alert для проверки
-    alert("Редактирование товара ID: " + numericId);
+    // Если не нашли, пробуем взять из DOM
+    if (!card) {
+        const cardElement = document.querySelector(`.card[data-id="${numericId}"]`);
+        if (cardElement) {
+            const nameElement = cardElement.querySelector('.name');
+            const typeBadge = cardElement.querySelector('.type-badge');
+            const stockSpan = cardElement.querySelector('.stock');
+            const totalSpan = cardElement.querySelector('.total');
+            const priceSpan = cardElement.querySelector('.price');
+            
+            card = {
+                id: numericId,
+                name: nameElement ? nameElement.textContent : "",
+                type: typeBadge ? typeBadge.textContent : "",
+                stock: stockSpan ? parseInt(stockSpan.textContent.replace('Остаток:', '').replace('шт', '').trim()) : 0,
+                total: totalSpan ? parseInt(totalSpan.textContent.replace('📦 Всего:', '').replace('шт', '').trim()) : 0,
+                price: priceSpan ? parseInt(priceSpan.textContent.replace('💰 Цена:', '').replace('₽', '').trim()) : 0,
+                cost: 0
+            };
+        }
+    }
+    
+    if (card) {
+        document.getElementById('editTitle').textContent = `✏️ Редактирование товара №${card.id}`;
+        document.getElementById('editType').value = card.type || "";
+        document.getElementById('editName').value = card.name || "";
+        document.getElementById('editStock').value = card.stock;
+        document.getElementById('editTotal').value = card.total;
+        document.getElementById('editPrice').value = card.price;
+        document.getElementById('editCost').value = card.cost || 0;
+        document.getElementById('editProductModal').style.display = 'block';
+    } else {
+        showToast("Товар не найден", false);
+    }
 }
 
 function closeEditProductModal() {
@@ -25,12 +51,6 @@ function closeEditProductModal() {
 
 async function saveProductChanges() {
     if (currentEditId === null) return;
-    const card = originalCardsData.find(c => c.id === currentEditId);
-    if (!card) {
-        showToast("Товар не найден", false);
-        closeEditProductModal();
-        return;
-    }
     
     const newType = document.getElementById('editType').value.trim();
     const newName = document.getElementById('editName').value.trim();
@@ -56,23 +76,36 @@ async function saveProductChanges() {
         return;
     }
     
-    // Сохраняем старые значения
-    const oldType = card.type;
-    const oldName = card.name;
-    const oldStock = card.stock;
-    const oldTotal = card.total;
-    const oldPrice = card.price;
-    const oldCost = card.cost;
+    // Обновляем в originalCardsData
+    const card = originalCardsData.find(c => c.id === currentEditId);
+    if (card) {
+        card.type = newType;
+        card.name = newName;
+        card.stock = newStock;
+        card.total = newTotal;
+        card.price = newPrice;
+        card.cost = newCost;
+        filterAndSort();
+    }
     
-    // Обновляем локально
-    card.type = newType;
-    card.name = newName;
-    card.stock = newStock;
-    card.total = newTotal;
-    card.price = newPrice;
-    card.cost = newCost;
-    
-    filterAndSort();
+    // Обновляем в DOM
+    const cardElement = document.querySelector(`.card[data-id="${currentEditId}"]`);
+    if (cardElement) {
+        const nameElement = cardElement.querySelector('.name');
+        const typeBadge = cardElement.querySelector('.type-badge');
+        const stockSpan = cardElement.querySelector('.stock');
+        const totalSpan = cardElement.querySelector('.total');
+        const priceSpan = cardElement.querySelector('.price');
+        
+        if (nameElement) nameElement.textContent = newName;
+        if (typeBadge) typeBadge.textContent = newType;
+        if (stockSpan) stockSpan.textContent = `Остаток: ${newStock} шт`;
+        if (totalSpan) totalSpan.textContent = `📦 Всего: ${newTotal} шт`;
+        if (priceSpan) priceSpan.textContent = `💰 Цена: ${newPrice} ₽`;
+        
+        if (newStock === 0) cardElement.classList.add('out-of-stock');
+        else cardElement.classList.remove('out-of-stock');
+    }
     
     if (!isOnline) {
         addPendingOperation("updateFullItem", `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`);
@@ -85,14 +118,6 @@ async function saveProductChanges() {
         const response = await fetch(buildApiUrl("updateFullItem", `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`));
         const result = await response.json();
         if (!result.success) {
-            // Откат
-            card.type = oldType;
-            card.name = oldName;
-            card.stock = oldStock;
-            card.total = oldTotal;
-            card.price = oldPrice;
-            card.cost = oldCost;
-            filterAndSort();
             showToast("Ошибка: " + (result.error || "неизвестная"), false);
         } else {
             showToast(`Товар "${newName}" обновлён`, true);
@@ -105,4 +130,19 @@ async function saveProductChanges() {
         closeEditProductModal();
     }
 }
+
+// Обработчик кликов по кнопкам редактирования
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const editBtn = e.target.closest('.edit-icon');
+        if (editBtn && editBtn.dataset.id) {
+            e.preventDefault();
+            openEditProductModal(editBtn.dataset.id);
+        }
+    });
+});
+
+// Делаем функции глобальными
 window.openEditProductModal = openEditProductModal;
+window.closeEditProductModal = closeEditProductModal;
+window.saveProductChanges = saveProductChanges;
