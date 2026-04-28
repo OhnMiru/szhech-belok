@@ -337,7 +337,7 @@ function renderGlobalStatsContent(data) {
                 <table class="detail-table">
                     <thead>
                         <tr><th>Тип</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th><th class="text-right">Средняя цена</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
-                    <tr>
+                    </tr>
                     </thead>
                     <tbody>`;
         for (const t of sortedTypeDetails) {
@@ -379,7 +379,7 @@ function renderGlobalStatsContent(data) {
             html += `<tr>
                         <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
                         <td>${escapeHtml(p.name)}</td>
-                        </tr><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+                        <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
                         <td>${escapeHtml(participantDisplay)}</td>
                         <td class="text-right">${Math.ceil(p.price || 0).toLocaleString()} ₽</td>
                         <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
@@ -526,7 +526,7 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+        </table>
         </div>
     </div>`;
     
@@ -549,28 +549,29 @@ function renderUserFullStats(stats, participantName) {
             html += `<tr>
                         <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
                         <td class="text-right">${t.qty} шт</td>
-                        <td class="text-right">${t.revenue.toLocaleString()} ₽<tr>
+                        <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
                         <td class="text-right">${Math.ceil(avgPrice).toLocaleString()} ₽</td>
                         <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
                     </tr>`;
         }
         html += `</tbody>
-            </table>
-        </div>
-    </div>`;
+                </table>
+            </div>
+        </div>`;
     }
     
     // Самые продаваемые товары и типы в две колонки
     html += `<div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
-            <table class="detail-table-small">
-                <thead>
-                    <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                </tr>
-                </thead>
-                <tbody>`;
+            <div class="table-wrapper">
+                <table class="detail-table-small">
+                    <thead>
+                        <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                    </tr>
+                    </thead>
+                    <tbody>`;
     for (let i = 0; i < topProducts.length; i++) { 
         const p = topProducts[i]; 
         html += `<tr>
@@ -581,16 +582,18 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+                </tr>
+            </div>
         </div>
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
-            <table class="detail-table-small">
-                <thead>
-                    <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                </tr>
-                </thead>
-                <tbody>`;
+            <div class="table-wrapper">
+                <table class="detail-table-small">
+                    <thead>
+                        <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                    </tr>
+                    </thead>
+                    <tbody>`;
     for (let i = 0; i < topTypes.length; i++) { 
         const t = topTypes[i]; 
         html += `<tr>
@@ -600,7 +603,8 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+                </table>
+            </div>
         </div>
     </div>`;
     
