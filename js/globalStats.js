@@ -1,5 +1,6 @@
 // ========== ГЛОБАЛЬНАЯ СТАТИСТИКА ==========
 let globalExtraCosts = [];
+let globalExtraIncomes = [];
 
 async function loadGlobalExtraCosts() {
     if (!isOnline) {
@@ -19,6 +20,27 @@ async function loadGlobalExtraCosts() {
         const saved = localStorage.getItem('merch_global_costs');
         if (saved) globalExtraCosts = JSON.parse(saved);
         else globalExtraCosts = [];
+    }
+}
+
+async function loadGlobalExtraIncomes() {
+    if (!isOnline) {
+        const saved = localStorage.getItem('merch_global_incomes');
+        if (saved) globalExtraIncomes = JSON.parse(saved);
+        else globalExtraIncomes = [];
+        return;
+    }
+    try {
+        const response = await fetch(buildApiUrl("getAllExtraIncomes"));
+        const data = await response.json();
+        if (data && data.incomes) {
+            globalExtraIncomes = data.incomes;
+            localStorage.setItem('merch_global_incomes', JSON.stringify(globalExtraIncomes));
+        }
+    } catch(e) {
+        const saved = localStorage.getItem('merch_global_incomes');
+        if (saved) globalExtraIncomes = JSON.parse(saved);
+        else globalExtraIncomes = [];
     }
 }
 
@@ -82,6 +104,66 @@ async function deleteGlobalExtraCost(index) {
     }
 }
 
+async function addGlobalExtraIncome(name, amount) {
+    if (!isOnline) {
+        const newId = Date.now();
+        globalExtraIncomes.push({ id: newId, name: name, amount: amount });
+        localStorage.setItem('merch_global_incomes', JSON.stringify(globalExtraIncomes));
+        addPendingOperation("addExtraIncomeGlobal", `&name=${encodeURIComponent(name)}&amount=${amount}`);
+        showToast("Доход добавлен (будет синхронизирован позже)", true);
+        if (document.getElementById('globalStatsModal')?.style.display === 'block') {
+            renderGlobalStatsWithCosts();
+        }
+        return;
+    }
+    try {
+        const response = await fetch(buildApiUrl("addExtraIncomeGlobal", `&name=${encodeURIComponent(name)}&amount=${amount}`));
+        const result = await response.json();
+        if (result.success) {
+            await loadGlobalExtraIncomes();
+            showToast("Доход добавлен", true);
+            if (document.getElementById('globalStatsModal')?.style.display === 'block') {
+                renderGlobalStatsWithCosts();
+            }
+        }
+    } catch(e) {
+        globalExtraIncomes.push({ id: Date.now(), name: name, amount: amount });
+        localStorage.setItem('merch_global_incomes', JSON.stringify(globalExtraIncomes));
+        addPendingOperation("addExtraIncomeGlobal", `&name=${encodeURIComponent(name)}&amount=${amount}`);
+        showToast("Доход добавлен (будет синхронизирован позже)", true);
+    }
+}
+
+async function deleteGlobalExtraIncome(index) {
+    const incomeId = globalExtraIncomes[index].id;
+    if (!isOnline) {
+        globalExtraIncomes.splice(index, 1);
+        localStorage.setItem('merch_global_incomes', JSON.stringify(globalExtraIncomes));
+        addPendingOperation("deleteExtraIncomeGlobal", `&id=${incomeId}`);
+        showToast("Доход удалён (будет синхронизирован позже)", true);
+        if (document.getElementById('globalStatsModal')?.style.display === 'block') {
+            renderGlobalStatsWithCosts();
+        }
+        return;
+    }
+    try {
+        const response = await fetch(buildApiUrl("deleteExtraIncomeGlobal", `&id=${incomeId}`));
+        const result = await response.json();
+        if (result.success) {
+            await loadGlobalExtraIncomes();
+            showToast("Доход удалён", true);
+            if (document.getElementById('globalStatsModal')?.style.display === 'block') {
+                renderGlobalStatsWithCosts();
+            }
+        }
+    } catch(e) {
+        globalExtraIncomes.splice(index, 1);
+        localStorage.setItem('merch_global_incomes', JSON.stringify(globalExtraIncomes));
+        addPendingOperation("deleteExtraIncomeGlobal", `&id=${incomeId}`);
+        showToast("Доход удалён (будет синхронизирован позже)", true);
+    }
+}
+
 async function showGlobalStats() {
     const modal = document.getElementById('globalStatsModal');
     if (!modal) return;
@@ -90,6 +172,7 @@ async function showGlobalStats() {
     container.innerHTML = '<div class="loading">Загрузка статистики всех участников...</div>';
     try {
         await loadGlobalExtraCosts();
+        await loadGlobalExtraIncomes();
         const response = await fetch(`${CENTRAL_API_URL}?action=getAllStatsFull&participant=${CURRENT_USER.id}&t=${Date.now()}`);
         const data = await response.json();
         window._globalStatsData = data;
@@ -104,10 +187,7 @@ function renderGlobalStatsWithData(data) {
     const container = document.getElementById('globalStats-content');
     if (!container) return;
 
-    // Фильтруем участников для селектора: только те, у кого hideStats = false и shareStats = false (открытая статистика)
     let visibleParticipants = (data.participants || []).filter(p => p.hideStats !== true && p.shareStats !== true);
-    
-    // Сортируем: сначала художники по алфавиту, потом организаторы по алфавиту
     const artists = visibleParticipants.filter(p => p.role === 'artist').sort((a, b) => a.name.localeCompare(b.name));
     const organizers = visibleParticipants.filter(p => p.role === 'organizer').sort((a, b) => a.name.localeCompare(b.name));
     const sortedParticipants = [...artists, ...organizers];
@@ -173,10 +253,8 @@ function renderGlobalStatsContent(data) {
     const container = document.getElementById('participantStatsContainer');
     if (!container) return;
     
-    // Фильтруем участников для таблицы: только те, у кого hideStats !== true (скрытые исключаем)
     let visibleStats = (data.stats || []).filter(s => s.hideStats !== true);
     
-    // Сортируем: сначала художники по алфавиту, потом организаторы по алфавиту
     const artistsStats = visibleStats.filter(s => s.role === 'artist' && !s.isAnonymous).sort((a, b) => a.name.localeCompare(b.name));
     const anonymousStats = visibleStats.filter(s => s.isAnonymous).sort((a, b) => b.profitMargin - a.profitMargin);
     const organizersStats = visibleStats.filter(s => s.role === 'organizer' && !s.isAnonymous).sort((a, b) => a.name.localeCompare(b.name));
@@ -194,7 +272,8 @@ function renderGlobalStatsContent(data) {
         <div class="stats-card"><div class="stats-card-value">${totalRevenue.toLocaleString()} ₽</div><div class="stats-card-label">💰 Общая выручка</div></div>
         <div class="stats-card"><div class="stats-card-value">${totalCost.toLocaleString()} ₽</div><div class="stats-card-label">📦 Общая себестоимость</div></div>
         <div class="stats-card"><div class="stats-card-value">${(data.totalExtraCosts || 0).toLocaleString()} ₽</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
-        <div class="stats-card"><div class="stats-card-value">${(totalCost + (data.totalExtraCosts || 0)).toLocaleString()} ₽</div><div class="stats-card-label">📉 Общие затраты</div></div>
+        <div class="stats-card"><div class="stats-card-value">${(data.totalExtraIncomes || 0).toLocaleString()} ₽</div><div class="stats-card-label">💵 Дополнительные доходы</div></div>
+        <div class="stats-card"><div class="stats-card-value">${(totalCost + (data.totalExtraCosts || 0) - (data.totalExtraIncomes || 0)).toLocaleString()} ₽</div><div class="stats-card-label">📉 Общие затраты</div></div>
         <div class="stats-card desktop-only"><div class="stats-card-value ${totalNetProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${totalNetProfit.toLocaleString()} ₽</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${totalItemsSold.toLocaleString()} шт</div><div class="stats-card-label">📊 Продано товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${totalGoods.toLocaleString()} шт</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
@@ -250,7 +329,7 @@ function renderGlobalStatsContent(data) {
         </div>
     </div>`;
     
-    // Детализация по типам мерча (с сортировкой по продажам)
+    // Детализация по типам мерча
     if (data.typeDetails && data.typeDetails.length > 0) {
         const sortedTypeDetails = [...data.typeDetails].sort((a, b) => b.qty - a.qty);
         html += `<div class="detail-section">
@@ -281,7 +360,7 @@ function renderGlobalStatsContent(data) {
         </div>`;
     }
     
-    // Самые продаваемые товары с дополнительными колонками
+    // Самые продаваемые товары
     if (data.topProducts && data.topProducts.length > 0) {
         const sortedTopProducts = [...data.topProducts].sort((a, b) => b.qty - a.qty);
         html += `<div class="detail-section">
@@ -316,7 +395,7 @@ function renderGlobalStatsContent(data) {
         </div>`;
     }
     
-    // Общие расходы организатора (только для организатора)
+    // Общие расходы организатора
     if (CURRENT_USER.role === 'organizer') {
         html += `<div class="extra-costs-section">
             <div class="detail-title">➕ Общие расходы организатора</div>
@@ -335,6 +414,26 @@ function renderGlobalStatsContent(data) {
                 <input type="text" id="newGlobalCostName" class="add-cost-input" placeholder="Название (аренда, доставка...)" autocomplete="off">
                 <input type="number" id="newGlobalCostAmount" class="add-cost-input-number" placeholder="Сумма" value="0" step="100">
                 <button class="add-cost-btn" onclick="addGlobalExtraCostFromModal()">➕ Добавить</button>
+            </div>
+        </div>`;
+        
+        html += `<div class="extra-income-section">
+            <div class="detail-title">💵 Общие доходы организатора</div>
+            <div id="global-extra-incomes-list">`;
+        if (globalExtraIncomes.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных доходов</div>';
+        for (let i = 0; i < globalExtraIncomes.length; i++) {
+            const income = globalExtraIncomes[i];
+            html += `<div class="extra-cost-item">
+                        <span class="extra-cost-name">${escapeHtml(income.name)}</span>
+                        <span class="extra-cost-amount">${income.amount} ₽</span>
+                        <button class="extra-cost-delete" onclick="deleteGlobalExtraIncome(${i})">🗑</button>
+                    </div>`;
+        }
+        html += `</div>
+            <div class="add-cost-form">
+                <input type="text" id="newGlobalIncomeName" class="add-cost-input" placeholder="Название (спонсоры, донаты...)" autocomplete="off">
+                <input type="number" id="newGlobalIncomeAmount" class="add-cost-input-number" placeholder="Сумма" value="0" step="100">
+                <button class="add-cost-btn" onclick="addGlobalExtraIncomeFromModal()">➕ Добавить</button>
             </div>
         </div>`;
     }
@@ -362,9 +461,10 @@ function renderUserFullStats(stats, participantName) {
     const productDetails = stats.productDetails || [];
     const typeDetails = stats.typeDetails || [];
     const topProducts = stats.topProducts || [];
-    const topTypes = stats.topTypes || [];
     const extraCostsUser = stats.extraCosts || [];
+    const extraIncomesUser = stats.extraIncomes || [];
     const totalExtraCosts = extraCostsUser.reduce((sum, c) => sum + (c.amount || 0), 0);
+    const totalExtraIncomes = extraIncomesUser.reduce((sum, c) => sum + (c.amount || 0), 0);
     
     const formatCurrency = (value) => value.toLocaleString('ru-RU') + ' ₽';
     const formatNumber = (value) => value.toLocaleString('ru-RU');
@@ -376,7 +476,8 @@ function renderUserFullStats(stats, participantName) {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalRevenue)}</div><div class="stats-card-label">💰 Выручка</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCost)}</div><div class="stats-card-label">📦 Себестоимость всего товара</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraCosts)}</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
-        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCost + totalExtraCosts)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraIncomes)}</div><div class="stats-card-label">💵 Дополнительные доходы</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCost + totalExtraCosts - totalExtraIncomes)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
         <div class="stats-card desktop-only"><div class="stats-card-value ${totalNetProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(totalNetProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalGoods)}</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
@@ -430,7 +531,7 @@ function renderUserFullStats(stats, participantName) {
         </div>
     </div>`;
     
-    // Детализация по типам мерча (с сортировкой по продажам)
+    // Детализация по типам мерча
     if (typeDetails && typeDetails.length > 0) {
         const sortedTypeDetails = [...typeDetails].sort((a, b) => b.qty - a.qty);
         html += `<div class="detail-section">
@@ -461,11 +562,11 @@ function renderUserFullStats(stats, participantName) {
         </div>`;
     }
     
-    // Самые продаваемые товары и типы в две колонки
-    html += `<div class="two-columns">
-        <div class="detail-section">
-            <div class="detail-title">🏆 Самые продаваемые товары</div>
-            <table class="detail-table-small">
+    // Самые продаваемые товары
+    html += `<div class="detail-section">
+        <div class="detail-title">🏆 Самые продаваемые товары</div>
+        <div class="table-wrapper">
+            <table class="detail-table">
                 <thead>
                     <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
                 </tr>
@@ -473,35 +574,15 @@ function renderUserFullStats(stats, participantName) {
                 <tbody>`;
     for (let i = 0; i < topProducts.length; i++) { 
         const p = topProducts[i]; 
-        const displayName = `${p.type} ${p.name}`;
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td>${escapeHtml(displayName)}</td>
+            <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.qty} шт</td>
         </tr>`;
     }
     html += `</tbody>
             </table>
-        </div>
-        <div class="detail-section">
-            <div class="detail-title">🏆 Самые продаваемые типы</div>
-            <table class="detail-table-small">
-                <thead>
-                    <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                </tr>
-                </thead>
-                <tbody>`;
-    for (let i = 0; i < topTypes.length; i++) { 
-        const t = topTypes[i]; 
-        html += `<tr>
-            <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.qty} шт</td>
-        </tr>`;
-    }
-    html += `</tbody>
-            <tr>
         </div>
     </div>`;
     
@@ -519,6 +600,20 @@ function renderUserFullStats(stats, participantName) {
     html += `</div>
     </div>`;
     
+    // Дополнительные доходы участника
+    html += `<div class="extra-income-section">
+        <div class="detail-title">💵 Дополнительные доходы (участника)</div>
+        <div id="user-extra-incomes-list">`;
+    if (extraIncomesUser.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных доходов</div>';
+    for (const income of extraIncomesUser) {
+        html += `<div class="extra-cost-item">
+            <span class="extra-cost-name">${escapeHtml(income.name)}</span>
+            <span class="extra-cost-amount">${income.amount} ₽</span>
+        </div>`;
+    }
+    html += `</div>
+    </div>`;
+    
     container.innerHTML = html;
 }
 
@@ -526,6 +621,7 @@ async function renderGlobalStatsWithCosts() {
     const container = document.getElementById('participantStatsContainer');
     if (!container) return;
     await loadGlobalExtraCosts();
+    await loadGlobalExtraIncomes();
     if (window._globalStatsData) {
         renderGlobalStatsContent(window._globalStatsData);
     }
@@ -541,6 +637,26 @@ async function addGlobalExtraCostFromModal() {
         return;
     }
     await addGlobalExtraCost(name, amount);
+    if (nameInput) nameInput.value = '';
+    if (amountInput) amountInput.value = '0';
+    if (document.getElementById('globalStatsModal')?.style.display === 'block') {
+        const response = await fetch(`${CENTRAL_API_URL}?action=getAllStatsFull&participant=${CURRENT_USER.id}&t=${Date.now()}`);
+        const data = await response.json();
+        window._globalStatsData = data;
+        renderGlobalStatsContent(data);
+    }
+}
+
+async function addGlobalExtraIncomeFromModal() {
+    const nameInput = document.getElementById('newGlobalIncomeName');
+    const amountInput = document.getElementById('newGlobalIncomeAmount');
+    const name = nameInput?.value.trim();
+    const amount = parseFloat(amountInput?.value);
+    if (!name || isNaN(amount) || amount <= 0) {
+        showToast("Введите название и сумму дохода", false);
+        return;
+    }
+    await addGlobalExtraIncome(name, amount);
     if (nameInput) nameInput.value = '';
     if (amountInput) amountInput.value = '0';
     if (document.getElementById('globalStatsModal')?.style.display === 'block') {
