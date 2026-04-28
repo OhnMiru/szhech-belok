@@ -526,7 +526,7 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-        </table>
+            </table>
         </div>
     </div>`;
     
@@ -556,9 +556,9 @@ function renderUserFullStats(stats, participantName) {
                     </tr>`;
         }
         html += `</tbody>
-                </table>
-            </div>
-        </div>`;
+            </table>
+        </div>
+    </div>`;
     }
     
     // Самые продаваемые товары и типы в две колонки
@@ -582,7 +582,7 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-                </tr>
+                </table>
             </div>
         </div>
         <div class="detail-section">
@@ -603,7 +603,7 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-                </table>
+                <tr>
             </div>
         </div>
     </div>`;
