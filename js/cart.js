@@ -352,122 +352,114 @@ function applyItemDiscount() {
 }
 
 function applyCartDiscountToAll(type, totalDiscountValue) {
-    // Получаем все товары в корзине
-    const cartItemsInfo = [];
-    for (const [idStr, qty] of Object.entries(cart)) {
-        if (qty > 0) {
-            const id = parseInt(idStr);
-            const card = originalCardsData.find(c => c.id === id);
-            if (card) {
-                cartItemsInfo.push({
-                    id: id,
-                    originalPrice: card.price,
-                    qty: qty,
-                    totalPrice: card.price * qty,
-                    name: card.name,
-                    type: card.type
-                });
-            }
-        }
-    }
-    
-    if (cartItemsInfo.length === 0) {
-        showToast("Корзина пуста", false);
-        return;
-    }
-    
     if (type === 'percent') {
+        // Процентная скидка - применяем к каждому товару
         const percent = totalDiscountValue;
-        for (const item of cartItemsInfo) {
-            const discountedPrice = item.originalPrice * (1 - percent / 100);
-            const discountPerUnit = item.originalPrice - discountedPrice;
-            
-            if (!itemDiscounts[item.id]) itemDiscounts[item.id] = {};
-            itemDiscounts[item.id] = { 
-                type: 'fixed', 
-                value: discountPerUnit,
-                valuePerItem: discountPerUnit
-            };
+        for (const [idStr, qty] of Object.entries(cart)) {
+            if (qty > 0) {
+                const id = parseInt(idStr);
+                const card = originalCardsData.find(c => c.id === id);
+                if (card) {
+                    const discountedPrice = card.price * (1 - percent / 100);
+                    const discountPerUnit = card.price - discountedPrice;
+                    
+                    if (!itemDiscounts[id]) itemDiscounts[id] = {};
+                    itemDiscounts[id] = {
+                        type: 'fixed',
+                        value: discountPerUnit,
+                        valuePerItem: discountPerUnit
+                    };
+                }
+            }
         }
     } else {
-        let remainingDiscount = totalDiscountValue;
-        const itemsCount = cartItemsInfo.length;
+        // Фиксированная скидка в рублях - распределяем по единицам товаров
+        // Сначала собираем все единицы товаров в корзине
+        const units = [];
+        const itemsInfo = {};
         
-        // Шаг 1: Равномерно распределяем скидку на все товары
-        const equalShare = remainingDiscount / itemsCount;
-        const results = [];
-        let totalUsedDiscount = 0;
-        
-        for (let i = 0; i < cartItemsInfo.length; i++) {
-            const item = cartItemsInfo[i];
-            let discountForThisItem = equalShare;
-            
-            if (discountForThisItem > item.originalPrice) {
-                discountForThisItem = item.originalPrice;
+        for (const [idStr, qty] of Object.entries(cart)) {
+            if (qty > 0) {
+                const id = parseInt(idStr);
+                const card = originalCardsData.find(c => c.id === id);
+                if (card) {
+                    itemsInfo[id] = {
+                        id: id,
+                        originalPrice: card.price,
+                        qty: qty,
+                        name: card.name,
+                        type: card.type
+                    };
+                    for (let i = 0; i < qty; i++) {
+                        units.push({
+                            id: id,
+                            originalPrice: card.price,
+                            currentPrice: card.price
+                        });
+                    }
+                }
             }
-            
-            results.push({
-                id: item.id,
-                discountPerUnit: discountForThisItem,
-                originalPrice: item.originalPrice
-            });
-            
-            totalUsedDiscount += discountForThisItem;
         }
         
-        remainingDiscount = totalDiscountValue - totalUsedDiscount;
+        if (units.length === 0) {
+            showToast("Корзина пуста", false);
+            return;
+        }
         
-        // Шаг 2: Пока есть остаток скидки, распределяем его на товары, которые могут его получить
+        let remainingDiscount = totalDiscountValue;
+        
+        // Распределяем скидку итеративно, пока есть остаток
         let iteration = 0;
         const maxIterations = 100;
         
         while (remainingDiscount > 0.01 && iteration < maxIterations) {
             iteration++;
             
-            // Находим товары, которые ещё не обнулились и могут получить дополнительную скидку
-            const eligibleItems = [];
-            for (let i = 0; i < results.length; i++) {
-                const item = cartItemsInfo[i];
-                const currentDiscount = results[i].discountPerUnit;
-                const maxPossibleDiscount = item.originalPrice;
-                
-                if (currentDiscount < maxPossibleDiscount - 0.01) {
-                    eligibleItems.push({
-                        index: i,
-                        id: item.id,
-                        currentDiscount: currentDiscount,
-                        maxPossibleDiscount: maxPossibleDiscount,
-                        originalPrice: item.originalPrice
-                    });
+            // Находим активные единицы (цена > 0)
+            const activeUnits = units.filter(u => u.currentPrice > 0);
+            if (activeUnits.length === 0) break;
+            
+            // Распределяем остаток поровну на активные единицы
+            const discountPerUnit = remainingDiscount / activeUnits.length;
+            
+            let newRemainingDiscount = 0;
+            
+            for (const unit of activeUnits) {
+                let newPrice = unit.currentPrice - discountPerUnit;
+                if (newPrice < 0) {
+                    // Единица обнулилась, излишек скидки добавляем к остатку для следующей итерации
+                    newRemainingDiscount += Math.abs(newPrice);
+                    unit.currentPrice = 0;
+                } else {
+                    unit.currentPrice = newPrice;
                 }
             }
             
-            if (eligibleItems.length === 0) break;
-            
-            // Распределяем остаток поровну на eligibleItems
-            const additionalDiscountPerItem = remainingDiscount / eligibleItems.length;
-            
-            let distributedThisRound = 0;
-            for (const eligible of eligibleItems) {
-                const maxAdditional = eligible.maxPossibleDiscount - eligible.currentDiscount;
-                const addDiscount = Math.min(additionalDiscountPerItem, maxAdditional);
-                results[eligible.index].discountPerUnit += addDiscount;
-                distributedThisRound += addDiscount;
+            remainingDiscount = newRemainingDiscount;
+        }
+        
+        // Собираем скидки по каждому товару
+        const discountsByItem = {};
+        for (const unit of units) {
+            const discountValue = unit.originalPrice - unit.currentPrice;
+            if (!discountsByItem[unit.id]) {
+                discountsByItem[unit.id] = 0;
             }
-            
-            remainingDiscount -= distributedThisRound;
-            
-            if (Math.abs(remainingDiscount) < 0.01) break;
+            discountsByItem[unit.id] += discountValue;
         }
         
         // Применяем скидки
-        for (const disc of results) {
-            if (disc.discountPerUnit > 0) {
-                if (!itemDiscounts[disc.id]) itemDiscounts[disc.id] = {};
-                itemDiscounts[disc.id] = { 
-                    type: 'fixed', 
-                    value: disc.discountPerUnit,
-                    valuePerItem: disc.discountPerUnit
+        for (const [id, totalDiscount] of Object.entries(discountsByItem)) {
+            const numericId = parseInt(id);
+            const qty = itemsInfo[numericId].qty;
+            const discountPerUnit = totalDiscount / qty;
+            
+            if (discountPerUnit > 0) {
+                if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
+                itemDiscounts[numericId] = {
+                    type: 'fixed',
+                    value: discountPerUnit,
+                    valuePerItem: discountPerUnit
                 };
             }
         }
