@@ -92,8 +92,11 @@ function updateCartUI() {
         let discountText = '';
         if (hasDiscount) {
             const totalDiscountForItem = (card.price - best.price) * qty;
-            if (best.discountType === 'percent') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue}%</div>`;
-            else if (best.discountType === 'fixed') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${Math.floor(totalDiscountForItem)} ₽</div>`;
+            if (best.discountType === 'percent') {
+                discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue}%</div>`;
+            } else if (best.discountType === 'fixed') {
+                discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${Math.floor(totalDiscountForItem)} ₽</div>`;
+            }
         }
         const displayName = `${card.type} ${card.name}`;
         html += `<div class="cart-item ${isZero ? 'disabled' : ''}"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(displayName)}</div>
@@ -353,28 +356,21 @@ function applyItemDiscount() {
 
 function applyCartDiscountToAll(type, totalDiscountValue) {
     if (type === 'percent') {
-        // Процентная скидка - применяем к каждому товару
+        // Процентная скидка - сохраняем как percent
         const percent = totalDiscountValue;
         for (const [idStr, qty] of Object.entries(cart)) {
             if (qty > 0) {
                 const id = parseInt(idStr);
-                const card = originalCardsData.find(c => c.id === id);
-                if (card) {
-                    const discountedPrice = card.price * (1 - percent / 100);
-                    const discountPerUnit = card.price - discountedPrice;
-                    
-                    if (!itemDiscounts[id]) itemDiscounts[id] = {};
-                    itemDiscounts[id] = {
-                        type: 'fixed',
-                        value: discountPerUnit,
-                        valuePerItem: discountPerUnit
-                    };
-                }
+                if (!itemDiscounts[id]) itemDiscounts[id] = {};
+                itemDiscounts[id] = {
+                    type: 'percent',
+                    value: percent
+                };
             }
         }
     } else {
-        // Фиксированная скидка в рублях - распределяем по единицам товаров
-        // Сначала собираем все единицы товаров в корзине
+        // Фиксированная скидка в рублях
+        // Собираем все единицы товаров в корзине
         const units = [];
         const itemsInfo = {};
         
@@ -387,8 +383,7 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
                         id: id,
                         originalPrice: card.price,
                         qty: qty,
-                        name: card.name,
-                        type: card.type
+                        name: card.name
                     };
                     for (let i = 0; i < qty; i++) {
                         units.push({
@@ -408,7 +403,7 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
         
         let remainingDiscount = totalDiscountValue;
         
-        // Распределяем скидку итеративно, пока есть остаток
+        // Пока есть остаток скидки и есть товары, которые не обнулились
         let iteration = 0;
         const maxIterations = 100;
         
@@ -422,16 +417,19 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             // Распределяем остаток поровну на активные единицы
             const discountPerUnit = remainingDiscount / activeUnits.length;
             
+            let distributedThisRound = 0;
             let newRemainingDiscount = 0;
             
             for (const unit of activeUnits) {
                 let newPrice = unit.currentPrice - discountPerUnit;
                 if (newPrice < 0) {
-                    // Единица обнулилась, излишек скидки добавляем к остатку для следующей итерации
+                    // Единица обнулилась, излишек скидки добавляем к остатку
                     newRemainingDiscount += Math.abs(newPrice);
                     unit.currentPrice = 0;
+                    distributedThisRound += unit.currentPrice;
                 } else {
                     unit.currentPrice = newPrice;
+                    distributedThisRound += discountPerUnit;
                 }
             }
             
