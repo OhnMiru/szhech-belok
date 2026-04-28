@@ -1,508 +1,534 @@
-// ========== БРОНИРОВАНИЯ ==========
-// Переменные объявлены в config.js: bookings, currentBookingProducts, currentViewingBookingId, cartBookingMap
+// ========== КОРЗИНА ==========
+// Переменные cart, itemDiscounts, selectedDiscountProducts, discountProductListVisible, discountPanelOpen, cartBookingMap, bookings уже объявлены в config.js
+// Не объявляем их заново!
 
-function saveBookingsToLocal() {
-    localStorage.setItem('merch_bookings', JSON.stringify(bookings));
-}
-
-function loadBookingsFromLocal() {
-    const saved = localStorage.getItem('merch_bookings');
-    if (saved) {
-        try {
-            bookings = JSON.parse(saved);
-        } catch(e) {
-            bookings = [];
+function updateCardBadges() {
+    document.querySelectorAll('.card').forEach(card => {
+        const idAttr = card.getAttribute('data-id');
+        if (idAttr) {
+            const id = parseInt(idAttr);
+            let badge = card.querySelector('.cart-qty-badge');
+            if (cart.hasOwnProperty(id) && cart[id] > 0) {
+                if (!badge) { badge = document.createElement('div'); badge.className = 'cart-qty-badge'; card.style.position = 'relative'; card.appendChild(badge); }
+                badge.textContent = cart[id];
+                badge.style.background = 'var(--btn-bg)';
+            } else { if (badge) badge.remove(); }
         }
-    } else {
-        bookings = [];
-    }
-    return bookings;
+    });
 }
 
-async function syncFullBookingsToServer() {
-    if (!isOnline) {
-        addPendingOperation("syncFullBookings", `&data=${encodeURIComponent(JSON.stringify(bookings))}`);
+function getBestDiscountForItem(id, originalPrice, qty, subtotal) {
+    let finalPrice = originalPrice;
+    let discountValue = 0;
+    let discountType = null;
+    
+    if (itemDiscounts[id]) {
+        const disc = itemDiscounts[id];
+        discountType = disc.type;
+        if (disc.type === 'percent') { 
+            finalPrice = originalPrice * (1 - disc.value / 100);
+            discountValue = disc.value;
+        } else if (disc.type === 'fixed') { 
+            const discountPerUnit = disc.valuePerItem || disc.value;
+            finalPrice = Math.max(0, originalPrice - discountPerUnit);
+            discountValue = discountPerUnit;
+        }
+    }
+    
+    finalPrice = Math.ceil(finalPrice);
+    return { price: finalPrice, discountValue: discountValue, discountType: discountType };
+}
+
+function updateCartUI() {
+    const totalPositiveCount = Object.values(cart).reduce((a, b) => a + (b > 0 ? b : 0), 0);
+    const cartCountSpan = document.getElementById('cartCount');
+    if (cartCountSpan) cartCountSpan.textContent = totalPositiveCount;
+    const cartItemsDiv = document.getElementById('cart-items-list');
+    const cartTotalDiv = document.getElementById('cart-total');
+    const cartActionsDiv = document.getElementById('cart-actions');
+    const discountPanelDiv = document.getElementById('discount-panel');
+    if (!cartItemsDiv) return;
+    const hasAny = Object.keys(cart).length > 0;
+    if (discountPanelDiv) discountPanelDiv.style.display = hasAny ? 'block' : 'none';
+    if (!hasAny) {
+        cartItemsDiv.innerHTML = '<div class="empty-cart">🍌 Корзина пуста</div>';
+        if (cartTotalDiv) cartTotalDiv.style.display = 'none';
+        if (cartActionsDiv) cartActionsDiv.style.display = 'none';
+        updateCardBadges();
         return;
     }
-    try {
-        const data = encodeURIComponent(JSON.stringify(bookings));
-        await fetch(buildApiUrl("syncFullBookings", `&data=${data}`));
-    } catch(e) {
-        console.error(e);
-        addPendingOperation("syncFullBookings", `&data=${encodeURIComponent(JSON.stringify(bookings))}`);
-    }
-}
-
-async function loadBookingsFromServer() {
-    if (!isOnline) {
-        loadBookingsFromLocal();
-        return false;
-    }
-    try {
-        const response = await fetch(buildApiUrl("getFullBookings"));
-        const data = await response.json();
-        if (data && data.bookings) {
-            bookings = data.bookings;
-            saveBookingsToLocal();
-            return true;
-        }
-        return false;
-    } catch(e) {
-        return false;
-    }
-}
-
-async function loadBookings() {
-    const loaded = await loadBookingsFromServer();
-    if (!loaded) loadBookingsFromLocal();
-    return bookings;
-}
-
-function saveBookings() {
-    saveBookingsToLocal();
-    syncFullBookingsToServer();
-}
-
-function addBooking(nickname, items) {
-    const booking = {
-        id: Date.now() + Math.random(),
-        nickname: nickname.trim(),
-        date: new Date().toISOString(),
-        items: items.map(item => ({
-            id: item.id,
-            name: item.name,
-            type: item.type,
-            qty: item.qty,
-            price: item.price,
-            cost: item.cost || 0
-        })),
-        status: "active"
-    };
-    
-    // Списываем товары со склада
-    for (const item of items) {
-        const card = originalCardsData.find(c => c.id === item.id);
-        if (card) {
-            const newStock = card.stock - item.qty;
-            if (newStock < 0) {
-                showToast(`Недостаточно товара "${card.name}" для бронирования`, false);
-                return false;
-            }
-            card.stock = newStock;
-            
-            // Обновляем DOM
-            const cardElement = document.querySelector(`.card[data-id="${item.id}"]`);
-            if (cardElement) {
-                const stockSpan = cardElement.querySelector('.stock');
-                if (stockSpan) stockSpan.textContent = `Остаток: ${newStock} шт`;
-                if (newStock === 0) cardElement.classList.add('out-of-stock');
-                else cardElement.classList.remove('out-of-stock');
-            }
-            
-            // Отправляем обновление на сервер
-            if (isOnline) {
-                fetch(buildApiUrl("update", `&id=${item.id}&delta=-${item.qty}`)).catch(e => {
-                    addPendingOperation("update", `&id=${item.id}&delta=-${item.qty}`);
-                });
-            } else {
-                addPendingOperation("update", `&id=${item.id}&delta=-${item.qty}`);
-            }
-        }
-    }
-    
-    bookings.unshift(booking);
-    if (bookings.length > 100) bookings = bookings.slice(0, 100);
-    saveBookings();
-    showToast(`Бронирование для "${nickname}" создано`, true);
-    return true;
-}
-
-async function cancelBooking(bookingId, restoreStock = true) {
-    const booking = bookings.find(b => b.id == bookingId);
-    if (!booking) return false;
-    
-    if (restoreStock) {
-        // Восстанавливаем остатки на складе
-        for (const item of booking.items) {
-            const card = originalCardsData.find(c => c.id === item.id);
-            if (card) {
-                card.stock += item.qty;
-                const cardElement = document.querySelector(`.card[data-id="${item.id}"]`);
-                if (cardElement) {
-                    const stockSpan = cardElement.querySelector('.stock');
-                    if (stockSpan) stockSpan.textContent = `Остаток: ${card.stock} шт`;
-                    if (card.stock === 0) cardElement.classList.add('out-of-stock');
-                    else cardElement.classList.remove('out-of-stock');
-                }
-                
-                if (isOnline) {
-                    fetch(buildApiUrl("update", `&id=${item.id}&delta=+${item.qty}`)).catch(e => {
-                        addPendingOperation("update", `&id=${item.id}&delta=+${item.qty}`);
-                    });
-                } else {
-                    addPendingOperation("update", `&id=${item.id}&delta=+${item.qty}`);
-                }
-            }
-        }
-    }
-    
-    if (!isOnline) {
-        addPendingOperation("cancelBooking", `&id=${bookingId}&restoreStock=${restoreStock}`);
-        booking.status = "cancelled";
-        saveBookings();
-        renderBookingsList();
-        if (restoreStock) {
-            showToast("Бронирование отменено, товары возвращены на склад", true);
-        }
-        return true;
-    }
-    
-    try {
-        const response = await fetch(buildApiUrl("cancelBooking", `&id=${bookingId}&restoreStock=${restoreStock}`));
-        const result = await response.json();
-        if (result.success) {
-            booking.status = "cancelled";
-            saveBookings();
-            renderBookingsList();
-            if (restoreStock) {
-                showToast("Бронирование отменено, товары возвращены на склад", true);
-            }
-            return true;
-        } else {
-            showToast("Ошибка отмены: " + (result.error || "неизвестная"), false);
-            return false;
-        }
-    } catch(e) {
-        addPendingOperation("cancelBooking", `&id=${bookingId}&restoreStock=${restoreStock}`);
-        booking.status = "cancelled";
-        saveBookings();
-        renderBookingsList();
-        if (restoreStock) {
-            showToast("Бронирование будет отменено при восстановлении соединения", true);
-        }
-        return true;
-    }
-}
-
-function moveBookingToCart(bookingId) {
-    const booking = bookings.find(b => b.id == bookingId);
-    if (!booking) return;
-    
-    // Добавляем товары в корзину с пометкой о бронировании
-    for (const item of booking.items) {
-        const currentQty = cart[item.id] || 0;
-        cart[item.id] = currentQty + item.qty;
-        
-        // Сохраняем информацию о том, что этот товар из бронирования
-        if (!cartBookingMap[item.id]) {
-            cartBookingMap[item.id] = [];
-        }
-        if (!cartBookingMap[item.id].includes(bookingId)) {
-            cartBookingMap[item.id].push(bookingId);
-        }
-    }
-    
-    // Отмечаем бронь как перенесённую в корзину, но не удаляем
-    booking.status = "in_cart";
-    saveBookings();
-    updateCartUI();
-    closeBookingsModal();
-    openCartModal();
-    showToast("Товары из бронирования добавлены в корзину", true);
-}
-
-function removeBookingFromCartAfterCheckout(bookingId) {
-    const booking = bookings.find(b => b.id == bookingId);
-    if (booking && (booking.status === "in_cart" || booking.status === "active")) {
-        booking.status = "completed";
-        saveBookings();
-        renderBookingsList();
-    }
-}
-
-function renderBookingsList() {
-    const container = document.getElementById('bookings-content');
-    if (!container) return;
-    
-    const activeBookings = bookings.filter(b => b.status === "active" || b.status === "in_cart");
-    
+    let discountHtml = `<div class="discount-section"><div class="discount-header" onclick="toggleDiscountPanel()"><span class="discount-title">🎯 Скидки</span><span class="discount-chevron" id="discount-chevron">▼</span></div>
+            <div id="discount-content" class="discount-content" style="display: ${discountPanelOpen ? 'block' : 'none'};">
+                <div class="discount-group"><div class="discount-row">
+                    <div class="discount-custom-select"><div class="discount-custom-select-trigger" id="itemDiscountSelectTrigger" onclick="event.stopPropagation(); toggleItemDiscountSelect()">%</div>
+                    <div class="discount-custom-select-dropdown" id="itemDiscountSelectDropdown"><div class="discount-select-option" onclick="selectItemDiscountType('percent', '%')">%</div><div class="discount-select-option" onclick="selectItemDiscountType('fixed', '₽')">₽</div></div>
+                    <input type="hidden" id="itemDiscountTypeSelect" data-value="percent"></div>
+                    <div class="discount-amount-control"><input type="number" id="itemDiscountValue" class="discount-amount-input" placeholder="Сумма" value="0" onchange="updateItemDiscountFromInput()"><button class="discount-step-btn" onclick="changeItemDiscountValue(-1)">−</button><button class="discount-step-btn" onclick="changeItemDiscountValue(1)">+</button></div>
+                    <button class="discount-products-btn" onclick="toggleDiscountProductsList()">Товары</button><button class="discount-all-btn" onclick="selectAllProductsForDiscount()">Всё</button><button class="discount-none-btn" onclick="selectNoneProductsForDiscount()">Ничего</button>
+                </div><div id="productDiscountList" style="display: none; margin-top: 8px;"></div></div>
+                <div class="discount-buttons-row"><button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()">Отмена</button><button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()">Сбросить скидки</button><button class="discount-action-btn apply-btn" onclick="applyItemDiscount()">Применить</button></div>
+            </div></div>`;
+    if (discountPanelDiv) discountPanelDiv.innerHTML = discountHtml;
+    const activeRules = checkRulesForCart();
+    let total = 0;
     let html = '';
-    
-    // Форма добавления нового бронирования (сверху)
-    html += `<div class="add-booking-form" style="margin-bottom: 20px; padding: 16px; background: var(--badge-bg); border-radius: 16px;">
-        <div style="font-weight: bold; margin-bottom: 12px; color: var(--badge-text);">➕ Новое бронирование</div>
-        <div class="edit-row" style="margin-bottom: 12px;">
-            <span class="edit-label" style="color: var(--text-primary);">Ник покупателя</span>
-            <input type="text" id="bookingNickname" class="edit-input" placeholder="Введите ник" style="flex: 2;">
-        </div>
-        <div class="edit-row" style="margin-bottom: 12px; flex-wrap: wrap;">
-            <span class="edit-label" style="min-width: 80px; color: var(--text-primary);">Товары</span>
-            <div style="flex: 2;">
-                <div class="discount-custom-select">
-                    <div class="discount-custom-select-trigger" id="bookingProductSelectTrigger" onclick="toggleBookingProductSelect()" style="background: var(--card-bg); color: var(--text-primary);">📦 Выберите товары</div>
-                    <div class="discount-custom-select-dropdown" id="bookingProductSelectDropdown" style="max-height: 250px; overflow-y: auto; width: 100%; min-width: 280px;"></div>
-                </div>
-            </div>
-        </div>
-        <div id="selectedBookingProductsList" style="margin-bottom: 12px; padding: 8px; background: var(--card-bg); border-radius: 12px;"></div>
-        <button class="edit-save-btn" onclick="createBooking()" style="width: auto; padding: 8px 24px; background: var(--btn-bg); color: white; border: none; border-radius: 30px; cursor: pointer;">📦 Забронировать</button>
-    </div>`;
-    
-    // Список клиентов с активными бронями
-    if (activeBookings.length > 0) {
-        html += `<div class="bookings-nicknames" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
-                    <div style="width: 100%; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">👤 Клиенты, забронировавшие товары:</div>`;
-        for (const booking of activeBookings) {
-            let statusText = "";
-            let statusStyle = "";
-            if (booking.status === "in_cart") {
-                statusText = " (в корзине)";
-                statusStyle = "opacity: 0.7;";
-            }
-            html += `<button class="booking-nickname-btn" onclick="viewBookingDetails(${booking.id})" style="display: inline-block; white-space: nowrap; background: ${currentViewingBookingId === booking.id ? 'var(--btn-bg)' : 'var(--badge-bg)'}; border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 20px; font-size: 13px; cursor: pointer; color: ${currentViewingBookingId === booking.id ? 'white' : 'var(--text-primary)'}; width: auto; min-width: fit-content; ${statusStyle}">
-                            ${escapeHtml(booking.nickname)}${statusText}
-                        </button>`;
-        }
+    if (activeRules.length > 0) {
+        html += `<div style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);"><div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">✨ Активные правила ✨</div>`;
+        for (const rule of activeRules) html += `<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); padding: 4px 0;"><span style="font-size: 16px;">${escapeHtml(rule.icon)}</span><span><span class="rule-text-bold">${escapeHtml(rule.message)}</span> <span class="rule-text-normal">${escapeHtml(rule.condition)}</span></span></div>`;
         html += `</div>`;
     }
-    
-    // Детали выбранного бронирования
-    if (currentViewingBookingId) {
-        const booking = bookings.find(b => b.id == currentViewingBookingId);
-        if (booking && (booking.status === "active" || booking.status === "in_cart")) {
-            const date = new Date(booking.date);
-            const dateStr = date.toLocaleString('ru-RU');
-            let total = 0;
-            for (const item of booking.items) {
-                total += item.price * item.qty;
-            }
-            
-            const isInCart = booking.status === "in_cart";
-            
-            html += `<div class="booking-details" style="margin-top: 20px;">
-                <div class="detail-title" style="color: var(--badge-text);">📋 Бронирование: ${escapeHtml(booking.nickname)} (${dateStr})${isInCart ? ' — в корзине' : ''}</div>
-                <div class="table-wrapper">
-                    <table class="detail-table-small" style="width: 100%;">
-                        <thead>
-                            <tr><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Цена</th><th class="text-right">Сумма</th>
-                        </thead>
-                        <tbody>`;
-            for (const item of booking.items) {
-                const sum = item.price * item.qty;
-                html += `<tr>
-                            <td>${escapeHtml(item.name)}</td>
-                            <td><span class="type-badge" style="background:${getTypeColor(item.type)}20; color:${getTypeColor(item.type)};">${escapeHtml(item.type)}</span></td>
-                            <td class="text-right">${item.qty} шт</td>
-                            <td class="text-right">${item.price} ₽</td>
-                            <td class="text-right">${sum} ₽</td>
-                        </tr>`;
-            }
-            html += `<tr style="border-top: 2px solid var(--border-color); font-weight: bold;">
-                        <td colspan="4" class="text-right">Итого:</td>
-                        <td class="text-right">${total} ₽<td>
-                      </tr>`;
-            html += `</tbody>
-                    </table>
-                </div>
-                <div class="edit-buttons" style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px;">
-                    <button class="edit-cancel-btn" onclick="cancelBooking(${booking.id}, true)" style="background: var(--minus-bg); color: var(--minus-color); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 16px; cursor: pointer;">❌ Отменить бронь</button>
-                    ${!isInCart ? `<button class="edit-save-btn" onclick="moveBookingToCart(${booking.id})" style="background: var(--btn-bg); color: white; border: none; border-radius: 30px; padding: 8px 16px; cursor: pointer;">🛒 В корзину</button>` : ''}
-                </div>
-            </div>`;
-        }
-    }
-    
-    if (activeBookings.length === 0 && !currentViewingBookingId) {
-        html += `<div class="empty-cart" style="margin-top: 20px; color: var(--text-muted);">📭 Нет активных бронирований. Создайте новое!</div>`;
-    }
-    
-    container.innerHTML = html;
-    
-    renderBookingProductSelect();
-    renderSelectedBookingProducts();
-}
-
-function renderBookingProductSelect() {
-    const container = document.getElementById('bookingProductSelectDropdown');
-    if (!container) return;
-    
-    let html = '';
-    originalCardsData.forEach(card => {
-        if (card.stock > 0) {
-            const displayName = `${card.type} ${card.name}`;
-            const product = currentBookingProducts.get(card.id);
-            const qtyInCart = product?.qty || 0;
-            html += `<div class="product-select-item" onclick="toggleBookingProduct(${card.id}, '${escapeHtml(card.name)}', '${escapeHtml(card.type)}', ${card.price}, ${card.cost || 0})" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border-color);">
-                        <div style="flex: 1;">
-                            <div style="color: var(--text-primary);">${escapeHtml(displayName)}</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">В наличии: ${card.stock} шт, цена: ${card.price} ₽</div>
-                        </div>
-                        ${qtyInCart > 0 ? `<div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="cart-qty-btn" onclick="event.stopPropagation(); changeBookingProductQty(${card.id}, -1)" style="width: 28px; height: 28px; background: var(--badge-bg); color: var(--text-primary);">−</button>
-                            <span style="min-width: 30px; text-align: center; color: var(--text-primary);">${qtyInCart}</span>
-                            <button class="cart-qty-btn" onclick="event.stopPropagation(); changeBookingProductQty(${card.id}, 1)" style="width: 28px; height: 28px; background: var(--badge-bg); color: var(--text-primary);">+</button>
-                        </div>` : '<span style="color: var(--text-muted);">➕ Выбрать</span>'}
-                    </div>`;
-        }
-    });
-    container.innerHTML = html || '<div class="product-select-item" style="color: var(--text-muted); padding: 12px; text-align: center;">Нет доступных товаров</div>';
-}
-
-function toggleBookingProductSelect() {
-    const dropdown = document.getElementById('bookingProductSelectDropdown');
-    if (dropdown) dropdown.classList.toggle('show');
-}
-
-function toggleBookingProduct(id, name, type, price, cost) {
-    if (currentBookingProducts.has(id)) {
-        currentBookingProducts.delete(id);
-    } else {
+    let subtotal = 0;
+    for (const [idStr, qty] of Object.entries(cart)) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (card) subtotal += qty * card.price; }
+    for (const [idStr, qty] of Object.entries(cart)) {
+        const id = parseInt(idStr);
         const card = originalCardsData.find(c => c.id === id);
-        if (card && card.stock > 0) {
-            currentBookingProducts.set(id, { qty: 1, name: name, type: type, price: price, cost: cost });
-        } else {
-            showToast("Товар временно недоступен", false);
-            return;
+        if (!card) continue;
+        const best = getBestDiscountForItem(id, card.price, qty, subtotal);
+        const originalItemTotal = card.price * qty;
+        const discountedItemTotal = best.price * qty;
+        total += discountedItemTotal;
+        const isZero = qty === 0;
+        const hasDiscount = best.discountValue > 0;
+        let discountText = '';
+        if (hasDiscount) {
+            if (best.discountType === 'percent') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue}%</div>`;
+            else if (best.discountType === 'fixed') discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue} ₽/шт</div>`;
         }
+        const displayName = `${card.type} ${card.name}`;
+        html += `<div class="cart-item ${isZero ? 'disabled' : ''}"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(displayName)}</div>
+                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${originalItemTotal.toFixed(2)} ₽</span> ${Math.ceil(discountedItemTotal).toFixed(2)} ₽` : `${originalItemTotal.toFixed(2)} ₽`}</div>${discountText}</div>
+                <div class="cart-item-quantity"><button class="cart-qty-btn" onclick="changeCartQty(${id}, -1)" ${isZero ? 'disabled' : ''}>−</button><span class="cart-item-qty">${qty}</span><button class="cart-qty-btn" onclick="changeCartQty(${id}, 1)">+</button><button class="cart-item-remove" onclick="removeFromCart(${id})">🗑</button></div></div>`;
     }
-    renderBookingProductSelect();
-    renderSelectedBookingProducts();
+    cartItemsDiv.innerHTML = html;
+    if (cartTotalDiv) {
+        cartTotalDiv.style.display = 'block';
+        const hasAnyDiscount = Object.values(itemDiscounts).length > 0;
+        const roundedTotal = Math.ceil(total);
+        if (hasAnyDiscount) { let totalDiscountRub = subtotal - total; cartTotalDiv.innerHTML = `<span class="strikethrough">${subtotal.toFixed(2)} ₽</span> ${roundedTotal.toFixed(2)} ₽ (скидка ${totalDiscountRub.toFixed(2)} ₽)`; }
+        else { cartTotalDiv.innerHTML = `🍌 Итого: ${roundedTotal.toFixed(2)} ₽`; }
+    }
+    if (cartActionsDiv && totalPositiveCount > 0) cartActionsDiv.style.display = 'flex';
+    else if (cartActionsDiv) cartActionsDiv.style.display = 'none';
+    updateCardBadges();
 }
 
-function changeBookingProductQty(id, delta) {
-    const product = currentBookingProducts.get(id);
-    if (!product) return;
+function addToCart(id) {
     const card = originalCardsData.find(c => c.id === id);
-    const newQty = product.qty + delta;
-    if (newQty < 1) {
-        currentBookingProducts.delete(id);
-    } else if (card && newQty <= card.stock) {
-        product.qty = newQty;
-        currentBookingProducts.set(id, product);
+    if (!card) return;
+    if (card.stock <= 0) { showToast(`${card.name} закончился!`, false); return; }
+    const currentQty = cart[id] || 0;
+    if (currentQty + 1 > card.stock) { showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); return; }
+    cart[id] = currentQty + 1;
+    updateCartUI();
+    const displayName = `${card.type} ${card.name}`;
+    showToast(`${displayName} +1`, true);
+}
+
+function changeCartQty(id, delta) {
+    const card = originalCardsData.find(c => c.id === id);
+    if (!card) return;
+    const currentQty = cart[id] || 0;
+    const newQty = currentQty + delta;
+    if (newQty < 0) return;
+    if (newQty > card.stock) { showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); return; }
+    if (newQty === 0) {
+        delete cart[id];
+        // Проверяем, был ли этот товар из бронирования
+        if (cartBookingMap && cartBookingMap[id] && cartBookingMap[id].length > 0) {
+            for (const bookingId of cartBookingMap[id]) {
+                const booking = bookings.find(b => b.id == bookingId);
+                if (booking && booking.status === "in_cart") {
+                    booking.status = "active";
+                    saveBookings();
+                    if (typeof renderBookingsList === 'function') {
+                        renderBookingsList();
+                    }
+                }
+            }
+            delete cartBookingMap[id];
+        }
     } else {
-        showToast(`Нельзя забронировать больше, чем есть (${card.stock} шт)`, false);
-        return;
+        cart[id] = newQty;
     }
-    renderBookingProductSelect();
-    renderSelectedBookingProducts();
+    updateCartUI();
 }
 
-function renderSelectedBookingProducts() {
-    const container = document.getElementById('selectedBookingProductsList');
-    if (!container) return;
+function removeFromCart(id) {
+    delete cart[id];
     
-    if (currentBookingProducts.size === 0) {
-        container.innerHTML = '<div style="color: var(--text-muted); font-size: 13px; padding: 8px;">📦 Товары не выбраны</div>';
-        return;
+    // Проверяем, был ли этот товар из бронирования
+    if (cartBookingMap && cartBookingMap[id] && cartBookingMap[id].length > 0) {
+        for (const bookingId of cartBookingMap[id]) {
+            const booking = bookings.find(b => b.id == bookingId);
+            if (booking && booking.status === "in_cart") {
+                booking.status = "active";
+                saveBookings();
+                if (typeof renderBookingsList === 'function') {
+                    renderBookingsList();
+                }
+            }
+        }
+        delete cartBookingMap[id];
     }
     
-    let html = '<div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">Выбранные товары:</div>';
-    for (const [id, product] of currentBookingProducts) {
-        const displayName = `${product.type} ${product.name}`;
-        html += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
-                    <span style="color: var(--text-primary);">${escapeHtml(displayName)}</span>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <button class="cart-qty-btn" onclick="changeBookingProductQty(${id}, -1)" style="width: 28px; height: 28px; background: var(--badge-bg); color: var(--text-primary);">−</button>
-                        <span style="min-width: 30px; text-align: center; color: var(--text-primary);">${product.qty}</span>
-                        <button class="cart-qty-btn" onclick="changeBookingProductQty(${id}, 1)" style="width: 28px; height: 28px; background: var(--badge-bg); color: var(--text-primary);">+</button>
-                        <button class="cart-item-remove" onclick="toggleBookingProduct(${id})" style="width: 28px; height: 28px; background: none; color: var(--minus-color);">🗑</button>
-                    </div>
-                </div>`;
+    updateCartUI();
+    const card = originalCardsData.find(c => c.id === id);
+    if (card) {
+        const displayName = `${card.type} ${card.name}`;
+        showToast(`${displayName} удалён из корзины`, true);
     }
-    container.innerHTML = html;
 }
 
-function createBooking() {
-    const nicknameInput = document.getElementById('bookingNickname');
-    const nickname = nicknameInput?.value.trim();
-    
-    if (!nickname) {
-        showToast("Введите ник покупателя", false);
-        return;
-    }
-    
-    if (currentBookingProducts.size === 0) {
-        showToast("Выберите хотя бы один товар", false);
-        return;
-    }
-    
-    const items = [];
-    for (const [id, product] of currentBookingProducts) {
-        const card = originalCardsData.find(c => c.id === id);
-        if (card && product.qty <= card.stock) {
-            items.push({
-                id: id,
-                name: product.name,
-                type: product.type,
-                qty: product.qty,
-                price: product.price,
-                cost: product.cost
-            });
-        } else {
-            showToast(`Недостаточно товара "${product.name}"`, false);
-            return;
+function clearCart() {
+    // Возвращаем все брони из корзины в активные
+    if (cartBookingMap) {
+        for (const [idStr, bookingIds] of Object.entries(cartBookingMap)) {
+            for (const bookingId of bookingIds) {
+                const booking = bookings.find(b => b.id == bookingId);
+                if (booking && booking.status === "in_cart") {
+                    booking.status = "active";
+                    saveBookings();
+                }
+            }
         }
     }
     
-    if (addBooking(nickname, items)) {
-        nicknameInput.value = '';
-        currentBookingProducts.clear();
-        renderSelectedBookingProducts();
-        renderBookingProductSelect();
-        
-        const newBooking = bookings.find(b => b.nickname === nickname && (b.status === "active" || b.status === "in_cart"));
-        if (newBooking) {
-            currentViewingBookingId = newBooking.id;
+    cart = {};
+    itemDiscounts = {};
+    selectedDiscountProducts.clear();
+    if (cartBookingMap) {
+        for (const id in cartBookingMap) {
+            delete cartBookingMap[id];
         }
+    }
+    updateCartUI();
+    if (typeof renderBookingsList === 'function') {
         renderBookingsList();
     }
+    showToast(`Корзина очищена`, true);
 }
 
-function viewBookingDetails(bookingId) {
-    currentViewingBookingId = bookingId;
-    renderBookingsList();
+function giftCart() {
+    const items = Object.entries(cart).filter(([_, qty]) => qty > 0);
+    if (items.length === 0) { showToast("Нет товаров для подарка", false); return; }
+    for (const [idStr, qty] of items) {
+        const id = parseInt(idStr);
+        const card = originalCardsData.find(c => c.id === id);
+        if (qty > card.stock) { showToast(`Не хватает "${card.name}" (нужно ${qty}, есть ${card.stock})`, false); return; }
+    }
+    const historyItems = items.map(([idStr, qty]) => { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); return { id: card.id, name: card.name, qty: qty, price: 0 }; });
+    addToHistory(historyItems, 0, 'gift', false);
+    const cartCopy = { ...cart };
+    closeCartModal();
+    cart = {};
+    itemDiscounts = {};
+    selectedDiscountProducts.clear();
+    if (cartBookingMap) {
+        for (const id in cartBookingMap) {
+            delete cartBookingMap[id];
+        }
+    }
+    updateCartUI();
+    for (const [idStr, qty] of Object.entries(cartCopy)) {
+        if (qty === 0) continue;
+        const id = parseInt(idStr);
+        const card = originalCardsData.find(c => c.id === id);
+        const newStock = card.stock - qty;
+        card.stock = newStock;
+        const cards = document.querySelectorAll('.card');
+        let targetCard = null;
+        for (let i = 0; i < cards.length; i++) {
+            const idAttr = cards[i].getAttribute('data-id');
+            if (idAttr && parseInt(idAttr) === id) { targetCard = cards[i]; break; }
+        }
+        if (targetCard) {
+            const stockSpan = targetCard.querySelector('.stock');
+            if (stockSpan) stockSpan.textContent = `Остаток: ${newStock} шт`;
+            if (newStock === 0) targetCard.classList.add('out-of-stock');
+            else targetCard.classList.remove('out-of-stock');
+        }
+    }
+    (async () => {
+        for (const [idStr, qty] of Object.entries(cartCopy)) {
+            if (qty === 0) continue;
+            const id = parseInt(idStr);
+            for (let i = 0; i < qty; i++) {
+                if (!isOnline) {
+                    addPendingOperation("update", `&id=${id}&delta=-1`);
+                } else {
+                    try { await fetch(buildApiUrl("update", `&id=${id}&delta=-1`)); } catch(e) { addPendingOperation("update", `&id=${id}&delta=-1`); }
+                }
+            }
+        }
+        showUpdateTime();
+    })();
+    showToast(`Подарок оформлен!`, true);
 }
 
-function openBookingsModal() {
-    const modal = document.getElementById('bookingsModal');
-    if (modal) {
-        loadBookings().then(() => {
-            renderBookingsList();
-        }).catch(() => {
-            renderBookingsList();
-        });
-        modal.style.display = 'block';
+function openCartModal() {
+    const modal = document.getElementById('cartModal');
+    if (modal) { modal.style.display = 'block'; discountPanelOpen = false; }
+    updateCartUI();
+}
+
+function closeCartModal() { const modal = document.getElementById('cartModal'); if (modal) modal.style.display = 'none'; }
+
+async function updateStock(id, delta, silent = false) {
+    const card = originalCardsData.find(c => c.id === id);
+    if (!card) return;
+    const newStock = card.stock + delta;
+    if (newStock < 0) { if (!silent) showToast("Остаток не может быть меньше 0", false); return; }
+    card.stock = newStock;
+    filterAndSort();
+    
+    if (!isOnline) {
+        addPendingOperation("update", `&id=${id}&delta=${delta}`);
+        updateCardBadges();
+        if (!silent) {
+            if (delta === -1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, false); showToast(`Продажа: ${card.name} -1 шт (будет синхронизировано)`, true); }
+            else if (delta === 1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, true); showToast(`Возврат: ${card.name} +1 шт (будет синхронизировано)`, true); }
+        }
+        return;
+    }
+    
+    try {
+        const response = await fetch(buildApiUrl("update", `&id=${id}&delta=${delta}`));
+        const result = await response.json();
+        if (!result.success && !silent) { await loadData(true, true); showToast("Ошибка: " + (result.error || "неизвестная"), false); }
+    } catch (error) {
+        console.error(error);
+        addPendingOperation("update", `&id=${id}&delta=${delta}`);
+        if (!silent) showToast(`Операция сохранена для синхронизации`, true);
+    }
+    updateCardBadges();
+    if (!silent) {
+        if (delta === -1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, false); showToast(`Продажа: ${card.name} -1 шт`, true); }
+        else if (delta === 1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, true); showToast(`Возврат: ${card.name} +1 шт`, true); }
     }
 }
 
-function closeBookingsModal() {
-    const modal = document.getElementById('bookingsModal');
-    if (modal) modal.style.display = 'none';
-    currentBookingProducts.clear();
-    currentViewingBookingId = null;
+function applyItemDiscount() {
+    const typeSelect = document.getElementById('itemDiscountTypeSelect');
+    const type = typeSelect ? typeSelect.getAttribute('data-value') || 'percent' : 'percent';
+    const value = parseFloat(document.getElementById('itemDiscountValue').value) || 0;
+    
+    if (selectedDiscountProducts.size === 0) {
+        showToast("Выберите товары для скидки", false);
+        return;
+    }
+    if (value <= 0) {
+        showToast("Введите корректную сумму скидки", false);
+        return;
+    }
+    
+    const cartProductIds = new Set();
+    for (const [idStr, qty] of Object.entries(cart)) {
+        if (qty > 0) {
+            const id = parseInt(idStr);
+            cartProductIds.add(id);
+        }
+    }
+    
+    const isAllProductsSelected = selectedDiscountProducts.size === cartProductIds.size && 
+                                   [...selectedDiscountProducts].every(id => cartProductIds.has(id));
+    
+    if (isAllProductsSelected) {
+        applyCartDiscountToAll(type, value);
+    } else {
+        for (const productId of selectedDiscountProducts) {
+            if (!itemDiscounts[productId]) itemDiscounts[productId] = {};
+            itemDiscounts[productId] = { type: type, value: value };
+        }
+        selectedDiscountProducts.clear();
+        discountProductListVisible = false;
+        const container = document.getElementById('productDiscountList');
+        if (container) container.style.display = 'none';
+        updateCartUI();
+        showToast("Скидка применена к выбранным товарам", true);
+    }
 }
 
-// Инициализация
-document.addEventListener('DOMContentLoaded', () => {
-    document.addEventListener('click', (e) => {
-        const dropdown = document.getElementById('bookingProductSelectDropdown');
-        const trigger = document.getElementById('bookingProductSelectTrigger');
-        if (dropdown && trigger && !trigger.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.remove('show');
+function applyCartDiscountToAll(type, totalDiscountValue) {
+    const cartItems = [];
+    for (const [idStr, qty] of Object.entries(cart)) {
+        if (qty > 0) {
+            const id = parseInt(idStr);
+            const card = originalCardsData.find(c => c.id === id);
+            if (card) {
+                for (let i = 0; i < qty; i++) {
+                    cartItems.push({
+                        id: id,
+                        originalPrice: card.price,
+                        name: card.name,
+                        type: card.type
+                    });
+                }
+            }
         }
-    });
-});
+    }
+    
+    if (cartItems.length === 0) {
+        showToast("Корзина пуста", false);
+        return;
+    }
+    
+    if (type === 'percent') {
+        const percent = totalDiscountValue;
+        const discountByItemId = {};
+        
+        for (const item of cartItems) {
+            const discountedPrice = item.originalPrice * (1 - percent / 100);
+            const discountValue = item.originalPrice - discountedPrice;
+            if (!discountByItemId[item.id]) discountByItemId[item.id] = 0;
+            discountByItemId[item.id] += discountValue;
+        }
+        
+        for (const [id, totalDiscountForItem] of Object.entries(discountByItemId)) {
+            const numericId = parseInt(id);
+            const qty = cart[numericId] || 1;
+            const discountPerUnit = totalDiscountForItem / qty;
+            
+            if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
+            itemDiscounts[numericId] = { 
+                type: 'fixed', 
+                value: discountPerUnit,
+                valuePerItem: discountPerUnit
+            };
+        }
+    } else {
+        let remainingDiscount = totalDiscountValue;
+        let itemPrices = cartItems.map(item => ({
+            id: item.id,
+            originalPrice: item.originalPrice,
+            currentPrice: item.originalPrice,
+            name: item.name
+        }));
+        
+        let iteration = 0;
+        const maxIterations = 100;
+        
+        while (remainingDiscount > 0.01 && iteration < maxIterations) {
+            iteration++;
+            const activeItems = itemPrices.filter(item => item.currentPrice > 0);
+            if (activeItems.length === 0) break;
+            
+            const discountPerItem = remainingDiscount / activeItems.length;
+            let newRemainingDiscount = 0;
+            
+            for (const item of activeItems) {
+                let newPrice = item.currentPrice - discountPerItem;
+                if (newPrice < 0) {
+                    newRemainingDiscount += Math.abs(newPrice);
+                    item.currentPrice = 0;
+                } else {
+                    item.currentPrice = newPrice;
+                }
+            }
+            remainingDiscount = newRemainingDiscount;
+        }
+        
+        const discountByItemId = {};
+        for (const item of itemPrices) {
+            const discountValue = item.originalPrice - item.currentPrice;
+            if (!discountByItemId[item.id]) discountByItemId[item.id] = 0;
+            discountByItemId[item.id] += discountValue;
+        }
+        
+        for (const [id, totalDiscountForItem] of Object.entries(discountByItemId)) {
+            const numericId = parseInt(id);
+            const qty = cart[numericId] || 1;
+            const discountPerUnit = totalDiscountForItem / qty;
+            
+            if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
+            itemDiscounts[numericId] = { 
+                type: 'fixed', 
+                value: discountPerUnit,
+                valuePerItem: discountPerUnit
+            };
+        }
+    }
+    
+    selectedDiscountProducts.clear();
+    discountProductListVisible = false;
+    const container = document.getElementById('productDiscountList');
+    if (container) container.style.display = 'none';
+    
+    updateCartUI();
+    showToast(`Скидка ${type === 'percent' ? totalDiscountValue + '%' : totalDiscountValue + ' ₽'} применена на всю корзину`, true);
+}
 
-// Делаем функции глобальными
-window.loadBookings = loadBookings;
-window.renderBookingsList = renderBookingsList;
-window.openBookingsModal = openBookingsModal;
-window.closeBookingsModal = closeBookingsModal;
-window.createBooking = createBooking;
-window.cancelBooking = cancelBooking;
-window.moveBookingToCart = moveBookingToCart;
-window.removeBookingFromCartAfterCheckout = removeBookingFromCartAfterCheckout;
-window.viewBookingDetails = viewBookingDetails;
-window.toggleBookingProductSelect = toggleBookingProductSelect;
-window.toggleBookingProduct = toggleBookingProduct;
-window.changeBookingProductQty = changeBookingProductQty;
+function resetItemDiscounts() {
+    itemDiscounts = {};
+    updateCartUI();
+    showToast("Скидки на товары сброшены", true);
+}
+
+async function checkout() {
+    const items = Object.entries(cart).filter(([_, qty]) => qty > 0);
+    if (items.length === 0) { showToast("Нет товаров для продажи", false); return; }
+    let subtotal = 0;
+    for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); subtotal += qty * card.price; }
+    let total = 0;
+    for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); const best = getBestDiscountForItem(id, card.price, qty, subtotal); total += best.price * qty; }
+    for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (qty > card.stock) { showToast(`Не хватает "${card.name}" (нужно ${qty}, есть ${card.stock})`, false); return; } }
+    const activeRules = checkRulesForCart();
+    if (activeRules.length > 0) { let rulesMessage = "Не забудьте:\n"; for (const rule of activeRules) rulesMessage += `• ${rule.message}\n`; showToast(rulesMessage, true); }
+    const historyItems = items.map(([idStr, qty]) => { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); return { id: card.id, name: card.name, qty: qty, price: card.price }; });
+    const roundedTotal = Math.ceil(total);
+    addToHistory(historyItems, roundedTotal, 'basket', false);
+    const cartCopy = { ...cart };
+    closeCartModal();
+    cart = {};
+    itemDiscounts = {};
+    selectedDiscountProducts.clear();
+    
+    // Очищаем бронирования, связанные с проданными товарами
+    if (cartBookingMap) {
+        for (const [idStr, bookingIds] of Object.entries(cartBookingMap)) {
+            for (const bookingId of bookingIds) {
+                if (typeof removeBookingFromCartAfterCheckout === 'function') {
+                    removeBookingFromCartAfterCheckout(bookingId);
+                }
+            }
+        }
+        for (const id in cartBookingMap) {
+            delete cartBookingMap[id];
+        }
+    }
+    
+    updateCartUI();
+    for (const [idStr, qty] of Object.entries(cartCopy)) {
+        if (qty === 0) continue;
+        const id = parseInt(idStr);
+        const card = originalCardsData.find(c => c.id === id);
+        const newStock = card.stock - qty;
+        card.stock = newStock;
+        const cards = document.querySelectorAll('.card');
+        let targetCard = null;
+        for (let i = 0; i < cards.length; i++) {
+            const idAttr = cards[i].getAttribute('data-id');
+            if (idAttr && parseInt(idAttr) === id) { targetCard = cards[i]; break; }
+        }
+        if (targetCard) {
+            const stockSpan = targetCard.querySelector('.stock');
+            if (stockSpan) stockSpan.textContent = `Остаток: ${newStock} шт`;
+            if (newStock === 0) targetCard.classList.add('out-of-stock');
+            else targetCard.classList.remove('out-of-stock');
+        }
+    }
+    (async () => {
+        for (const [idStr, qty] of Object.entries(cartCopy)) {
+            if (qty === 0) continue;
+            const id = parseInt(idStr);
+            for (let i = 0; i < qty; i++) {
+                if (!isOnline) {
+                    addPendingOperation("update", `&id=${id}&delta=-1`);
+                } else {
+                    try { await fetch(buildApiUrl("update", `&id=${id}&delta=-1`)); } catch(e) { addPendingOperation("update", `&id=${id}&delta=-1`); }
+                }
+            }
+        }
+        showUpdateTime();
+    })();
+    showToast(`Продажа на ${roundedTotal.toFixed(2)} ₽ завершена!`, true);
+}
