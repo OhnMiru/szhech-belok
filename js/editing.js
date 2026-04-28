@@ -1,34 +1,21 @@
 // ========== РЕДАКТИРОВАНИЕ ==========
 function openEditProductModal(id) {
-    // Преобразуем id в число, на всякий случай
+    console.log("openEditProductModal started, id:", id);
+    console.log("Type of id:", typeof id);
+    
     const numericId = parseInt(id);
+    console.log("numericId:", numericId);
+    
     currentEditId = numericId;
+    console.log("currentEditId set to:", currentEditId);
     
-    // Ищем карточку
-    const card = originalCardsData.find(c => c.id === numericId);
+    // Просто проверяем, что переменная установилась
+    setTimeout(() => {
+        console.log("After timeout, currentEditId is:", currentEditId);
+    }, 100);
     
-    if (card) {
-        // Заголовок
-        const titleElement = document.getElementById('editTitle');
-        if (titleElement) {
-            titleElement.textContent = `✏️ Редактирование товара №${card.id}`;
-        }
-        
-        // Заполняем поля
-        document.getElementById('editType').value = card.type || "";
-        document.getElementById('editName').value = card.name || "";
-        document.getElementById('editStock').value = card.stock;
-        document.getElementById('editTotal').value = card.total;
-        document.getElementById('editPrice').value = card.price;
-        document.getElementById('editCost').value = card.cost || 0;
-        
-        // Открываем модалку
-        document.getElementById('editProductModal').style.display = 'block';
-    } else {
-        console.error("Товар не найден, id:", numericId);
-        console.log("Доступные id:", originalCardsData.map(c => c.id));
-        showToast("Товар не найден", false);
-    }
+    // Показываем простой alert для проверки
+    alert("Редактирование товара ID: " + numericId);
 }
 
 function closeEditProductModal() {
