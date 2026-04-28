@@ -70,6 +70,7 @@ function showGlobalStats() {
     const container = document.getElementById('globalStats-content');
     container.innerHTML = '<div class="loading">Загрузка статистики всех участников...</div>';
     if (typeof loadGlobalExtraCosts === 'function') loadGlobalExtraCosts();
+    if (typeof loadGlobalExtraIncomes === 'function') loadGlobalExtraIncomes();
     if (typeof renderGlobalStatsWithData === 'function') {
         fetch(`${CENTRAL_API_URL}?action=getAllStatsFull&participant=${CURRENT_USER.id}&t=${Date.now()}`)
             .then(r => r.json())
@@ -87,4 +88,19 @@ function showGlobalStats() {
 function closeGlobalStatsModal() { 
     const modal = document.getElementById('globalStatsModal'); 
     if (modal) modal.style.display = 'none'; 
+}
+
+function openBookingsModal() {
+    const modal = document.getElementById('bookingsModal');
+    if (modal) {
+        if (typeof renderBookingsList === 'function') {
+            renderBookingsList();
+        }
+        modal.style.display = 'block';
+    }
+}
+
+function closeBookingsModal() {
+    const modal = document.getElementById('bookingsModal');
+    if (modal) modal.style.display = 'none';
 }
