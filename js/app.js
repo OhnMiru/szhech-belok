@@ -21,6 +21,11 @@ function initApp() {
     const shareStatsBtn = document.getElementById('shareStatsBtn');
     const hideStatsBtn = document.getElementById('hideStatsBtn');
     const logoutBtn = document.getElementById('logoutBtn');
+    const bookingsBtn = document.getElementById('bookingsButton');
+  
+    if (bookingsBtn) {
+        bookingsBtn.addEventListener('click', openBookingsModal);
+    }
 
     if (settingsToggle) {
         settingsToggle.addEventListener('click', (e) => {
@@ -93,6 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const globalStatsBtn = document.getElementById('globalStatsBtn');
     if (globalStatsBtn) globalStatsBtn.addEventListener('click', showGlobalStats);
+
+    const bookingsBtn = document.getElementById('bookingsButton');
+    if (bookingsBtn) bookingsBtn.addEventListener('click', openBookingsModal);
 
     if (!checkExistingAuth()) {
         // ждём ручного входа
