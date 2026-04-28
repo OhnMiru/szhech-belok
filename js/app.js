@@ -4,7 +4,11 @@ function initApp() {
     loadRules();
     loadHistory();
     loadExtraCosts();
-    if (CURRENT_USER.role === 'organizer') loadGlobalExtraCosts();
+    loadExtraIncomes();
+    if (CURRENT_USER.role === 'organizer') {
+        loadGlobalExtraCosts();
+        loadGlobalExtraIncomes();
+    }
     initDateTimeSelects();
     bindDateTimeEvents();
     initCustomOrder();
