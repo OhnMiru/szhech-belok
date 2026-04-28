@@ -43,3 +43,4 @@ let selectedBookingItems = [];
 let bookings = [];
 let currentBookingProducts = new Map();
 let currentViewingBookingId = null;
+let cartBookingMap = {};
