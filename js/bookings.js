@@ -1,7 +1,8 @@
 // ========== БРОНИРОВАНИЯ ==========
-let bookings = [];
-let currentBookingProducts = new Map();
-let currentViewingBookingId = null;
+// Переменные объявлены в config.js, не объявляем заново!
+// let bookings = [];
+// let currentBookingProducts = new Map();
+// let currentViewingBookingId = null;
 
 function saveBookingsToLocal() {
     localStorage.setItem('merch_bookings', JSON.stringify(bookings));
