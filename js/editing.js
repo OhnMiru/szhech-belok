@@ -105,3 +105,4 @@ async function saveProductChanges() {
         closeEditProductModal();
     }
 }
+window.openEditProductModal = openEditProductModal;
