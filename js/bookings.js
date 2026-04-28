@@ -292,9 +292,7 @@ function renderBookingsList() {
                 statusText = " (в корзине)";
                 statusStyle = "opacity: 0.7;";
             }
-            html += `<button class="booking-nickname-btn" onclick="viewBookingDetails(${booking.id})" style="display: inline-block; white-space: nowrap; background: ${currentViewingBookingId === booking.id ? 'var(--btn-bg)' : 'var(--badge-bg)'}; border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 20px; font-size: 13px; cursor: pointer; color: ${currentViewingBookingId === booking.id ? 'white' : 'var(--text-primary)'}; margin-right: 0; ${statusStyle}">
-                            ${escapeHtml(booking.nickname)}${statusText}
-                        </button>`;
+            html += `<button class="booking-nickname-btn" onclick="viewBookingDetails(${booking.id})" style="display: inline-block; white-space: nowrap; background: ${currentViewingBookingId === booking.id ? 'var(--btn-bg)' : 'var(--badge-bg)'}; border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 20px; font-size: 13px; cursor: pointer; color: ${currentViewingBookingId === booking.id ? 'white' : 'var(--text-primary)'}; width: auto; min-width: fit-content;">${escapeHtml(booking.nickname)}${statusText}</button>`;
         }
         html += `</div>`;
     }
