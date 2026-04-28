@@ -1,63 +1,64 @@
 // ========== РЕДАКТИРОВАНИЕ ==========
-// currentEditId уже объявлен в config.js, не объявляем заново
 
 function openEditProductModal(id) {
+    console.log("openEditProductModal вызвана, id:", id);
+    
     const numericId = parseInt(id);
-    currentEditId = numericId;
+    window.currentEditId = numericId;
     
-    // Ищем карточку в данных
-    let card = originalCardsData.find(c => c.id === numericId);
-    
-    // Если не нашли, пробуем взять из DOM
-    if (!card) {
-        const cardElement = document.querySelector(`.card[data-id="${numericId}"]`);
-        if (cardElement) {
-            const nameElement = cardElement.querySelector('.name');
-            const typeBadge = cardElement.querySelector('.type-badge');
-            const stockSpan = cardElement.querySelector('.stock');
-            const totalSpan = cardElement.querySelector('.total');
-            const priceSpan = cardElement.querySelector('.price');
-            
-            card = {
-                id: numericId,
-                name: nameElement ? nameElement.textContent : "",
-                type: typeBadge ? typeBadge.textContent : "",
-                stock: stockSpan ? parseInt(stockSpan.textContent.replace('Остаток:', '').replace('шт', '').trim()) : 0,
-                total: totalSpan ? parseInt(totalSpan.textContent.replace('📦 Всего:', '').replace('шт', '').trim()) : 0,
-                price: priceSpan ? parseInt(priceSpan.textContent.replace('💰 Цена:', '').replace('₽', '').trim()) : 0,
-                cost: 0
-            };
-        }
-    }
-    
-    if (card) {
-        document.getElementById('editTitle').textContent = `✏️ Редактирование товара №${card.id}`;
-        document.getElementById('editType').value = card.type || "";
-        document.getElementById('editName').value = card.name || "";
-        document.getElementById('editStock').value = card.stock;
-        document.getElementById('editTotal').value = card.total;
-        document.getElementById('editPrice').value = card.price;
-        document.getElementById('editCost').value = card.cost || 0;
-        document.getElementById('editProductModal').style.display = 'block';
-    } else {
+    // Берём данные прямо из DOM
+    const cardElement = document.querySelector(`.card[data-id="${numericId}"]`);
+    if (!cardElement) {
         showToast("Товар не найден", false);
+        return;
     }
+    
+    const nameElement = cardElement.querySelector('.name');
+    const typeBadge = cardElement.querySelector('.type-badge');
+    const stockSpan = cardElement.querySelector('.stock');
+    const totalSpan = cardElement.querySelector('.total');
+    const priceSpan = cardElement.querySelector('.price');
+    
+    const type = typeBadge ? typeBadge.textContent : "";
+    const name = nameElement ? nameElement.textContent : "";
+    const stock = stockSpan ? parseInt(stockSpan.textContent.replace('Остаток:', '').replace('шт', '').trim()) : 0;
+    const total = totalSpan ? parseInt(totalSpan.textContent.replace('📦 Всего:', '').replace('шт', '').trim()) : 0;
+    const price = priceSpan ? parseInt(priceSpan.textContent.replace('💰 Цена:', '').replace('₽', '').trim()) : 0;
+    
+    const titleEl = document.getElementById('editTitle');
+    const typeEl = document.getElementById('editType');
+    const nameEl = document.getElementById('editName');
+    const stockEl = document.getElementById('editStock');
+    const totalEl = document.getElementById('editTotal');
+    const priceEl = document.getElementById('editPrice');
+    const costEl = document.getElementById('editCost');
+    const modalEl = document.getElementById('editProductModal');
+    
+    if (titleEl) titleEl.textContent = `✏️ Редактирование товара №${numericId}`;
+    if (typeEl) typeEl.value = type;
+    if (nameEl) nameEl.value = name;
+    if (stockEl) stockEl.value = stock;
+    if (totalEl) totalEl.value = total;
+    if (priceEl) priceEl.value = price;
+    if (costEl) costEl.value = 0;
+    if (modalEl) modalEl.style.display = 'block';
 }
 
 function closeEditProductModal() {
-    document.getElementById('editProductModal').style.display = 'none';
-    currentEditId = null;
+    const modalEl = document.getElementById('editProductModal');
+    if (modalEl) modalEl.style.display = 'none';
+    window.currentEditId = null;
 }
 
 async function saveProductChanges() {
-    if (currentEditId === null) return;
+    if (window.currentEditId === null) return;
     
-    const newType = document.getElementById('editType').value.trim();
-    const newName = document.getElementById('editName').value.trim();
-    const newStock = parseInt(document.getElementById('editStock').value);
-    const newTotal = parseInt(document.getElementById('editTotal').value);
-    const newPrice = parseFloat(document.getElementById('editPrice').value);
-    const newCost = parseFloat(document.getElementById('editCost').value);
+    const newType = document.getElementById('editType')?.value.trim() || "";
+    const newName = document.getElementById('editName')?.value.trim() || "";
+    const newStock = parseInt(document.getElementById('editStock')?.value || 0);
+    const newTotal = parseInt(document.getElementById('editTotal')?.value || 0);
+    const newPrice = parseFloat(document.getElementById('editPrice')?.value || 0);
+    const newCost = parseFloat(document.getElementById('editCost')?.value || 0);
     
     if (!newName) {
         showToast("Название товара обязательно", false);
@@ -76,20 +77,8 @@ async function saveProductChanges() {
         return;
     }
     
-    // Обновляем в originalCardsData
-    const card = originalCardsData.find(c => c.id === currentEditId);
-    if (card) {
-        card.type = newType;
-        card.name = newName;
-        card.stock = newStock;
-        card.total = newTotal;
-        card.price = newPrice;
-        card.cost = newCost;
-        filterAndSort();
-    }
-    
     // Обновляем в DOM
-    const cardElement = document.querySelector(`.card[data-id="${currentEditId}"]`);
+    const cardElement = document.querySelector(`.card[data-id="${window.currentEditId}"]`);
     if (cardElement) {
         const nameElement = cardElement.querySelector('.name');
         const typeBadge = cardElement.querySelector('.type-badge');
@@ -107,15 +96,27 @@ async function saveProductChanges() {
         else cardElement.classList.remove('out-of-stock');
     }
     
+    // Обновляем в originalCardsData
+    const card = originalCardsData.find(c => c.id === window.currentEditId);
+    if (card) {
+        card.type = newType;
+        card.name = newName;
+        card.stock = newStock;
+        card.total = newTotal;
+        card.price = newPrice;
+        card.cost = newCost;
+        filterAndSort();
+    }
+    
     if (!isOnline) {
-        addPendingOperation("updateFullItem", `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`);
+        addPendingOperation("updateFullItem", `&id=${window.currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`);
         showToast(`Товар "${newName}" обновлён (будет синхронизировано при восстановлении соединения)`, true);
         closeEditProductModal();
         return;
     }
     
     try {
-        const response = await fetch(buildApiUrl("updateFullItem", `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`));
+        const response = await fetch(buildApiUrl("updateFullItem", `&id=${window.currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`));
         const result = await response.json();
         if (!result.success) {
             showToast("Ошибка: " + (result.error || "неизвестная"), false);
@@ -125,24 +126,13 @@ async function saveProductChanges() {
         }
     } catch (e) {
         console.error(e);
-        addPendingOperation("updateFullItem", `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`);
+        addPendingOperation("updateFullItem", `&id=${window.currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`);
         showToast(`Товар "${newName}" обновлён (будет синхронизировано при восстановлении соединения)`, true);
         closeEditProductModal();
     }
 }
 
-// Обработчик кликов по кнопкам редактирования
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('click', function(e) {
-        const editBtn = e.target.closest('.edit-icon');
-        if (editBtn && editBtn.dataset.id) {
-            e.preventDefault();
-            openEditProductModal(editBtn.dataset.id);
-        }
-    });
-});
-
-// Делаем функции глобальными (если нужно)
+// Делаем функции глобальными
 window.openEditProductModal = openEditProductModal;
 window.closeEditProductModal = closeEditProductModal;
 window.saveProductChanges = saveProductChanges;
