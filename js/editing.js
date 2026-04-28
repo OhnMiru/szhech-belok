@@ -1,5 +1,5 @@
 // ========== РЕДАКТИРОВАНИЕ ==========
-let currentEditId = null;
+// currentEditId уже объявлен в config.js, не объявляем заново
 
 function openEditProductModal(id) {
     const numericId = parseInt(id);
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Делаем функции глобальными
+// Делаем функции глобальными (если нужно)
 window.openEditProductModal = openEditProductModal;
 window.closeEditProductModal = closeEditProductModal;
 window.saveProductChanges = saveProductChanges;
