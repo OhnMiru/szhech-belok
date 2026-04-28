@@ -14,7 +14,7 @@ function openEditProductModal(id) {
         console.log("After timeout, currentEditId is:", currentEditId);
     }, 100);
     
-    // Показываем простой alert для проверки
+    // Показываем alert для проверки
     alert("Редактирование товара ID: " + numericId);
 }
 
