@@ -57,7 +57,8 @@ function renderStats() {
     }
     
     const totalExtraCosts = extraCosts.reduce((sum, cost) => sum + (cost.amount || 0), 0);
-    const totalExpenses = totalCostAllGoods + totalExtraCosts;
+    const totalExtraIncomes = extraIncomes.reduce((sum, income) => sum + (income.amount || 0), 0);
+    const totalExpenses = totalCostAllGoods + totalExtraCosts - totalExtraIncomes;
     const netProfit = totalRevenue - totalExpenses;
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
     
@@ -128,6 +129,7 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalRevenue)}</div><div class="stats-card-label">💰 Выручка</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCostAllGoods)}</div><div class="stats-card-label">📦 Себестоимость всего товара</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraCosts)}</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraIncomes)}</div><div class="stats-card-label">💵 Дополнительные доходы</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExpenses)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
         <div class="stats-card desktop-only"><div class="stats-card-value">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
@@ -174,10 +176,10 @@ function renderStats() {
             <td class="text-right">${formatCurrency(p.fullCost)}</td>
             <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td>
             <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td>
-        <tr>`;
+        </tr>`;
     }
     html += `</tbody>
-            </table>
+            <table>
         </div>
     </div>
     <div class="detail-section">
@@ -202,7 +204,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-        </table>
+        </tr>
         </div>
     </div>
     <div class="two-columns">
@@ -216,10 +218,9 @@ function renderStats() {
                 <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
         const p = topByQty[i]; 
-        const displayName = `${p.type} ${p.name}`;
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td>${escapeHtml(displayName)}</td>
+            <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td>
         </tr>`;
@@ -231,8 +232,8 @@ function renderStats() {
             <div class="detail-title">🏆 Самые продаваемые типы</div>
             <table class="detail-table-small">
                 <thead>
-                    </td><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                </tr>
+                    <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                </td>
                 </thead>
                 <tbody>`;
     for (let i = 0; i < topTypesByQty.length; i++) { 
@@ -265,6 +266,25 @@ function renderStats() {
             <input type="number" id="newCostAmount" class="add-cost-input-number" placeholder="Сумма" value="0" step="100">
             <button class="add-cost-btn" onclick="addExtraCostFromModal()">➕ Добавить</button>
         </div>
+    </div>
+    <div class="extra-income-section">
+        <div class="detail-title">💵 Дополнительные доходы</div>
+        <div id="extra-incomes-list">`;
+    if (extraIncomes.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных доходов</div>';
+    for (let i = 0; i < extraIncomes.length; i++) { 
+        const income = extraIncomes[i]; 
+        html += `<div class="extra-cost-item">
+            <span class="extra-cost-name">${escapeHtml(income.name)}</span>
+            <span class="extra-cost-amount">${income.amount} ₽</span>
+            <button class="extra-cost-delete" onclick="deleteExtraIncome(${i})">🗑</button>
+        </div>`; 
+    }
+    html += `</div>
+        <div class="add-cost-form">
+            <input type="text" id="newIncomeName" class="add-cost-input" placeholder="Название (спонсоры, донаты...)" autocomplete="off">
+            <input type="number" id="newIncomeAmount" class="add-cost-input-number" placeholder="Сумма" value="0" step="100">
+            <button class="add-cost-btn" onclick="addExtraIncomeFromModal()">➕ Добавить</button>
+        </div>
     </div>`;
     container.innerHTML = html;
 }
@@ -279,6 +299,21 @@ function addExtraCostFromModal() {
         return; 
     }
     addExtraCost(name, amount);
+    if (nameInput) nameInput.value = '';
+    if (amountInput) amountInput.value = '0';
+    renderStats();
+}
+
+function addExtraIncomeFromModal() {
+    const nameInput = document.getElementById('newIncomeName');
+    const amountInput = document.getElementById('newIncomeAmount');
+    const name = nameInput?.value.trim();
+    const amount = parseFloat(amountInput?.value);
+    if (!name || isNaN(amount) || amount <= 0) { 
+        showToast("Введите название и сумму дохода", false); 
+        return; 
+    }
+    addExtraIncome(name, amount);
     if (nameInput) nameInput.value = '';
     if (amountInput) amountInput.value = '0';
     renderStats();
