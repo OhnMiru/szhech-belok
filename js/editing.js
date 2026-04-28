@@ -1,49 +1,38 @@
 // ========== РЕДАКТИРОВАНИЕ ==========
 function openEditProductModal(id) {
-    console.log("openEditProductModal called with id:", id);
-    currentEditId = id;
-    const card = originalCardsData.find(c => c.id === id);
-    console.log("Found card:", card);
+    // Преобразуем id в число, на всякий случай
+    const numericId = parseInt(id);
+    currentEditId = numericId;
+    
+    // Ищем карточку
+    const card = originalCardsData.find(c => c.id === numericId);
     
     if (card) {
+        // Заголовок
         const titleElement = document.getElementById('editTitle');
         if (titleElement) {
             titleElement.textContent = `✏️ Редактирование товара №${card.id}`;
         }
         
-        const typeInput = document.getElementById('editType');
-        const nameInput = document.getElementById('editName');
-        const stockInput = document.getElementById('editStock');
-        const totalInput = document.getElementById('editTotal');
-        const priceInput = document.getElementById('editPrice');
-        const costInput = document.getElementById('editCost');
+        // Заполняем поля
+        document.getElementById('editType').value = card.type || "";
+        document.getElementById('editName').value = card.name || "";
+        document.getElementById('editStock').value = card.stock;
+        document.getElementById('editTotal').value = card.total;
+        document.getElementById('editPrice').value = card.price;
+        document.getElementById('editCost').value = card.cost || 0;
         
-        console.log("Input elements found:", {
-            type: !!typeInput,
-            name: !!nameInput,
-            stock: !!stockInput,
-            total: !!totalInput,
-            price: !!priceInput,
-            cost: !!costInput
-        });
-        
-        if (typeInput) typeInput.value = card.type || "";
-        if (nameInput) nameInput.value = card.name || "";
-        if (stockInput) stockInput.value = card.stock;
-        if (totalInput) totalInput.value = card.total;
-        if (priceInput) priceInput.value = card.price;
-        if (costInput) costInput.value = card.cost || 0;
-        
-        const modal = document.getElementById('editProductModal');
-        if (modal) modal.style.display = 'block';
+        // Открываем модалку
+        document.getElementById('editProductModal').style.display = 'block';
     } else {
-        console.error("Card not found for id:", id);
+        console.error("Товар не найден, id:", numericId);
+        console.log("Доступные id:", originalCardsData.map(c => c.id));
+        showToast("Товар не найден", false);
     }
 }
 
 function closeEditProductModal() {
-    const modal = document.getElementById('editProductModal');
-    if (modal) modal.style.display = 'none';
+    document.getElementById('editProductModal').style.display = 'none';
     currentEditId = null;
 }
 
@@ -56,12 +45,12 @@ async function saveProductChanges() {
         return;
     }
     
-    const newType = document.getElementById('editType')?.value.trim() || "";
-    const newName = document.getElementById('editName')?.value.trim() || "";
-    const newStock = parseInt(document.getElementById('editStock')?.value || 0);
-    const newTotal = parseInt(document.getElementById('editTotal')?.value || 0);
-    const newPrice = parseFloat(document.getElementById('editPrice')?.value || 0);
-    const newCost = parseFloat(document.getElementById('editCost')?.value || 0);
+    const newType = document.getElementById('editType').value.trim();
+    const newName = document.getElementById('editName').value.trim();
+    const newStock = parseInt(document.getElementById('editStock').value);
+    const newTotal = parseInt(document.getElementById('editTotal').value);
+    const newPrice = parseFloat(document.getElementById('editPrice').value);
+    const newCost = parseFloat(document.getElementById('editCost').value);
     
     if (!newName) {
         showToast("Название товара обязательно", false);
@@ -80,7 +69,7 @@ async function saveProductChanges() {
         return;
     }
     
-    // Сохраняем старые значения на случай отката при ошибке
+    // Сохраняем старые значения
     const oldType = card.type;
     const oldName = card.name;
     const oldStock = card.stock;
@@ -109,7 +98,7 @@ async function saveProductChanges() {
         const response = await fetch(buildApiUrl("updateFullItem", `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`));
         const result = await response.json();
         if (!result.success) {
-            // Откат при ошибке
+            // Откат
             card.type = oldType;
             card.name = oldName;
             card.stock = oldStock;
