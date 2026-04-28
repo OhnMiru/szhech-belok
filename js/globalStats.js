@@ -539,7 +539,7 @@ function renderUserFullStats(stats, participantName) {
                 <table class="detail-table">
                     <thead>
                         <tr><th>Тип</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th><th class="text-right">Средняя цена</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
-                    </table>
+                    </tr>
                     </thead>
                     <tbody>`;
         for (const t of sortedTypeDetails) {
@@ -561,7 +561,7 @@ function renderUserFullStats(stats, participantName) {
     </div>`;
     }
     
-    // Самые продаваемые товары и типы в две колонки (как в обычной статистике)
+    // Самые продаваемые товары и типы в две колонки
     html += `<div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
@@ -582,7 +582,7 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-                </tr>
+                </table>
             </div>
         </div>
         <div class="detail-section">
