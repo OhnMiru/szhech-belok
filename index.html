@@ -235,20 +235,36 @@
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeEditProductModal()">×</button>
             <div class="modal-header">
-                <span>✏️ Редактирование товара</span>
+                <span id="editTitle">✏️ Редактирование товара</span>
             </div>
             <div id="edit-product-content">
                 <div class="edit-row">
-                    <span class="edit-label">Всего</span>
-                    <input type="number" id="editTotal" class="edit-input" value="0">
+                    <span class="edit-label">Тип</span>
+                    <input type="text" id="editType" class="edit-input" placeholder="Тип мерча">
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Название</span>
+                    <input type="text" id="editName" class="edit-input" placeholder="Название товара">
                 </div>
                 <div class="edit-row">
                     <span class="edit-label">Остаток</span>
-                    <input type="number" id="editStock" class="edit-input" value="0">
+                    <input type="number" id="editStock" class="edit-input" value="0" min="0">
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Всего</span>
+                    <input type="number" id="editTotal" class="edit-input" value="0" min="0">
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Цена</span>
+                    <input type="number" id="editPrice" class="edit-input" value="0" min="0" step="1">
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Себестоимость</span>
+                    <input type="number" id="editCost" class="edit-input" value="0" min="0" step="1">
                 </div>
                 <div class="edit-buttons">
-                    <button class="edit-save-btn" onclick="saveProductChanges()">Сохранить</button>
-                    <button class="edit-cancel-btn" onclick="closeEditProductModal()">Отмена</button>
+                    <button class="edit-save-btn" onclick="saveProductChanges()">💾 Сохранить</button>
+                    <button class="edit-cancel-btn" onclick="closeEditProductModal()">❌ Отмена</button>
                 </div>
             </div>
         </div>
