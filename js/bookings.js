@@ -1,5 +1,5 @@
 // ========== БРОНИРОВАНИЯ ==========
-// Переменные объявлены в config.js: bookings, currentBookingProducts, currentViewingBookingId
+// Переменные объявлены в config.js: bookings, currentBookingProducts, currentViewingBookingId, cartBookingMap
 
 function saveBookingsToLocal() {
     localStorage.setItem('merch_bookings', JSON.stringify(bookings));
@@ -115,39 +115,6 @@ function addBooking(nickname, items) {
     saveBookings();
     showToast(`Бронирование для "${nickname}" создано`, true);
     return true;
-}
-
-async function deleteBooking(bookingId) {
-    const booking = bookings.find(b => b.id == bookingId);
-    if (!booking) return false;
-    
-    if (!isOnline) {
-        addPendingOperation("deleteBooking", `&id=${bookingId}`);
-        booking.status = "deleted";
-        saveBookings();
-        renderBookingsList();
-        return true;
-    }
-    
-    try {
-        const response = await fetch(buildApiUrl("deleteBooking", `&id=${bookingId}`));
-        const result = await response.json();
-        if (result.success) {
-            booking.status = "deleted";
-            saveBookings();
-            renderBookingsList();
-            return true;
-        } else {
-            showToast("Ошибка удаления: " + (result.error || "неизвестная"), false);
-            return false;
-        }
-    } catch(e) {
-        addPendingOperation("deleteBooking", `&id=${bookingId}`);
-        booking.status = "deleted";
-        saveBookings();
-        renderBookingsList();
-        return true;
-    }
 }
 
 async function cancelBooking(bookingId, restoreStock = true) {
@@ -292,7 +259,9 @@ function renderBookingsList() {
                 statusText = " (в корзине)";
                 statusStyle = "opacity: 0.7;";
             }
-            html += `<button class="booking-nickname-btn" onclick="viewBookingDetails(${booking.id})" style="display: inline-block; white-space: nowrap; background: ${currentViewingBookingId === booking.id ? 'var(--btn-bg)' : 'var(--badge-bg)'}; border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 20px; font-size: 13px; cursor: pointer; color: ${currentViewingBookingId === booking.id ? 'white' : 'var(--text-primary)'}; width: auto; min-width: fit-content;">${escapeHtml(booking.nickname)}${statusText}</button>`;
+            html += `<button class="booking-nickname-btn" onclick="viewBookingDetails(${booking.id})" style="display: inline-block; white-space: nowrap; background: ${currentViewingBookingId === booking.id ? 'var(--btn-bg)' : 'var(--badge-bg)'}; border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 20px; font-size: 13px; cursor: pointer; color: ${currentViewingBookingId === booking.id ? 'white' : 'var(--text-primary)'}; width: auto; min-width: fit-content; ${statusStyle}">
+                            ${escapeHtml(booking.nickname)}${statusText}
+                        </button>`;
         }
         html += `</div>`;
     }
@@ -330,14 +299,14 @@ function renderBookingsList() {
             }
             html += `<tr style="border-top: 2px solid var(--border-color); font-weight: bold;">
                         <td colspan="4" class="text-right">Итого:</td>
-                        <td class="text-right">${total} ₽</td>
+                        <td class="text-right">${total} ₽<td>
                       </tr>`;
             html += `</tbody>
-                    <table>
+                    </table>
                 </div>
                 <div class="edit-buttons" style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px;">
-                    ${!isInCart ? `<button class="edit-cancel-btn" onclick="cancelBooking(${booking.id}, true)" style="background: var(--minus-bg); color: var(--minus-color); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 16px; cursor: pointer;">❌ Отменить бронь</button>
                     <button class="edit-cancel-btn" onclick="cancelBooking(${booking.id}, true)" style="background: var(--minus-bg); color: var(--minus-color); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 16px; cursor: pointer;">❌ Отменить бронь</button>
+                    ${!isInCart ? `<button class="edit-save-btn" onclick="moveBookingToCart(${booking.id})" style="background: var(--btn-bg); color: white; border: none; border-radius: 30px; padding: 8px 16px; cursor: pointer;">🛒 В корзину</button>` : ''}
                 </div>
             </div>`;
         }
