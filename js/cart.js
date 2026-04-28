@@ -1,6 +1,5 @@
 // ========== КОРЗИНА ==========
-// Переменные cart, itemDiscounts, selectedDiscountProducts, discountProductListVisible, discountPanelOpen уже объявлены в config.js
-// Не объявляем их заново!
+let cartBookingMap = {};
 
 function updateCardBadges() {
     document.querySelectorAll('.card').forEach(card => {
@@ -150,6 +149,7 @@ function clearCart() {
     cart = {};
     itemDiscounts = {};
     selectedDiscountProducts.clear();
+    cartBookingMap = {};
     updateCartUI();
     showToast(`Корзина очищена`, true);
 }
@@ -169,6 +169,7 @@ function giftCart() {
     cart = {};
     itemDiscounts = {};
     selectedDiscountProducts.clear();
+    cartBookingMap = {};
     updateCartUI();
     for (const [idStr, qty] of Object.entries(cartCopy)) {
         if (qty === 0) continue;
@@ -422,6 +423,17 @@ async function checkout() {
     cart = {};
     itemDiscounts = {};
     selectedDiscountProducts.clear();
+    
+    // Очищаем бронирования, связанные с проданными товарами
+    for (const [idStr, bookingIds] of Object.entries(cartBookingMap)) {
+        for (const bookingId of bookingIds) {
+            if (typeof removeBookingFromCartAfterCheckout === 'function') {
+                removeBookingFromCartAfterCheckout(bookingId);
+            }
+        }
+    }
+    cartBookingMap = {};
+    
     updateCartUI();
     for (const [idStr, qty] of Object.entries(cartCopy)) {
         if (qty === 0) continue;
