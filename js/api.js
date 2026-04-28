@@ -42,3 +42,18 @@ async function loadData(showLoading = true, showProgress = false) {
         }
     }
 }
+// Добавить в api.js после существующих функций
+
+async function updateFullItem(id, type, name, stock, total, price, cost) {
+    if (!isOnline) {
+        addPendingOperation("updateFullItem", `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}`);
+        return { success: true, offline: true };
+    }
+    try {
+        const response = await fetch(buildApiUrl("updateFullItem", `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}`));
+        return await response.json();
+    } catch(e) {
+        addPendingOperation("updateFullItem", `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}`);
+        return { success: true, offline: true };
+    }
+}
