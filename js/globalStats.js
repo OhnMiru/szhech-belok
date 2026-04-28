@@ -276,8 +276,7 @@ function renderGlobalStatsContent(data) {
         <div class="stats-card"><div class="stats-card-value">${(totalCost + (data.totalExtraCosts || 0) - (data.totalExtraIncomes || 0)).toLocaleString()} ₽</div><div class="stats-card-label">📉 Общие затраты</div></div>
         <div class="stats-card desktop-only"><div class="stats-card-value ${totalNetProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${totalNetProfit.toLocaleString()} ₽</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${totalItemsSold.toLocaleString()} шт</div><div class="stats-card-label">📊 Продано товаров</div></div>
-        <div class="stats-card"><div class="stats-card-value">${totalGoods.toLocaleString()} шт</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
-        <div class="stats-card"><div class="stats-card-value">${(data.totalStockValue || 0).toLocaleString()} ₽</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
+        <div class="stats-card"><div class="stats-card-value">${totalGoods.toLocaleString()} шт</div><div class="stats-card-label">📦 Осталось товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${(data.totalOrders || 0).toLocaleString()}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${avgCheck.toLocaleString()} ₽</div><div class="stats-card-label">💳 Средний чек</div></div>
     </div>`;
@@ -338,7 +337,7 @@ function renderGlobalStatsContent(data) {
                 <table class="detail-table">
                     <thead>
                         <tr><th>Тип</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th><th class="text-right">Средняя цена</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
-                    </tr>
+                    <tr>
                     </thead>
                     <tbody>`;
         for (const t of sortedTypeDetails) {
@@ -380,7 +379,7 @@ function renderGlobalStatsContent(data) {
             html += `<tr>
                         <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
                         <td>${escapeHtml(p.name)}</td>
-                        <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+                        </tr><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
                         <td>${escapeHtml(participantDisplay)}</td>
                         <td class="text-right">${Math.ceil(p.price || 0).toLocaleString()} ₽</td>
                         <td class="text-right">${p.revenue.toLocaleString()} ₽</td>
@@ -417,7 +416,7 @@ function renderGlobalStatsContent(data) {
             </div>
         </div>`;
         
-        html += `<div class="extra-income-section">
+        html += `<div class="extra-income-section" style="margin-top: 24px;">
             <div class="detail-title">💵 Общие доходы организатора</div>
             <div id="global-extra-incomes-list">`;
         if (globalExtraIncomes.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных доходов</div>';
@@ -461,6 +460,7 @@ function renderUserFullStats(stats, participantName) {
     const productDetails = stats.productDetails || [];
     const typeDetails = stats.typeDetails || [];
     const topProducts = stats.topProducts || [];
+    const topTypes = stats.topTypes || [];
     const extraCostsUser = stats.extraCosts || [];
     const extraIncomesUser = stats.extraIncomes || [];
     const totalExtraCosts = extraCostsUser.reduce((sum, c) => sum + (c.amount || 0), 0);
@@ -480,8 +480,7 @@ function renderUserFullStats(stats, participantName) {
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCost + totalExtraCosts - totalExtraIncomes)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
         <div class="stats-card desktop-only"><div class="stats-card-value ${totalNetProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(totalNetProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
-        <div class="stats-card"><div class="stats-card-value">${formatNumber(totalGoods)}</div><div class="stats-card-label">📦 Осталось товаров (шт)</div></div>
-        <div class="stats-card"><div class="stats-card-value">${formatCurrency(stats.stockValue || 0)}</div><div class="stats-card-label">💰 Осталось товаров (в деньгах)</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatNumber(totalGoods)}</div><div class="stats-card-label">📦 Осталось товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
     </div>`;
@@ -550,23 +549,23 @@ function renderUserFullStats(stats, participantName) {
             html += `<tr>
                         <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
                         <td class="text-right">${t.qty} шт</td>
-                        <td class="text-right">${t.revenue.toLocaleString()} ₽</td>
+                        <td class="text-right">${t.revenue.toLocaleString()} ₽<tr>
                         <td class="text-right">${Math.ceil(avgPrice).toLocaleString()} ₽</td>
                         <td class="text-right ${tProfitClass}">${t.profit.toLocaleString()} ₽</td>
                         <td class="text-right ${tMarginClass}">${t.margin.toFixed(1)}%</td>
                     </tr>`;
         }
         html += `</tbody>
-                </table>
-            </div>
-        </div>`;
+            </table>
+        </div>
+    </div>`;
     }
     
-    // Самые продаваемые товары
-    html += `<div class="detail-section">
-        <div class="detail-title">🏆 Самые продаваемые товары</div>
-        <div class="table-wrapper">
-            <table class="detail-table">
+    // Самые продаваемые товары и типы в две колонки
+    html += `<div class="two-columns">
+        <div class="detail-section">
+            <div class="detail-title">🏆 Самые продаваемые товары</div>
+            <table class="detail-table-small">
                 <thead>
                     <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
                 </tr>
@@ -579,6 +578,25 @@ function renderUserFullStats(stats, participantName) {
             <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.qty} шт</td>
+        </tr>`;
+    }
+    html += `</tbody>
+            </table>
+        </div>
+        <div class="detail-section">
+            <div class="detail-title">🏆 Самые продаваемые типы</div>
+            <table class="detail-table-small">
+                <thead>
+                    <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
+                </tr>
+                </thead>
+                <tbody>`;
+    for (let i = 0; i < topTypes.length; i++) { 
+        const t = topTypes[i]; 
+        html += `<tr>
+            <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
+            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+            <td class="text-right">${t.qty} шт</td>
         </tr>`;
     }
     html += `</tbody>
@@ -601,7 +619,7 @@ function renderUserFullStats(stats, participantName) {
     </div>`;
     
     // Дополнительные доходы участника
-    html += `<div class="extra-income-section">
+    html += `<div class="extra-income-section" style="margin-top: 24px;">
         <div class="detail-title">💵 Дополнительные доходы (участника)</div>
         <div id="user-extra-incomes-list">`;
     if (extraIncomesUser.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных доходов</div>';
