@@ -265,15 +265,26 @@ function renderHistoryList() {
         const paymentIcon = entry.paymentType === 'transfer' ? '💳' : '💰';
         const paymentText = entry.paymentType === 'transfer' ? 'Перевод' : 'Наличные';
         
-        // Для мобильной версии — бейджи только с иконками
-        const methodLabel = isBasket ? (isMobile ? '🛒' : 'Корзина') : (isMobile ? '🔢' : 'Поштучно');
-        const actionLabel = isReturn ? (isMobile ? '↩️' : 'Возврат') : (isMobile ? '💰' : 'Продажа');
+        // Для мобильной версии — бейджи только с иконками, для продажи используем другой значок
+        let methodLabel, actionLabel;
+        if (isMobile) {
+            methodLabel = isBasket ? '🛒' : '🔢';
+            actionLabel = isReturn ? '↩️' : '✨';
+        } else {
+            methodLabel = isBasket ? 'Корзина' : 'Поштучно';
+            actionLabel = isReturn ? 'Возврат' : 'Продажа';
+        }
         
+        // Формируем список товаров с переносами строк на мобильных
         let itemsHtml = '';
         for (const item of entry.items) {
             const card = originalCardsData.find(c => c.id === item.id);
             const displayName = card ? `${card.type} ${card.name}` : item.name;
-            itemsHtml += `<div>• ${displayName}: ${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
+            if (isMobile) {
+                itemsHtml += `<div>${escapeHtml(displayName)}:<br>${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
+            } else {
+                itemsHtml += `<div>• ${displayName}: ${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
+            }
         }
         
         const methodClass = isBasket ? 'history-badge-method-basket' : 'history-badge-method-single';
