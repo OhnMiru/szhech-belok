@@ -395,49 +395,66 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
         // Сортируем от самых дешёвых к самым дорогим
         items.sort((a, b) => a.price - b.price);
         
+        // Используем целые копейки (умножаем на 100 для точности)
         let remainingDiscount = totalDiscountValue;
         const discountsByItem = {};
-        let discountApplied = 0;
         
-        // Первый проход: распределяем скидку, округляя ВНИЗ до целого рубля
+        // Первый проход: распределяем скидку без округления
         for (const item of items) {
             const maxDiscountForItem = item.totalPrice;
             if (remainingDiscount >= maxDiscountForItem) {
-                // Полностью обнуляем товар
                 discountsByItem[item.id] = maxDiscountForItem;
-                discountApplied += maxDiscountForItem;
                 remainingDiscount -= maxDiscountForItem;
             } else {
-                // Частичная скидка — округляем вниз
-                const discountForItem = Math.floor(remainingDiscount);
-                discountsByItem[item.id] = discountForItem;
-                discountApplied += discountForItem;
-                remainingDiscount = totalDiscountValue - discountApplied;
+                discountsByItem[item.id] = remainingDiscount;
+                remainingDiscount = 0;
                 break;
             }
         }
         
-        // Второй проход: распределяем ОСТАТОК (если есть) по одному рублю на товары
-        let leftover = Math.round(remainingDiscount);
+        // Если осталась скидка, распределяем пропорционально
+        if (remainingDiscount > 0) {
+            const remainingItems = items.filter(item => {
+                const currentDiscount = discountsByItem[item.id] || 0;
+                return currentDiscount < item.totalPrice;
+            });
+            
+            if (remainingItems.length > 0) {
+                // Распределяем оставшуюся скидку пропорционально цене
+                const totalRemainingPrice = remainingItems.reduce((sum, item) => sum + item.totalPrice, 0);
+                
+                for (const item of remainingItems) {
+                    const currentDiscount = discountsByItem[item.id] || 0;
+                    const maxAdditional = item.totalPrice - currentDiscount;
+                    // Пропорциональное распределение
+                    let additional = (item.totalPrice / totalRemainingPrice) * remainingDiscount;
+                    // Округляем вниз до целого рубля
+                    additional = Math.floor(additional);
+                    if (additional > maxAdditional) additional = maxAdditional;
+                    
+                    discountsByItem[item.id] = currentDiscount + additional;
+                    remainingDiscount -= additional;
+                }
+            }
+        }
         
-        if (leftover > 0) {
-            for (const item of items) {
-                if (leftover <= 0) break;
+        // Добиваем оставшиеся копейки/рубли на самые дорогие товары
+        if (remainingDiscount > 0) {
+            // Сортируем товары по убыванию цены (самые дорогие сначала)
+            const sortedByPriceDesc = [...items].sort((a, b) => b.price - a.price);
+            
+            for (const item of sortedByPriceDesc) {
+                if (remainingDiscount <= 0) break;
                 
                 const currentDiscount = discountsByItem[item.id] || 0;
                 const maxDiscountForItem = item.totalPrice;
                 
                 if (currentDiscount < maxDiscountForItem) {
-                    discountsByItem[item.id] = currentDiscount + 1;
-                    leftover--;
+                    const canAdd = Math.min(remainingDiscount, maxDiscountForItem - currentDiscount);
+                    discountsByItem[item.id] = currentDiscount + canAdd;
+                    remainingDiscount -= canAdd;
                 }
             }
-        }
-        
-        // Финальная проверка: если остаток всё ещё есть, добавляем на самый дорогой товар
-        if (leftover > 0) {
-            const mostExpensiveItem = items.reduce((max, item) => item.price > max.price ? item : max, items[0]);
-            discountsByItem[mostExpensiveItem.id] = (discountsByItem[mostExpensiveItem.id] || 0) + leftover;
         }
         
         // Применяем скидки
@@ -445,6 +462,7 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             const numericId = parseInt(id);
             const item = items.find(i => i.id === numericId);
             if (item && totalDiscount > 0) {
+                // Считаем скидку на единицу товара с максимальной точностью
                 const discountPerUnit = totalDiscount / item.qty;
                 if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
                 itemDiscounts[numericId] = {
@@ -455,7 +473,7 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             }
         }
         
-        // Финальная корректировка: пересчитываем реально применённую скидку
+        // Финальная проверка: считаем реальную сумму скидки и корректируем при необходимости
         let actualDiscount = 0;
         for (const [id, disc] of Object.entries(itemDiscounts)) {
             const numericId = parseInt(id);
@@ -463,8 +481,13 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             actualDiscount += disc.value * qty;
         }
         
-        const diff = Math.round(totalDiscountValue - actualDiscount);
-        if (Math.abs(diff) >= 1) {
+        // Округляем до целого для сравнения
+        const actualRounded = Math.round(actualDiscount);
+        const targetRounded = Math.round(totalDiscountValue);
+        
+        if (actualRounded !== targetRounded) {
+            const diff = targetRounded - actualRounded;
+            // Находим самый дорогой товар
             let mostExpensiveId = null;
             let mostExpensivePrice = -1;
             for (const item of items) {
