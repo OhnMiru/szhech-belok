@@ -51,3 +51,9 @@ let currentPaymentType = 'cash';
 let photoCache = new Map(); // Кэш URL фото: { itemId: url }
 let currentPhotoItemId = null;
 let currentPhotoItemName = null;
+
+// ========== НАСТРОЙКИ ДЛЯ ФОТО ==========
+const MAX_PHOTO_SIZE_MB = 5; // Максимальный размер фото в МБ
+const PHOTO_QUALITY = 0.7; // Качество сжатия (0-1)
+const MAX_PHOTO_WIDTH = 1024; // Максимальная ширина фото
+const MAX_PHOTO_HEIGHT = 1024; // Максимальная высота фото
