@@ -28,6 +28,30 @@ async function processPendingOperations(silent = false) {
             let url;
             if (op.action === "addItem") {
                 url = buildApiUrl("addItem", op.params);
+            } else if (op.action === "updateFullItem") {
+                url = buildApiUrl("updateFullItem", op.params);
+            } else if (op.action === "update") {
+                url = buildApiUrl("update", op.params);
+            } else if (op.action === "syncFullHistory") {
+                url = buildApiUrl("syncFullHistory", `&data=${encodeURIComponent(op.params)}`);
+            } else if (op.action === "syncFullBookings") {
+                url = buildApiUrl("syncFullBookings", `&data=${encodeURIComponent(op.params)}`);
+            } else if (op.action === "syncCustomOrder") {
+                url = buildApiUrl("syncCustomOrder", `&data=${encodeURIComponent(op.params)}`);
+            } else if (op.action === "syncExtraCosts") {
+                url = buildApiUrl("syncExtraCosts", `&data=${encodeURIComponent(op.params)}`);
+            } else if (op.action === "syncExtraIncomes") {
+                url = buildApiUrl("syncExtraIncomes", `&data=${encodeURIComponent(op.params)}`);
+            } else if (op.action === "syncFullRules") {
+                url = buildApiUrl("syncFullRules", `&data=${encodeURIComponent(op.params)}`);
+            } else if (op.action === "hideHistoryEntry") {
+                url = buildApiUrl("hideHistoryEntry", op.params);
+            } else if (op.action === "cancelHistoryEntry") {
+                url = buildApiUrl("cancelHistoryEntry", op.params);
+            } else if (op.action === "savePrivacy") {
+                url = buildApiUrl("savePrivacy", `&data=${encodeURIComponent(op.params)}`);
+            } else if (op.action === "cancelBooking") {
+                url = buildApiUrl("cancelBooking", op.params);
             } else {
                 url = buildApiUrl(op.action, op.params);
             }
@@ -59,7 +83,7 @@ function addPendingOperation(action, params) {
     pendingOperations.push({ action: action, params: params, timestamp: Date.now() });
     savePendingOperations();
     if (isOnline) {
-        processPendingOperations(true); // silent mode
+        processPendingOperations(true);
     }
 }
 
