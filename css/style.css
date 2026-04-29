@@ -2326,6 +2326,7 @@ body.dark .extra-cost-amount {
 
 .payment-header {
     padding: 10px 12px;
+    padding-bottom: 0;
     font-weight: bold;
     font-size: 13px;
     color: var(--badge-text);
@@ -2333,6 +2334,7 @@ body.dark .extra-cost-amount {
 
 .payment-content {
     padding: 12px;
+    padding-top: 4px;
 }
 
 .payment-content label {
@@ -2343,6 +2345,10 @@ body.dark .extra-cost-amount {
     color: var(--text-primary);
     font-weight: bold;
     font-size: 13px;
+}
+
+.payment-content label span span {
+    font-weight: normal;
 }
 
 .payment-content input[type="checkbox"] {
