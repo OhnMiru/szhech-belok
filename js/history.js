@@ -53,7 +53,6 @@ async function loadHistoryFromServer() {
 async function loadHistory() {
     const loaded = await loadHistoryFromServer();
     if (!loaded) loadHistoryFromLocal();
-    // Принудительно сохраняем в localStorage после загрузки
     saveHistoryToLocal();
 }
 
@@ -62,7 +61,8 @@ function saveHistory() {
     syncFullHistoryToServer();
 }
 
-function addToHistory(items, total, method, isReturn = false) {
+// ИЗМЕНЁННАЯ ФУНКЦИЯ — добавляем параметр paymentType
+function addToHistory(items, total, method, isReturn = false, paymentType = 'cash') {
     const entry = {
         id: Date.now() + Math.random(),
         date: new Date().toISOString(),
@@ -70,7 +70,8 @@ function addToHistory(items, total, method, isReturn = false) {
         total: total,
         method: method,
         isReturn: isReturn,
-        hidden: false
+        hidden: false,
+        paymentType: paymentType // НОВОЕ ПОЛЕ
     };
     salesHistory.unshift(entry);
     if (salesHistory.length > 200) salesHistory = salesHistory.slice(0, 200);
@@ -79,7 +80,7 @@ function addToHistory(items, total, method, isReturn = false) {
 }
 
 function addSingleSaleToHistory(item, qty, isReturn = false) {
-    addToHistory([{ id: item.id, name: item.name, qty: qty, price: item.price }], qty * item.price, 'single', isReturn);
+    addToHistory([{ id: item.id, name: item.name, qty: qty, price: item.price }], qty * item.price, 'single', isReturn, 'cash');
 }
 
 async function hideHistoryEntry(id) {
@@ -158,6 +159,16 @@ function setHistoryTypeFilter(filter) {
     renderHistoryList();
 }
 
+// НОВАЯ ФУНКЦИЯ — фильтр по типу оплаты
+function setHistoryPaymentFilter(filter) {
+    historyPaymentFilter = filter;
+    document.querySelectorAll('[data-payment]').forEach(btn => {
+        if (btn.dataset.payment === filter) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+    renderHistoryList();
+}
+
 function startHistoryAutoSync() {
     if (historySyncInterval) clearInterval(historySyncInterval);
     historySyncInterval = setInterval(async () => { await loadHistoryFromServer(); }, 60000);
@@ -179,9 +190,11 @@ function clearAllHistory() {
 function resetHistoryFilters() {
     historyMethodFilter = "all";
     historyTypeFilter = "all";
-    document.querySelectorAll('[data-method], [data-type]').forEach(btn => btn.classList.remove('active'));
+    historyPaymentFilter = "all"; // НОВОЕ
+    document.querySelectorAll('[data-method], [data-type], [data-payment]').forEach(btn => btn.classList.remove('active'));
     document.querySelector('[data-method="all"]')?.classList.add('active');
     document.querySelector('[data-type="all"]')?.classList.add('active');
+    document.querySelector('[data-payment="all"]')?.classList.add('active');
 
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -218,6 +231,7 @@ function resetHistoryFilters() {
     renderHistoryList();
 }
 
+// ИЗМЕНЁННАЯ ФУНКЦИЯ — добавлен фильтр по paymentType и отображение иконки
 function renderHistoryList() {
     const container = document.getElementById('history-list');
     if (!container) return;
@@ -232,6 +246,9 @@ function renderHistoryList() {
     else if (historyMethodFilter === 'single') filtered = filtered.filter(e => e.method === 'single');
     if (historyTypeFilter === 'sale') filtered = filtered.filter(e => !e.isReturn);
     else if (historyTypeFilter === 'return') filtered = filtered.filter(e => e.isReturn === true);
+    // НОВЫЙ ФИЛЬТР ПО ТИПУ ОПЛАТЫ
+    if (historyPaymentFilter === 'cash') filtered = filtered.filter(e => e.paymentType === 'cash');
+    else if (historyPaymentFilter === 'transfer') filtered = filtered.filter(e => e.paymentType === 'transfer');
     if (fromDate) filtered = filtered.filter(e => new Date(e.date) >= fromDate);
     if (toDate) filtered = filtered.filter(e => new Date(e.date) <= toDate);
     filtered = filtered.filter(e => e.total >= minPrice && e.total <= maxPrice);
@@ -247,6 +264,9 @@ function renderHistoryList() {
         const dateStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
         const isBasket = entry.method === 'basket';
         const isReturn = entry.isReturn;
+        const paymentIcon = entry.paymentType === 'transfer' ? '💳' : '💰';
+        const paymentText = entry.paymentType === 'transfer' ? 'Перевод' : 'Наличные';
+        
         let itemsHtml = '';
         for (const item of entry.items) {
             const card = originalCardsData.find(c => c.id === item.id);
@@ -257,9 +277,10 @@ function renderHistoryList() {
         const methodClass = isBasket ? 'history-badge-method-basket' : 'history-badge-method-single';
         const actionLabel = isReturn ? 'Возврат' : 'Продажа';
         const actionClass = isReturn ? 'history-badge-type-return' : 'history-badge-type-sale';
+        
         html += `<div class="history-item">
                     <div class="history-content">
-                        <div class="history-date">${dateStr} <span class="history-badge ${methodClass}">${methodLabel}</span> <span class="history-badge ${actionClass}">${actionLabel}</span></div>
+                        <div class="history-date">${dateStr} <span class="history-badge ${methodClass}">${methodLabel}</span> <span class="history-badge ${actionClass}">${actionLabel}</span> <span class="history-badge" style="background: ${entry.paymentType === 'transfer' ? '#9b59b6' : '#2ecc71'}20; color: ${entry.paymentType === 'transfer' ? '#9b59b6' : '#2ecc71'};">${paymentIcon} ${paymentText}</span></div>
                         <div class="history-details">${itemsHtml}</div>
                         <div class="${isReturn ? 'history-return' : 'history-sale'}">${isReturn ? '↩️' : '💰'} Итого: ${entry.total} ₽</div>
                     </div>
