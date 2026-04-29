@@ -2211,9 +2211,6 @@ body.dark .extra-cost-amount {
     flex-shrink: 0;
 }
 
-/* ========== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ СТАТИСТИКИ ========== */
-
-/* Плашка рентабельности на ноутбуке/планшете — на всю ширину, вертикально меньше */
 .profit-card-single {
     background: var(--btn-bg);
     border-radius: 16px;
@@ -2237,25 +2234,21 @@ body.dark .extra-cost-amount {
     font-weight: 500;
 }
 
-/* Мобильные плашки (скрыты на ноутбуке) */
 .profit-mobile-row {
     display: none;
 }
 
-/* Обёртка для таблиц с горизонтальной прокруткой */
 .table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     margin-bottom: 12px;
 }
 
-/* Основные таблицы */
 .detail-table {
     min-width: 700px;
     width: 100%;
 }
 
-/* Маленькие таблицы для топов */
 .detail-table-small {
     width: 100%;
     border-collapse: collapse;
@@ -2280,7 +2273,6 @@ body.dark .extra-cost-amount {
     text-align: right;
 }
 
-/* Компактная таблица для детализации */
 .detail-table-compact {
     min-width: 500px;
 }
@@ -2301,7 +2293,6 @@ body.dark .extra-cost-amount {
     padding-right: 8px;
 }
 
-/* Стили для сообщений о приватности */
 .stats-privacy-message {
     text-align: center;
     padding: 40px;
@@ -2312,7 +2303,6 @@ body.dark .extra-cost-amount {
     margin: 20px 0;
 }
 
-/* Заголовок статистики участника */
 .stats-header-info {
     text-align: center;
     margin-bottom: 20px;
@@ -2323,12 +2313,10 @@ body.dark .extra-cost-amount {
     color: var(--badge-text);
 }
 
-/* Отступ для блока дополнительных доходов */
 .extra-income-section {
     margin-top: 24px;
 }
 
-/* Стиль для чекбокса способа оплаты */
 .payment-section {
     background: var(--badge-bg);
     border-radius: 16px;
@@ -2341,14 +2329,29 @@ body.dark .extra-cost-amount {
     font-weight: bold;
     font-size: 13px;
     color: var(--badge-text);
-    border-bottom: 1px solid var(--border-color);
 }
 
 .payment-content {
     padding: 12px;
 }
 
-/* Адаптация для планшетов */
+.payment-content label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.payment-content input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #f39c12;
+}
+
 @media (min-width: 768px) and (max-width: 1024px) {
     .stats-grid {
         grid-template-columns: repeat(5, 1fr);
