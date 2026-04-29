@@ -104,3 +104,149 @@ function closeBookingsModal() {
     const modal = document.getElementById('bookingsModal');
     if (modal) modal.style.display = 'none';
 }
+
+// ========== ДОБАВЛЕНИЕ ТОВАРА ==========
+
+function openAddItemModal() {
+    // Заполняем выпадающий список типов
+    const typeSelect = document.getElementById('addItemType');
+    if (typeSelect) {
+        typeSelect.innerHTML = '<option value="">Выберите или добавьте новый</option>';
+        const sortedTypes = [...typeOptions].sort();
+        for (const type of sortedTypes) {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            typeSelect.appendChild(option);
+        }
+    }
+    
+    // Очищаем поля
+    document.getElementById('addItemName').value = '';
+    document.getElementById('addItemTotal').value = '0';
+    document.getElementById('addItemStock').value = '0';
+    document.getElementById('addItemPrice').value = '0';
+    document.getElementById('addItemCost').value = '0';
+    
+    // Скрываем поле нового типа
+    const newTypeInput = document.getElementById('addItemNewType');
+    if (newTypeInput) {
+        newTypeInput.style.display = 'none';
+        newTypeInput.value = '';
+    }
+    
+    // Показываем селект
+    if (typeSelect) typeSelect.style.display = 'flex';
+    
+    const modal = document.getElementById('addItemModal');
+    if (modal) modal.style.display = 'block';
+}
+
+function closeAddItemModal() {
+    const modal = document.getElementById('addItemModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function toggleNewTypeInput() {
+    const typeSelect = document.getElementById('addItemType');
+    const newTypeInput = document.getElementById('addItemNewType');
+    const toggleBtn = document.getElementById('toggleNewTypeBtn');
+    
+    if (typeSelect.style.display !== 'none') {
+        // Скрываем селект, показываем поле ввода
+        typeSelect.style.display = 'none';
+        newTypeInput.style.display = 'flex';
+        toggleBtn.textContent = '📋';
+        newTypeInput.focus();
+    } else {
+        // Показываем селект, скрываем поле ввода
+        typeSelect.style.display = 'flex';
+        newTypeInput.style.display = 'none';
+        newTypeInput.value = '';
+        toggleBtn.textContent = '➕';
+        // Обновляем список типов
+        const currentType = typeSelect.value;
+        typeSelect.innerHTML = '<option value="">Выберите или добавьте новый</option>';
+        const sortedTypes = [...typeOptions].sort();
+        for (const type of sortedTypes) {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            typeSelect.appendChild(option);
+        }
+        if (currentType && typeOptions.includes(currentType)) {
+            typeSelect.value = currentType;
+        }
+    }
+}
+
+function onTypeSelectChange() {
+    const typeSelect = document.getElementById('addItemType');
+    if (typeSelect.value === "") {
+        // Если выбран "добавить новый", открываем поле ввода
+        if (typeSelect.style.display !== 'none') {
+            toggleNewTypeInput();
+        }
+    }
+}
+
+async function addNewItem() {
+    // Получаем тип
+    let type = '';
+    const typeSelect = document.getElementById('addItemType');
+    const newTypeInput = document.getElementById('addItemNewType');
+    
+    if (typeSelect.style.display !== 'none') {
+        type = typeSelect.value;
+        if (type === "") {
+            showToast("Выберите тип товара", false);
+            return;
+        }
+    } else {
+        type = newTypeInput.value.trim();
+        if (type === "") {
+            showToast("Введите тип товара", false);
+            return;
+        }
+    }
+    
+    // Получаем название
+    const name = document.getElementById('addItemName').value.trim();
+    if (name === "") {
+        showToast("Введите название товара", false);
+        return;
+    }
+    
+    // Получаем количество
+    const total = parseInt(document.getElementById('addItemTotal').value) || 0;
+    const stock = parseInt(document.getElementById('addItemStock').value) || 0;
+    
+    if (total < 0) {
+        showToast("Количество не может быть отрицательным", false);
+        return;
+    }
+    if (stock < 0 || stock > total) {
+        showToast("Остаток не может быть отрицательным или больше общего количества", false);
+        return;
+    }
+    
+    // Получаем цену
+    const price = parseFloat(document.getElementById('addItemPrice').value) || 0;
+    if (price < 0) {
+        showToast("Цена не может быть отрицательной", false);
+        return;
+    }
+    
+    // Получаем себестоимость
+    const cost = parseFloat(document.getElementById('addItemCost').value) || 0;
+    if (cost < 0) {
+        showToast("Себестоимость не может быть отрицательной", false);
+        return;
+    }
+    
+    // Добавляем товар
+    await addNewItem(type, name, total, stock, price, cost);
+    
+    // Закрываем модалку
+    closeAddItemModal();
+}
