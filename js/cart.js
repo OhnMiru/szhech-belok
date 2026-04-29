@@ -461,6 +461,50 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
                 };
             }
         }
+        
+        // КОРРЕКТИРУЮЩИЙ ШАГ: проверяем, совпадает ли общая скидка с заданной
+        let actualTotalDiscount = 0;
+        for (const [id, disc] of Object.entries(itemDiscounts)) {
+            const numericId = parseInt(id);
+            const qty = cart[numericId] || 1;
+            let discountPerUnit = disc.value;
+            if (disc.type === 'percent') {
+                const card = originalCardsData.find(c => c.id === numericId);
+                if (card) {
+                    discountPerUnit = card.price * (disc.value / 100);
+                }
+            }
+            actualTotalDiscount += discountPerUnit * qty;
+        }
+        
+        const difference = Math.round(totalDiscountValue - actualTotalDiscount);
+        
+        if (Math.abs(difference) > 0 && difference > 0) {
+            // Нужно добавить недостающую скидку (1-3 рубля) к самому дорогому товару
+            let mostExpensiveId = null;
+            let mostExpensivePrice = 0;
+            
+            for (const [idStr, qty] of Object.entries(cart)) {
+                if (qty > 0) {
+                    const id = parseInt(idStr);
+                    const card = originalCardsData.find(c => c.id === id);
+                    if (card && card.price > mostExpensivePrice) {
+                        mostExpensivePrice = card.price;
+                        mostExpensiveId = id;
+                    }
+                }
+            }
+            
+            if (mostExpensiveId !== null) {
+                const currentDiscount = itemDiscounts[mostExpensiveId]?.value || 0;
+                const newDiscountPerUnit = currentDiscount + difference;
+                itemDiscounts[mostExpensiveId] = {
+                    type: 'fixed',
+                    value: newDiscountPerUnit,
+                    valuePerItem: newDiscountPerUnit
+                };
+            }
+        }
     }
     
     selectedDiscountProducts.clear();
