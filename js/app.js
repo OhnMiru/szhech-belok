@@ -25,12 +25,13 @@ function initApp() {
     const logoutBtn = document.getElementById('logoutBtn');
     const bookingsBtn = document.getElementById('bookingsButton');
     const addItemBtn = document.getElementById('addItemButton');
-    if (addItemBtn) {
-        addItemBtn.addEventListener('click', openAddItemModal);
-    }
   
     if (bookingsBtn) {
         bookingsBtn.addEventListener('click', openBookingsModal);
+    }
+    
+    if (addItemBtn) {
+        addItemBtn.addEventListener('click', openAddItemModal);
     }
 
     if (settingsToggle) {
@@ -75,6 +76,7 @@ window.onclick = function(event) {
     if (event.target === document.getElementById('statsModal')) closeStatsModal();
     if (event.target === document.getElementById('globalStatsModal')) closeGlobalStatsModal();
     if (event.target === document.getElementById('editProductModal')) closeEditProductModal();
+    if (event.target === document.getElementById('addItemModal')) closeAddItemModal();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -107,6 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bookingsBtn = document.getElementById('bookingsButton');
     if (bookingsBtn) bookingsBtn.addEventListener('click', openBookingsModal);
+    
+    const addItemBtn = document.getElementById('addItemButton');
+    if (addItemBtn) addItemBtn.addEventListener('click', openAddItemModal);
 
     if (!checkExistingAuth()) {
         // ждём ручного входа
