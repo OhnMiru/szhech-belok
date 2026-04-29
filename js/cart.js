@@ -39,14 +39,11 @@ function getBestDiscountForItem(id, originalPrice, qty, subtotal) {
 }
 
 function getActiveRulesFiltered() {
-    // Получаем все активные правила
     const allActiveRules = checkRulesForCart();
     
     // Если оплата переводом, фильтруем правила с типом 'bonus'
     if (currentPaymentType === 'transfer') {
         return allActiveRules.filter(rule => {
-            // Проверяем, является ли правило бонусным
-            // Ищем соответствующее правило в rulesList
             const matchingRule = rulesList.find(r => r.message === rule.message && r.icon === rule.icon);
             return !matchingRule || matchingRule.type !== 'bonus';
         });
@@ -63,10 +60,12 @@ function updateCartUI() {
     const cartTotalDiv = document.getElementById('cart-total');
     const cartActionsDiv = document.getElementById('cart-actions');
     const discountPanelDiv = document.getElementById('discount-panel');
+    
     if (!cartItemsDiv) return;
     const hasAny = Object.keys(cart).length > 0;
-    if (discountPanelDiv) discountPanelDiv.style.display = hasAny ? 'block' : 'none';
+    
     if (!hasAny) {
+        if (discountPanelDiv) discountPanelDiv.style.display = 'none';
         cartItemsDiv.innerHTML = '<div class="empty-cart">🍌 Корзина пуста</div>';
         if (cartTotalDiv) cartTotalDiv.style.display = 'none';
         if (cartActionsDiv) cartActionsDiv.style.display = 'none';
@@ -74,55 +73,81 @@ function updateCartUI() {
         return;
     }
     
-    // Блок скидок
-    let discountHtml = `<div class="discount-section"><div class="discount-header" onclick="toggleDiscountPanel()"><span class="discount-title">🎯 Скидки</span><span class="discount-chevron" id="discount-chevron">▼</span></div>
-            <div id="discount-content" class="discount-content" style="display: ${discountPanelOpen ? 'block' : 'none'};">
-                <div class="discount-group"><div class="discount-row">
-                    <div class="discount-custom-select"><div class="discount-custom-select-trigger" id="itemDiscountSelectTrigger" onclick="event.stopPropagation(); toggleItemDiscountSelect()">%</div>
-                    <div class="discount-custom-select-dropdown" id="itemDiscountSelectDropdown"><div class="discount-select-option" onclick="selectItemDiscountType('percent', '%')">%</div><div class="discount-select-option" onclick="selectItemDiscountType('fixed', '₽')">₽</div></div>
-                    <input type="hidden" id="itemDiscountTypeSelect" data-value="percent"></div>
-                    <div class="discount-amount-control"><input type="number" id="itemDiscountValue" class="discount-amount-input" placeholder="Сумма" value="0" onchange="updateItemDiscountFromInput()"><button class="discount-step-btn" onclick="changeItemDiscountValue(-1)">−</button><button class="discount-step-btn" onclick="changeItemDiscountValue(1)">+</button></div>
-                    <button class="discount-products-btn" onclick="toggleDiscountProductsList()">Товары</button><button class="discount-all-btn" onclick="selectAllProductsForDiscount()">Всё</button><button class="discount-none-btn" onclick="selectNoneProductsForDiscount()">Ничего</button>
-                </div><div id="productDiscountList" style="display: none; margin-top: 8px;"></div></div>
-                <div class="discount-buttons-row"><button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()">Отмена</button><button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()">Сбросить скидки</button><button class="discount-action-btn apply-btn" onclick="applyItemDiscount()">Применить</button></div>
-            </div></div>`;
+    // Скрываем старый блок скидок, мы его перенесём в cart-items-list
+    if (discountPanelDiv) discountPanelDiv.style.display = 'none';
     
-    if (discountPanelDiv) {
-        discountPanelDiv.innerHTML = discountHtml;
-    }
-    
-    // Активные правила (с фильтрацией по типу оплаты)
+    // === 1. Активные правила ===
     const activeRules = getActiveRulesFiltered();
     let html = '';
+    
     if (activeRules.length > 0) {
-        html += `<div style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);"><div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">✨ Активные правила ✨</div>`;
-        for (const rule of activeRules) html += `<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); padding: 4px 0;"><span style="font-size: 16px;">${escapeHtml(rule.icon)}</span><span><span class="rule-text-bold">${escapeHtml(rule.message)}</span> <span class="rule-text-normal">${escapeHtml(rule.condition)}</span></span></div>`;
+        html += `<div style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);">
+                    <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">✨ Активные правила ✨</div>`;
+        for (const rule of activeRules) {
+            html += `<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); padding: 4px 0;">
+                        <span style="font-size: 16px;">${escapeHtml(rule.icon)}</span>
+                        <span><span class="rule-text-bold">${escapeHtml(rule.message)}</span> <span class="rule-text-normal">${escapeHtml(rule.condition)}</span></span>
+                    </div>`;
+        }
         html += `</div>`;
     }
     
-    // Блок способа оплаты
-    let paymentHtml = `<div class="payment-section" style="background: var(--badge-bg); border-radius: 16px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);">
-        <div class="payment-header" style="padding: 10px 12px; font-weight: bold; font-size: 13px; color: var(--badge-text);">💰 Способ оплаты</div>
-        <div class="payment-content" style="padding: 12px;">
-            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--text-primary); font-weight: bold; font-size: 13px;">
-                <input type="checkbox" id="paymentTypeCheckbox" ${currentPaymentType === 'transfer' ? 'checked' : ''} 
-                       style="width: 20px; height: 20px; cursor: pointer; accent-color: #f39c12;">
-                <span>Оплата переводом (по умолчанию — наличные)</span>
-            </label>
-        </div>
-    </div>`;
+    // === 2. Скидки ===
+    const discountPanelOpenLocal = discountPanelOpen;
+    html += `<div class="discount-section" style="margin-bottom: 16px;">
+                <div class="discount-header" onclick="toggleDiscountPanel()">
+                    <span class="discount-title">🎯 Скидки</span>
+                    <span class="discount-chevron" id="discount-chevron">${discountPanelOpenLocal ? '▲' : '▼'}</span>
+                </div>
+                <div id="discount-content" class="discount-content" style="display: ${discountPanelOpenLocal ? 'block' : 'none'};">
+                    <div class="discount-group">
+                        <div class="discount-row">
+                            <div class="discount-custom-select">
+                                <div class="discount-custom-select-trigger" id="itemDiscountSelectTrigger" onclick="event.stopPropagation(); toggleItemDiscountSelect()">%</div>
+                                <div class="discount-custom-select-dropdown" id="itemDiscountSelectDropdown">
+                                    <div class="discount-select-option" onclick="selectItemDiscountType('percent', '%')">%</div>
+                                    <div class="discount-select-option" onclick="selectItemDiscountType('fixed', '₽')">₽</div>
+                                </div>
+                                <input type="hidden" id="itemDiscountTypeSelect" data-value="percent">
+                            </div>
+                            <div class="discount-amount-control">
+                                <input type="number" id="itemDiscountValue" class="discount-amount-input" placeholder="Сумма" value="0" onchange="updateItemDiscountFromInput()">
+                                <button class="discount-step-btn" onclick="changeItemDiscountValue(-1)">−</button>
+                                <button class="discount-step-btn" onclick="changeItemDiscountValue(1)">+</button>
+                            </div>
+                            <button class="discount-products-btn" onclick="toggleDiscountProductsList()">Товары</button>
+                            <button class="discount-all-btn" onclick="selectAllProductsForDiscount()">Всё</button>
+                            <button class="discount-none-btn" onclick="selectNoneProductsForDiscount()">Ничего</button>
+                        </div>
+                        <div id="productDiscountList" style="display: none; margin-top: 8px;"></div>
+                    </div>
+                    <div class="discount-buttons-row">
+                        <button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()">Отмена</button>
+                        <button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()">Сбросить скидки</button>
+                        <button class="discount-action-btn apply-btn" onclick="applyItemDiscount()">Применить</button>
+                    </div>
+                </div>
+            </div>`;
     
-    // Добавляем блоки в правильном порядке:
-    // 1. Активные правила
-    // 2. Скидки (уже в discountPanelDiv)
-    // 3. Способ оплаты
-    // Примечание: discountPanelDiv находится выше в DOM, поэтому 
-    // блок способа оплаты добавляем в html после правил, а скидки уже в discountPanelDiv
+    // === 3. Способ оплаты ===
+    html += `<div class="payment-section" style="background: var(--badge-bg); border-radius: 16px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);">
+                <div class="payment-header" style="padding: 10px 12px; font-weight: bold; font-size: 13px; color: var(--badge-text);">💰 Способ оплаты</div>
+                <div class="payment-content" style="padding: 12px; padding-top: 0;">
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--text-primary); font-weight: bold; font-size: 13px;">
+                        <input type="checkbox" id="paymentTypeCheckbox" ${currentPaymentType === 'transfer' ? 'checked' : ''} 
+                               style="width: 20px; height: 20px; cursor: pointer; accent-color: #f39c12;">
+                        <span>Оплата переводом <span style="font-weight: normal;">(по умолчанию — наличные)</span></span>
+                    </label>
+                </div>
+            </div>`;
     
-    html += paymentHtml;
-    
+    // === 4. Товары в корзине ===
     let subtotal = 0;
-    for (const [idStr, qty] of Object.entries(cart)) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (card) subtotal += qty * card.price; }
+    for (const [idStr, qty] of Object.entries(cart)) { 
+        const id = parseInt(idStr); 
+        const card = originalCardsData.find(c => c.id === id); 
+        if (card) subtotal += qty * card.price; 
+    }
     
     let total = 0;
     for (const [idStr, qty] of Object.entries(cart)) {
@@ -147,12 +172,24 @@ function updateCartUI() {
             }
         }
         const displayName = `${card.type} ${card.name}`;
-        html += `<div class="cart-item ${isZero ? 'disabled' : ''}"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(displayName)}</div>
-                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${Math.ceil(originalItemTotal)} ₽</span> ${Math.ceil(finalDiscountedItemTotal)} ₽` : `${Math.ceil(originalItemTotal)} ₽`}</div>${discountText}</div>
-                <div class="cart-item-quantity"><button class="cart-qty-btn" onclick="changeCartQty(${id}, -1)" ${isZero ? 'disabled' : ''}>−</button><span class="cart-item-qty">${qty}</span><button class="cart-qty-btn" onclick="changeCartQty(${id}, 1)">+</button><button class="cart-item-remove" onclick="removeFromCart(${id})">🗑</button></div></div>`;
+        html += `<div class="cart-item ${isZero ? 'disabled' : ''}">
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${escapeHtml(displayName)}</div>
+                        <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${Math.ceil(originalItemTotal)} ₽</span> ${Math.ceil(finalDiscountedItemTotal)} ₽` : `${Math.ceil(originalItemTotal)} ₽`}</div>
+                        ${discountText}
+                    </div>
+                    <div class="cart-item-quantity">
+                        <button class="cart-qty-btn" onclick="changeCartQty(${id}, -1)" ${isZero ? 'disabled' : ''}>−</button>
+                        <span class="cart-item-qty">${qty}</span>
+                        <button class="cart-qty-btn" onclick="changeCartQty(${id}, 1)">+</button>
+                        <button class="cart-item-remove" onclick="removeFromCart(${id})">🗑</button>
+                    </div>
+                </div>`;
     }
+    
     cartItemsDiv.innerHTML = html;
     
+    // Обновляем итоговую сумму
     if (cartTotalDiv) {
         cartTotalDiv.style.display = 'block';
         const hasAnyDiscount = Object.values(itemDiscounts).length > 0;
@@ -172,13 +209,11 @@ function updateCartUI() {
     // Обработчик чекбокса оплаты
     const paymentCheckbox = document.getElementById('paymentTypeCheckbox');
     if (paymentCheckbox) {
-        // Убираем старый обработчик, чтобы не навешивать несколько
         const newCheckbox = paymentCheckbox.cloneNode(true);
         paymentCheckbox.parentNode.replaceChild(newCheckbox, paymentCheckbox);
         
         newCheckbox.addEventListener('change', function(e) {
             currentPaymentType = e.target.checked ? 'transfer' : 'cash';
-            // Обновляем UI для отображения отфильтрованных правил
             updateCartUI();
         });
     }
@@ -563,7 +598,6 @@ async function checkout() {
     for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); const best = getBestDiscountForItem(id, card.price, qty, subtotal); total += best.price * qty; }
     for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (qty > card.stock) { showToast(`Не хватает "${card.name}" (нужно ${qty}, есть ${card.stock})`, false); return; } }
     
-    // Получаем активные правила с учётом текущего типа оплаты для отображения в тосте
     let activeRules = getActiveRulesFiltered();
     if (activeRules.length > 0) { 
         let rulesMessage = "Не забудьте:\n"; 
