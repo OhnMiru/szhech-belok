@@ -61,7 +61,7 @@ function saveHistory() {
     syncFullHistoryToServer();
 }
 
-// ИЗМЕНЁННАЯ ФУНКЦИЯ — добавляем параметр paymentType
+// Функция addToHistory с поддержкой paymentType
 function addToHistory(items, total, method, isReturn = false, paymentType = 'cash') {
     const entry = {
         id: Date.now() + Math.random(),
@@ -71,7 +71,7 @@ function addToHistory(items, total, method, isReturn = false, paymentType = 'cas
         method: method,
         isReturn: isReturn,
         hidden: false,
-        paymentType: paymentType // НОВОЕ ПОЛЕ
+        paymentType: paymentType
     };
     salesHistory.unshift(entry);
     if (salesHistory.length > 200) salesHistory = salesHistory.slice(0, 200);
@@ -159,7 +159,6 @@ function setHistoryTypeFilter(filter) {
     renderHistoryList();
 }
 
-// НОВАЯ ФУНКЦИЯ — фильтр по типу оплаты
 function setHistoryPaymentFilter(filter) {
     historyPaymentFilter = filter;
     document.querySelectorAll('[data-payment]').forEach(btn => {
@@ -190,7 +189,7 @@ function clearAllHistory() {
 function resetHistoryFilters() {
     historyMethodFilter = "all";
     historyTypeFilter = "all";
-    historyPaymentFilter = "all"; // НОВОЕ
+    historyPaymentFilter = "all";
     document.querySelectorAll('[data-method], [data-type], [data-payment]').forEach(btn => btn.classList.remove('active'));
     document.querySelector('[data-method="all"]')?.classList.add('active');
     document.querySelector('[data-type="all"]')?.classList.add('active');
@@ -231,7 +230,6 @@ function resetHistoryFilters() {
     renderHistoryList();
 }
 
-// ИЗМЕНЁННАЯ ФУНКЦИЯ — добавлен фильтр по paymentType и отображение иконки
 function renderHistoryList() {
     const container = document.getElementById('history-list');
     if (!container) return;
@@ -246,7 +244,6 @@ function renderHistoryList() {
     else if (historyMethodFilter === 'single') filtered = filtered.filter(e => e.method === 'single');
     if (historyTypeFilter === 'sale') filtered = filtered.filter(e => !e.isReturn);
     else if (historyTypeFilter === 'return') filtered = filtered.filter(e => e.isReturn === true);
-    // НОВЫЙ ФИЛЬТР ПО ТИПУ ОПЛАТЫ
     if (historyPaymentFilter === 'cash') filtered = filtered.filter(e => e.paymentType === 'cash');
     else if (historyPaymentFilter === 'transfer') filtered = filtered.filter(e => e.paymentType === 'transfer');
     if (fromDate) filtered = filtered.filter(e => new Date(e.date) >= fromDate);
