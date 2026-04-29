@@ -1,5 +1,5 @@
 // ========== НАСТРОЙКА ==========
-const CENTRAL_API_URL = "https://szhech-belochek.pages.dev//api";
+const CENTRAL_API_URL = "https://szhech-belochek.pages.dev/api";
 
 let CURRENT_USER = {
     id: null,
