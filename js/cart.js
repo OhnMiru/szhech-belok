@@ -95,21 +95,21 @@ function updateCartUI() {
             if (best.discountType === 'percent') {
                 discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue}%</div>`;
             } else if (best.discountType === 'fixed') {
-                discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${Math.round(totalDiscountForItem)} ₽</div>`;
+                discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${Math.ceil(totalDiscountForItem)} ₽</div>`;
             }
         }
         const displayName = `${card.type} ${card.name}`;
         html += `<div class="cart-item ${isZero ? 'disabled' : ''}"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(displayName)}</div>
-                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${Math.round(originalItemTotal)} ₽</span> ${Math.round(discountedItemTotal)} ₽` : `${Math.round(originalItemTotal)} ₽`}</div>${discountText}</div>
+                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${Math.ceil(originalItemTotal)} ₽</span> ${Math.ceil(discountedItemTotal)} ₽` : `${Math.ceil(originalItemTotal)} ₽`}</div>${discountText}</div>
                 <div class="cart-item-quantity"><button class="cart-qty-btn" onclick="changeCartQty(${id}, -1)" ${isZero ? 'disabled' : ''}>−</button><span class="cart-item-qty">${qty}</span><button class="cart-qty-btn" onclick="changeCartQty(${id}, 1)">+</button><button class="cart-item-remove" onclick="removeFromCart(${id})">🗑</button></div></div>`;
     }
     cartItemsDiv.innerHTML = html;
     if (cartTotalDiv) {
         cartTotalDiv.style.display = 'block';
         const hasAnyDiscount = Object.values(itemDiscounts).length > 0;
-        const roundedTotal = Math.round(total);
-        const roundedSubtotal = Math.round(subtotal);
-        const totalDiscountRub = Math.round(subtotal - total);
+        const roundedTotal = Math.ceil(total);
+        const roundedSubtotal = Math.ceil(subtotal);
+        const totalDiscountRub = Math.ceil(subtotal - total);
         if (hasAnyDiscount) { 
             cartTotalDiv.innerHTML = `<span class="strikethrough">${roundedSubtotal} ₽</span> ${roundedTotal} ₽ (скидка ${totalDiscountRub} ₽)`; 
         } else { 
