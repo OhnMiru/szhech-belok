@@ -61,7 +61,6 @@ function saveHistory() {
     syncFullHistoryToServer();
 }
 
-// Функция addToHistory с поддержкой paymentType
 function addToHistory(items, total, method, isReturn = false, paymentType = 'cash') {
     const entry = {
         id: Date.now() + Math.random(),
@@ -255,6 +254,8 @@ function renderHistoryList() {
         return;
     }
 
+    const isMobile = window.innerWidth <= 500;
+    
     let html = '';
     for (const entry of filtered) {
         const date = new Date(entry.date);
@@ -264,20 +265,28 @@ function renderHistoryList() {
         const paymentIcon = entry.paymentType === 'transfer' ? '💳' : '💰';
         const paymentText = entry.paymentType === 'transfer' ? 'Перевод' : 'Наличные';
         
+        // Для мобильной версии — бейджи только с иконками
+        const methodLabel = isBasket ? (isMobile ? '🛒' : 'Корзина') : (isMobile ? '🔢' : 'Поштучно');
+        const actionLabel = isReturn ? (isMobile ? '↩️' : 'Возврат') : (isMobile ? '💰' : 'Продажа');
+        
         let itemsHtml = '';
         for (const item of entry.items) {
             const card = originalCardsData.find(c => c.id === item.id);
             const displayName = card ? `${card.type} ${card.name}` : item.name;
             itemsHtml += `<div>• ${displayName}: ${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
         }
-        const methodLabel = isBasket ? 'Корзина' : 'Поштучно';
+        
         const methodClass = isBasket ? 'history-badge-method-basket' : 'history-badge-method-single';
-        const actionLabel = isReturn ? 'Возврат' : 'Продажа';
         const actionClass = isReturn ? 'history-badge-type-return' : 'history-badge-type-sale';
         
         html += `<div class="history-item">
                     <div class="history-content">
-                        <div class="history-date">${dateStr} <span class="history-badge ${methodClass}">${methodLabel}</span> <span class="history-badge ${actionClass}">${actionLabel}</span> <span class="history-badge" style="background: ${entry.paymentType === 'transfer' ? '#9b59b6' : '#2ecc71'}20; color: ${entry.paymentType === 'transfer' ? '#9b59b6' : '#2ecc71'};">${paymentIcon} ${paymentText}</span></div>
+                        <div class="history-date">
+                            ${dateStr}
+                            <span class="history-badge ${methodClass}">${methodLabel}</span>
+                            <span class="history-badge ${actionClass}">${actionLabel}</span>
+                            <span class="history-badge" style="background: ${entry.paymentType === 'transfer' ? '#9b59b6' : '#2ecc71'}20; color: ${entry.paymentType === 'transfer' ? '#9b59b6' : '#2ecc71'};">${paymentIcon} ${isMobile ? '' : paymentText}</span>
+                        </div>
                         <div class="history-details">${itemsHtml}</div>
                         <div class="${isReturn ? 'history-return' : 'history-sale'}">${isReturn ? '↩️' : '💰'} Итого: ${entry.total} ₽</div>
                     </div>
