@@ -40,6 +40,8 @@ async function processPendingOperations(silent = false) {
     for (const op of pendingOperations) {
         try {
             let url;
+            let isFormData = false;
+            let formData = null;
             
             switch (op.action) {
                 case "addItem":
@@ -52,7 +54,6 @@ async function processPendingOperations(silent = false) {
                     url = buildApiUrl("update", buildParamsFromObject(op.params));
                     break;
                 case "syncFullHistory":
-                    // ВАЖНО: op.params уже является массивом истории, НЕ закодированным
                     const historyData = encodeURIComponent(JSON.stringify(op.params));
                     url = buildApiUrl("syncFullHistory", `&data=${historyData}`);
                     break;
@@ -89,11 +90,33 @@ async function processPendingOperations(silent = false) {
                 case "cancelBooking":
                     url = buildApiUrl("cancelBooking", buildParamsFromObject(op.params));
                     break;
+                case "uploadPhoto":
+                    // Для фото используем FormData
+                    isFormData = true;
+                    formData = new FormData();
+                    formData.append('action', 'uploadPhoto');
+                    formData.append('participant', CURRENT_USER.id);
+                    formData.append('itemId', op.params.itemId);
+                    formData.append('base64Data', op.params.base64Data);
+                    formData.append('fileName', op.params.fileName);
+                    break;
                 default:
                     url = buildApiUrl(op.action, buildParamsFromObject(op.params));
             }
             
-            const response = await fetch(url);
+            let response;
+            if (isFormData && formData) {
+                response = await fetch(CENTRAL_API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+            } else if (url) {
+                response = await fetch(url);
+            } else {
+                failed.push(op);
+                continue;
+            }
+            
             const result = await response.json();
             if (!result.success) {
                 failed.push(op);
