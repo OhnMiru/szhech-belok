@@ -401,13 +401,11 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             const maxDiscountForItem = item.totalPrice;
             let discountForItem = remainingDiscount;
             
-            // Если скидка больше стоимости товара, то товар становится бесплатным
             if (discountForItem >= maxDiscountForItem) {
                 discountForItem = maxDiscountForItem;
                 discountsByItem[item.id] = discountForItem;
                 remainingDiscount -= discountForItem;
             } else {
-                // Если скидка меньше, запоминаем и выходим из первого прохода
                 discountsByItem[item.id] = discountForItem;
                 remainingDiscount = 0;
                 break;
@@ -416,16 +414,13 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
         
         // Второй проход: если осталась скидка, распределяем её на самые дорогие товары поровну
         if (remainingDiscount > 0) {
-            // Находим товары, которые ещё не обнулились (получили не всю возможную скидку)
             const remainingItems = items.filter(item => {
                 const receivedDiscount = discountsByItem[item.id] || 0;
                 return receivedDiscount < item.totalPrice;
             });
             
             if (remainingItems.length > 0) {
-                // Распределяем остаток поровну на оставшиеся товары
                 const additionalDiscountPerItem = remainingDiscount / remainingItems.length;
-                let remainingToDistribute = remainingDiscount;
                 
                 for (const item of remainingItems) {
                     const currentDiscount = discountsByItem[item.id] || 0;
@@ -437,15 +432,7 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
                     }
                     
                     discountsByItem[item.id] = currentDiscount + additionalDiscount;
-                    remainingToDistribute -= additionalDiscount;
-                }
-                
-                // Если после распределения всё ещё осталась скидка (из-за округления),
-                // добавляем оставшиеся рубли к самому дорогому товару
-                if (remainingToDistribute > 0) {
-                    const mostExpensive = [...items].sort((a, b) => b.price - a.price)[0];
-                    const currentDiscount = discountsByItem[mostExpensive.id] || 0;
-                    discountsByItem[mostExpensive.id] = currentDiscount + remainingToDistribute;
+                    remainingDiscount -= additionalDiscount;
                 }
             }
         }
@@ -461,6 +448,43 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
                     type: 'fixed',
                     value: discountPerUnit,
                     valuePerItem: discountPerUnit
+                };
+            }
+        }
+        
+        // ФИНАЛЬНАЯ КОРРЕКТИРОВКА: проверяем и исправляем расхождение
+        let actualTotalDiscount = 0;
+        for (const [id, disc] of Object.entries(itemDiscounts)) {
+            const numericId = parseInt(id);
+            const qty = cart[numericId] || 1;
+            actualTotalDiscount += disc.value * qty;
+        }
+        
+        const difference = Math.round(totalDiscountValue - actualTotalDiscount);
+        
+        if (difference !== 0) {
+            // Находим самый дорогой товар
+            let mostExpensiveId = null;
+            let mostExpensivePrice = 0;
+            
+            for (const [idStr, qty] of Object.entries(cart)) {
+                if (qty > 0) {
+                    const id = parseInt(idStr);
+                    const card = originalCardsData.find(c => c.id === id);
+                    if (card && card.price > mostExpensivePrice) {
+                        mostExpensivePrice = card.price;
+                        mostExpensiveId = id;
+                    }
+                }
+            }
+            
+            if (mostExpensiveId !== null) {
+                const currentDiscount = itemDiscounts[mostExpensiveId]?.value || 0;
+                const newDiscount = currentDiscount + difference;
+                itemDiscounts[mostExpensiveId] = {
+                    type: 'fixed',
+                    value: newDiscount,
+                    valuePerItem: newDiscount
                 };
             }
         }
