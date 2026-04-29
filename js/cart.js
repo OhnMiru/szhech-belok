@@ -430,7 +430,6 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
                     remainingToDistribute -= additional;
                 }
                 
-                // Остаток (из-за округления) добавляем к первому из оставшихся
                 if (remainingToDistribute > 0 && remainingItems.length > 0) {
                     discountsByItem[remainingItems[0].id] += remainingToDistribute;
                 }
@@ -453,54 +452,51 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
         }
         
         // === ПРИНУДИТЕЛЬНАЯ ФИНАЛЬНАЯ КОРРЕКТИРОВКА ===
-        // Считаем текущую общую скидку
-        let currentTotalDiscount = 0;
-        for (const [id, disc] of Object.entries(itemDiscounts)) {
-            const numericId = parseInt(id);
-            const qty = cart[numericId] || 1;
-            currentTotalDiscount += disc.value * qty;
+        // Находим самый дорогой товар
+        let mostExpensiveId = null;
+        let mostExpensivePrice = -1;
+        for (const [idStr, qty] of Object.entries(cart)) {
+            if (qty > 0) {
+                const id = parseInt(idStr);
+                const card = originalCardsData.find(c => c.id === id);
+                if (card && card.price > mostExpensivePrice) {
+                    mostExpensivePrice = card.price;
+                    mostExpensiveId = id;
+                }
+            }
         }
         
-        const difference = Math.round(totalDiscountValue - currentTotalDiscount);
-        
-        if (difference !== 0) {
-            // Находим самый дорогой товар
-            let mostExpensiveId = null;
-            let mostExpensivePrice = -1;
-            for (const [idStr, qty] of Object.entries(cart)) {
-                if (qty > 0) {
-                    const id = parseInt(idStr);
-                    const card = originalCardsData.find(c => c.id === id);
-                    if (card && card.price > mostExpensivePrice) {
-                        mostExpensivePrice = card.price;
-                        mostExpensiveId = id;
-                    }
+        if (mostExpensiveId !== null) {
+            const qty = cart[mostExpensiveId];
+            
+            // Считаем текущую общую скидку для всех товаров, КРОМЕ самого дорогого
+            let discountWithoutExpensive = 0;
+            for (const [id, disc] of Object.entries(itemDiscounts)) {
+                const numericId = parseInt(id);
+                if (numericId !== mostExpensiveId) {
+                    const qtyItem = cart[numericId] || 1;
+                    discountWithoutExpensive += disc.value * qtyItem;
                 }
             }
             
-            if (mostExpensiveId !== null) {
-                const qty = cart[mostExpensiveId];
-                const currentDiscount = itemDiscounts[mostExpensiveId]?.value || 0;
-                const newDiscountPerUnit = currentDiscount + (difference / qty);
-                itemDiscounts[mostExpensiveId] = {
-                    type: 'fixed',
-                    value: newDiscountPerUnit,
-                    valuePerItem: newDiscountPerUnit
-                };
-                
-                // Для отладки
-                console.log(`Корректировка: добавлено ${difference} руб. к товару ${mostExpensiveId} (было ${currentDiscount}, стало ${newDiscountPerUnit})`);
-            }
+            // Скидка на самый дорогой товар = общая скидка - скидка на остальные
+            const expensiveDiscount = totalDiscountValue - discountWithoutExpensive;
+            
+            // Если скидка на дорогой товар получилась отрицательной или больше его стоимости, корректируем
+            const maxExpensiveDiscount = mostExpensivePrice * qty;
+            let finalExpensiveDiscount = Math.min(Math.max(0, expensiveDiscount), maxExpensiveDiscount);
+            
+            // Округляем до целого
+            finalExpensiveDiscount = Math.round(finalExpensiveDiscount);
+            
+            // Применяем скидку на единицу
+            const discountPerUnit = finalExpensiveDiscount / qty;
+            itemDiscounts[mostExpensiveId] = {
+                type: 'fixed',
+                value: discountPerUnit,
+                valuePerItem: discountPerUnit
+            };
         }
-        
-        // Финальная проверка
-        let finalTotalDiscount = 0;
-        for (const [id, disc] of Object.entries(itemDiscounts)) {
-            const numericId = parseInt(id);
-            const qty = cart[numericId] || 1;
-            finalTotalDiscount += disc.value * qty;
-        }
-        console.log(`Заданная скидка: ${totalDiscountValue}, фактическая: ${Math.round(finalTotalDiscount)}`);
     }
     
     selectedDiscountProducts.clear();
