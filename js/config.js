@@ -1,4 +1,4 @@
-// ========== НАСТРОЙКА ==========
+// ========== НАСТРОЙКА ===========
 const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycby34w6ivl6V76qZjQ6_P9syLPD3qyjWofphM7dDo83ZDwomonwfFH2M8zcicIrOD87n/exec";
 
 let CURRENT_USER = {
