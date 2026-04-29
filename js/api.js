@@ -42,7 +42,6 @@ async function loadData(showLoading = true, showProgress = false) {
         }
     }
 }
-// Добавить в api.js после существующих функций
 
 async function updateFullItem(id, type, name, stock, total, price, cost) {
     if (!isOnline) {
@@ -58,10 +57,9 @@ async function updateFullItem(id, type, name, stock, total, price, cost) {
     }
 }
 
-async function addNewItem(type, name, total, stock, price, cost) {
+async function sendAddItemRequest(type, name, total, stock, price, cost) {
     if (!isOnline) {
         addPendingOperation("addItem", `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`);
-        // Временно добавляем товар в локальный массив
         const tempId = -Date.now();
         const newItem = {
             id: tempId,
@@ -83,7 +81,6 @@ async function addNewItem(type, name, total, stock, price, cost) {
         const response = await fetch(buildApiUrl("addItem", `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`));
         const result = await response.json();
         if (result.success) {
-            // Добавляем товар в локальный массив с полученным ID
             const newItem = {
                 id: result.id,
                 type: type,
