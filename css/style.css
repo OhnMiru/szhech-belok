@@ -853,6 +853,11 @@ button:active {
     margin-top: 4px;
 }
 
+.history-details div {
+    margin-bottom: 2px;
+    line-height: 1.4;
+}
+
 .history-sale {
     color: var(--minus-color);
     font-size: 13px;
@@ -875,7 +880,7 @@ button:active {
 }
 
 .history-badge-method-basket {
-    background: rgba(52, 152, 219, 0.7);
+    background: rgba(52, 152, 219, 0.5);
     color: white;
 }
 
@@ -895,22 +900,22 @@ button:active {
 }
 
 body.dark .history-badge-method-basket {
-    background: rgba(52, 152, 219, 0.4);
+    background: rgba(52, 152, 219, 0.3);
     color: white;
 }
 
 body.dark .history-badge-method-single {
-    background: rgba(155, 89, 182, 0.4);
+    background: rgba(155, 89, 182, 0.3);
     color: white;
 }
 
 body.dark .history-badge-type-sale {
-    background: rgba(46, 204, 113, 0.4);
+    background: rgba(46, 204, 113, 0.3);
     color: white;
 }
 
 body.dark .history-badge-type-return {
-    background: rgba(231, 76, 60, 0.4);
+    background: rgba(231, 76, 60, 0.3);
     color: white;
 }
 
@@ -2397,56 +2402,38 @@ body.dark .extra-cost-amount {
 /* ========== МОБИЛЬНЫЕ СТИЛИ (только для телефонов, ширина до 500px) ========== */
 @media (max-width: 500px) {
     
-    /* 1. Фильтр времени в истории — построчно */
-    .history-filter-bottom {
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    .history-filter-left {
-        flex-direction: column;
-        align-items: stretch;
-        width: 100%;
-    }
-    
+    /* 1. Фильтр времени в истории — метки "с" и "по" в одной строке с фильтрами */
     .custom-datetime {
-        width: 100%;
-        justify-content: space-between;
-        flex-wrap: wrap;
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
         gap: 8px;
         height: auto;
-        padding: 8px 12px;
+        padding: 6px 10px;
     }
     
     .custom-datetime .datetime-label {
-        width: 100%;
-        margin-bottom: 4px;
+        width: auto;
+        margin-bottom: 0;
+        font-size: 11px;
     }
     
     .datetime-group {
-        flex: 1;
-        justify-content: center;
+        display: flex;
+        align-items: center;
+        gap: 2px;
     }
     
-    .history-price-filter {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .history-price-filter input {
-        width: 60px;
-    }
-    
-    .history-filter-reset-row {
-        justify-content: center;
-        margin-top: 8px;
-    }
-    
-    /* 2. Компактные бейджи в истории */
+    /* 2. Бейджи истории */
     .history-badge {
         font-size: 9px;
         padding: 2px 5px;
         margin-left: 4px;
+    }
+    
+    /* Бейдж корзины — более прозрачный */
+    .history-badge-method-basket {
+        background: rgba(52, 152, 219, 0.3);
     }
     
     /* 3. Селектор товаров в бронировании на телефоне — по центру */
@@ -2473,7 +2460,7 @@ body.dark .extra-cost-amount {
         gap: 6px;
     }
     
-    /* 5. Корзина — компактные кнопки скидок */
+    /* 5. Корзина — компактные кнопки скидок, кнопки по левому краю */
     .discount-row {
         flex-wrap: wrap;
     }
@@ -2504,7 +2491,11 @@ body.dark .extra-cost-amount {
         font-size: 12px;
     }
     
-    /* Кнопки Товары, Все, Ничего — на одной строке */
+    /* Кнопки Товары, Все, Ничего — на одной строке, по левому краю */
+    .discount-row-2 {
+        justify-content: flex-start !important;
+    }
+    
     .discount-products-btn,
     .discount-all-btn,
     .discount-none-btn {
