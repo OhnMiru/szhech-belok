@@ -14,6 +14,20 @@ function loadPendingOperations() {
     }
 }
 
+// Вспомогательная функция для построения параметров строки запроса из объекта
+function buildParamsFromObject(obj) {
+    if (!obj) return "";
+    const parts = [];
+    for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'object') {
+            parts.push(`&${key}=${encodeURIComponent(JSON.stringify(value))}`);
+        } else {
+            parts.push(`&${key}=${encodeURIComponent(String(value))}`);
+        }
+    }
+    return parts.join("");
+}
+
 async function processPendingOperations(silent = false) {
     if (!isOnline) return;
     if (pendingOperations.length === 0) return;
@@ -26,41 +40,75 @@ async function processPendingOperations(silent = false) {
     for (const op of pendingOperations) {
         try {
             let url;
-            if (op.action === "addItem") {
-                url = buildApiUrl("addItem", op.params);
-            } else if (op.action === "updateFullItem") {
-                url = buildApiUrl("updateFullItem", op.params);
-            } else if (op.action === "update") {
-                url = buildApiUrl("update", op.params);
-            } else if (op.action === "syncFullHistory") {
-                url = buildApiUrl("syncFullHistory", `&data=${encodeURIComponent(op.params)}`);
-            } else if (op.action === "syncFullBookings") {
-                url = buildApiUrl("syncFullBookings", `&data=${encodeURIComponent(op.params)}`);
-            } else if (op.action === "syncCustomOrder") {
-                url = buildApiUrl("syncCustomOrder", `&data=${encodeURIComponent(op.params)}`);
-            } else if (op.action === "syncExtraCosts") {
-                url = buildApiUrl("syncExtraCosts", `&data=${encodeURIComponent(op.params)}`);
-            } else if (op.action === "syncExtraIncomes") {
-                url = buildApiUrl("syncExtraIncomes", `&data=${encodeURIComponent(op.params)}`);
-            } else if (op.action === "syncFullRules") {
-                url = buildApiUrl("syncFullRules", `&data=${encodeURIComponent(op.params)}`);
-            } else if (op.action === "hideHistoryEntry") {
-                url = buildApiUrl("hideHistoryEntry", op.params);
-            } else if (op.action === "cancelHistoryEntry") {
-                url = buildApiUrl("cancelHistoryEntry", op.params);
-            } else if (op.action === "savePrivacy") {
-                url = buildApiUrl("savePrivacy", `&data=${encodeURIComponent(op.params)}`);
-            } else if (op.action === "cancelBooking") {
-                url = buildApiUrl("cancelBooking", op.params);
-            } else {
-                url = buildApiUrl(op.action, op.params);
+            let params;
+            
+            switch (op.action) {
+                case "addItem":
+                    params = buildParamsFromObject(op.params);
+                    url = buildApiUrl("addItem", params);
+                    break;
+                case "updateFullItem":
+                    params = buildParamsFromObject(op.params);
+                    url = buildApiUrl("updateFullItem", params);
+                    break;
+                case "update":
+                    params = buildParamsFromObject(op.params);
+                    url = buildApiUrl("update", params);
+                    break;
+                case "syncFullHistory":
+                    // Для истории данные уже в правильном формате (не двойное кодирование)
+                    const historyData = encodeURIComponent(JSON.stringify(op.params));
+                    url = buildApiUrl("syncFullHistory", `&data=${historyData}`);
+                    break;
+                case "syncFullBookings":
+                    const bookingsData = encodeURIComponent(JSON.stringify(op.params));
+                    url = buildApiUrl("syncFullBookings", `&data=${bookingsData}`);
+                    break;
+                case "syncCustomOrder":
+                    const orderData = encodeURIComponent(JSON.stringify(op.params));
+                    url = buildApiUrl("syncCustomOrder", `&data=${orderData}`);
+                    break;
+                case "syncExtraCosts":
+                    const costsData = encodeURIComponent(JSON.stringify(op.params));
+                    url = buildApiUrl("syncExtraCosts", `&data=${costsData}`);
+                    break;
+                case "syncExtraIncomes":
+                    const incomesData = encodeURIComponent(JSON.stringify(op.params));
+                    url = buildApiUrl("syncExtraIncomes", `&data=${incomesData}`);
+                    break;
+                case "syncFullRules":
+                    const rulesData = encodeURIComponent(JSON.stringify(op.params));
+                    url = buildApiUrl("syncFullRules", `&data=${rulesData}`);
+                    break;
+                case "hideHistoryEntry":
+                    params = buildParamsFromObject(op.params);
+                    url = buildApiUrl("hideHistoryEntry", params);
+                    break;
+                case "cancelHistoryEntry":
+                    params = buildParamsFromObject(op.params);
+                    url = buildApiUrl("cancelHistoryEntry", params);
+                    break;
+                case "savePrivacy":
+                    const privacyData = encodeURIComponent(JSON.stringify(op.params));
+                    url = buildApiUrl("savePrivacy", `&data=${privacyData}`);
+                    break;
+                case "cancelBooking":
+                    params = buildParamsFromObject(op.params);
+                    url = buildApiUrl("cancelBooking", params);
+                    break;
+                default:
+                    params = buildParamsFromObject(op.params);
+                    url = buildApiUrl(op.action, params);
             }
+            
             const response = await fetch(url);
             const result = await response.json();
             if (!result.success) {
                 failed.push(op);
+                if (!silent) console.warn(`Operation failed: ${op.action}`, result);
             }
         } catch(e) {
+            console.error(`Error processing operation ${op.action}:`, e);
             failed.push(op);
         }
     }
