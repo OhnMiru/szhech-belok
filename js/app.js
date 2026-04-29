@@ -18,6 +18,8 @@ function initApp() {
     if (typeof loadBookings === 'function') {
         loadBookings().catch(e => console.warn("Bookings load error:", e));
     }
+    
+    // Настройка кнопок
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsDropdown = document.getElementById('settingsDropdown');
     const shareStatsBtn = document.getElementById('shareStatsBtn');
@@ -63,6 +65,23 @@ function initApp() {
         if (settingsDropdown && !settingsToggle?.contains(e.target) && !settingsDropdown.contains(e.target))
             settingsDropdown.classList.add('hidden');
     });
+    
+    // Добавляем обработчик для кнопки обновления
+    const globalStatsBtn = document.getElementById('globalStatsBtn');
+    if (globalStatsBtn && CURRENT_USER.role === 'organizer') {
+        globalStatsBtn.addEventListener('click', showGlobalStats);
+    }
+    
+    // Инициализация фото-кэша (очистка старых URL при необходимости)
+    if (photoCache.size > 100) {
+        // Ограничиваем размер кэша
+        const keys = Array.from(photoCache.keys());
+        for (let i = 0; i < keys.length - 50; i++) {
+            photoCache.delete(keys[i]);
+        }
+    }
+    
+    console.log("App initialized successfully");
 }
 
 document.addEventListener('click', function(event) {
@@ -77,9 +96,12 @@ window.onclick = function(event) {
     if (event.target === document.getElementById('globalStatsModal')) closeGlobalStatsModal();
     if (event.target === document.getElementById('editProductModal')) closeEditProductModal();
     if (event.target === document.getElementById('addItemModal')) closeAddItemModal();
+    if (event.target === document.getElementById('photoViewModal')) closePhotoModal();
+    if (event.target === document.getElementById('bookingsModal')) closeBookingsModal();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM fully loaded");
     initTheme();
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
@@ -115,5 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!checkExistingAuth()) {
         // ждём ручного входа
+        console.log("Waiting for manual login");
     }
 });
