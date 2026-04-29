@@ -102,26 +102,45 @@ function closePhotoModal() {
     currentPhotoItemName = null;
 }
 
-// Инициализация элементов для фото в модалке редактирования
 function initPhotoUploadInEditModal() {
     const fileInput = document.getElementById('photoFileInput');
     const deleteBtn = document.getElementById('deletePhotoBtn');
     const uploadBtn = document.getElementById('uploadPhotoBtn');
     
+    if (uploadBtn && fileInput) {
+        // Удаляем старые обработчики
+        const newUploadBtn = uploadBtn.cloneNode(true);
+        uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
+        
+        newUploadBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+            console.log("Upload button clicked, file input triggered"); // Для отладки
+        });
+    }
+    
     if (fileInput) {
-        fileInput.removeEventListener('change', handlePhotoUpload);
-        fileInput.addEventListener('change', handlePhotoUpload);
+        // Удаляем старые обработчики
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+        
+        newFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handlePhotoUpload(e);
+            }
+        });
     }
     
     if (deleteBtn) {
-        deleteBtn.removeEventListener('click', handleDeletePhoto);
-        deleteBtn.addEventListener('click', handleDeletePhoto);
-    }
-    
-    if (uploadBtn) {
-        uploadBtn.removeEventListener('click', () => {});
-        uploadBtn.addEventListener('click', () => {
-            if (fileInput) fileInput.click();
+        const newDeleteBtn = deleteBtn.cloneNode(true);
+        deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
+        
+        newDeleteBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDeletePhoto();
         });
     }
 }
