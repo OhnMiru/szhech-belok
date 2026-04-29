@@ -1,5 +1,5 @@
-// ========== НАСТРОЙКА ===========
-const CENTRAL_API_URL = "https://szhech-belochek.pages.dev/api";
+// ========== НАСТРОЙКА ==========
+const CENTRAL_API_URL = "https://szhech-belochek.pages.dev//api";
 
 let CURRENT_USER = {
     id: null,
@@ -36,8 +36,8 @@ let cart = {};
 let extraCosts = [];
 let salesHistory = [];
 let historyMethodFilter = "all";
-let historyPaymentFilter = "all";
 let historyTypeFilter = "all";
+let historyPaymentFilter = "all";
 let bookingsList = [];
 let selectedBookingNickname = null;
 let selectedBookingItems = [];
@@ -46,3 +46,8 @@ let currentBookingProducts = new Map();
 let currentViewingBookingId = null;
 let cartBookingMap = {};
 let currentPaymentType = 'cash';
+
+// ========== ПЕРЕМЕННЫЕ ДЛЯ ФОТО ==========
+let photoCache = new Map(); // Кэш URL фото: { itemId: url }
+let currentPhotoItemId = null;
+let currentPhotoItemName = null;
