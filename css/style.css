@@ -2328,6 +2328,26 @@ body.dark .extra-cost-amount {
     margin-top: 24px;
 }
 
+/* Стиль для чекбокса способа оплаты */
+.payment-section {
+    background: var(--badge-bg);
+    border-radius: 16px;
+    margin-bottom: 16px;
+    border-left: 4px solid var(--btn-bg);
+}
+
+.payment-header {
+    padding: 10px 12px;
+    font-weight: bold;
+    font-size: 13px;
+    color: var(--badge-text);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.payment-content {
+    padding: 12px;
+}
+
 /* Адаптация для планшетов */
 @media (min-width: 768px) and (max-width: 1024px) {
     .stats-grid {
