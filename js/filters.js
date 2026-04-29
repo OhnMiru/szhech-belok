@@ -19,8 +19,14 @@ function buildTypeMultiSelect() {
                     ${isSelected ? '<span class="type-select-check">✓</span>' : ''}
                 </div>`;
     });
-    html += '</div><div class="filter-buttons"><button class="filter-reset-btn" id="typeResetBtn">Сбросить</button><button class="filter-apply-btn" id="typeApplyBtn">Применить</button></div>';
+    
+    const isMobile = window.innerWidth <= 500;
+    const applyText = isMobile ? '✅' : 'Применить';
+    const resetText = isMobile ? '✖️' : 'Сбросить';
+    
+    html += '</div><div class="filter-buttons"><button class="filter-reset-btn" id="typeResetBtn">' + resetText + '</button><button class="filter-apply-btn" id="typeApplyBtn">' + applyText + '</button></div>';
     dropdown.innerHTML = html;
+    
     document.querySelectorAll('.type-select-item').forEach(item => {
         item.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -42,8 +48,10 @@ function buildTypeMultiSelect() {
             });
         });
     });
+    
     const resetBtn = document.getElementById('typeResetBtn');
     const applyBtn = document.getElementById('typeApplyBtn');
+    
     if (resetBtn) {
         resetBtn.onclick = (e) => {
             e.stopPropagation();
@@ -56,6 +64,7 @@ function buildTypeMultiSelect() {
             });
         };
     }
+    
     if (applyBtn) {
         applyBtn.onclick = (e) => {
             e.stopPropagation();
