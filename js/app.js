@@ -24,6 +24,10 @@ function initApp() {
     const hideStatsBtn = document.getElementById('hideStatsBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const bookingsBtn = document.getElementById('bookingsButton');
+    const addItemBtn = document.getElementById('addItemButton');
+    if (addItemBtn) {
+        addItemBtn.addEventListener('click', openAddItemModal);
+    }
   
     if (bookingsBtn) {
         bookingsBtn.addEventListener('click', openBookingsModal);
