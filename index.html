@@ -55,6 +55,7 @@
             <button class="refresh-btn" id="statsButton">📊 Статистика</button>
             <button class="refresh-btn" id="globalStatsBtn" style="display: none;">📊 Статистика всех</button>
             <button class="refresh-btn" id="bookingsButton">📦 Бронирование</button>
+            <button class="refresh-btn" id="addItemButton">➕ Добавить товар</button>
         </div>
 
         <div id="progressContainer" class="progress-container">
@@ -288,6 +289,52 @@
             </div>
             <div id="bookings-content">
                 <div class="loading">Загрузка...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="addItemModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <button class="modal-close-btn" onclick="closeAddItemModal()">×</button>
+            <div class="modal-header">
+                <span>➕ Добавление товара</span>
+            </div>
+            <div id="add-item-content">
+                <div class="edit-row">
+                    <span class="edit-label">Тип</span>
+                    <div style="flex: 1; display: flex; gap: 8px;">
+                        <select id="addItemType" class="edit-input" style="flex: 2;" onchange="onTypeSelectChange()">
+                            <option value="">Выберите или добавьте новый</option>
+                        </select>
+                        <input type="text" id="addItemNewType" class="edit-input" style="flex: 1; display: none;" placeholder="Новый тип">
+                        <button type="button" id="toggleNewTypeBtn" class="add-cost-btn" style="width: auto; padding: 8px 12px;" onclick="toggleNewTypeInput()">➕</button>
+                    </div>
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Название</span>
+                    <input type="text" id="addItemName" class="edit-input" placeholder="Название товара">
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Всего</span>
+                    <input type="number" id="addItemTotal" class="edit-input" value="0" min="0" step="1">
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Остаток</span>
+                    <input type="number" id="addItemStock" class="edit-input" value="0" min="0" step="1">
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Цена</span>
+                    <input type="number" id="addItemPrice" class="edit-input" value="0" min="0" step="1">
+                </div>
+                <div class="edit-row">
+                    <span class="edit-label">Себестоимость</span>
+                    <input type="number" id="addItemCost" class="edit-input" value="0" min="0" step="1">
+                </div>
+                <div class="edit-buttons">
+                    <button class="edit-cancel-btn" onclick="closeAddItemModal()">❌ Отмена</button>
+                    <button class="edit-save-btn" onclick="addNewItem()">💾 Добавить</button>
+                </div>
             </div>
         </div>
     </div>
