@@ -34,6 +34,7 @@ function closeCartModal() {
     if (modal) modal.style.display = 'none'; 
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТКРЫТИЯ РЕДАКТИРОВАНИЯ ТОВАРА
 function openEditProductModal(id) {
     currentEditId = id;
     const card = originalCardsData.find(c => c.id === id);
@@ -48,7 +49,7 @@ function openEditProductModal(id) {
         document.getElementById('editCost').value = card.cost || 0;
         
         // Загружаем фото в превью
-        loadPhotoPreview(id);
+        loadPhotoPreview(id).catch(e => console.error("Error loading photo preview:", e));
         
         document.getElementById('editProductModal').style.display = 'block';
         
@@ -95,7 +96,8 @@ function showGlobalStats() {
                 window._globalStatsData = data;
                 renderGlobalStatsWithData(data);
             })
-            .catch(() => {
+            .catch((err) => {
+                console.error("Error loading global stats:", err);
                 container.innerHTML = '<div class="loading">Ошибка загрузки статистики</div>';
                 showToast("Ошибка загрузки статистики", false);
             });
@@ -253,22 +255,27 @@ async function addNewItem() {
     closeAddItemModal();
 }
 
-// ========== ФУНКЦИИ ДЛЯ ФОТО ==========
+// ========== ФУНКЦИИ ДЛЯ ФОТО (дублируются из photo.js для совместимости) ==========
 
 async function loadPhotoPreview(itemId) {
     const container = document.getElementById('photoPreviewContainer');
     if (!container) return;
     
-    const url = await getPhotoUrl(itemId);
-    
-    if (url) {
-        container.innerHTML = `<img src="${url}" alt="Фото товара" style="max-width: 100%; max-height: 150px; border-radius: 8px;">`;
-        const deleteBtn = document.getElementById('deletePhotoBtn');
-        if (deleteBtn) deleteBtn.style.display = 'inline-flex';
-    } else {
-        container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);">📷 Нет фото</div>`;
-        const deleteBtn = document.getElementById('deletePhotoBtn');
-        if (deleteBtn) deleteBtn.style.display = 'none';
+    try {
+        const url = await getPhotoUrl(itemId);
+        
+        if (url) {
+            container.innerHTML = `<img src="${url}" alt="Фото товара" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain;">`;
+            const deleteBtn = document.getElementById('deletePhotoBtn');
+            if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+        } else {
+            container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);">📷 Нет фото</div>`;
+            const deleteBtn = document.getElementById('deletePhotoBtn');
+            if (deleteBtn) deleteBtn.style.display = 'none';
+        }
+    } catch(e) {
+        console.error("Error loading photo preview:", e);
+        container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);">❌ Ошибка загрузки</div>`;
     }
 }
 
@@ -296,7 +303,8 @@ async function handlePhotoUpload(event) {
     
     if (success) {
         await loadPhotoPreview(currentEditId);
-        document.getElementById('photoFileInput').value = '';
+        const fileInput = document.getElementById('photoFileInput');
+        if (fileInput) fileInput.value = '';
     }
 }
 
@@ -337,12 +345,17 @@ async function loadPhotoToModal(itemId) {
     const content = document.getElementById('photoModalContent');
     if (!content) return;
     
-    const url = await getPhotoUrl(itemId);
-    
-    if (url) {
-        content.innerHTML = `<img src="${url}" alt="Фото товара" style="max-width: 100%; max-height: 60vh; border-radius: 12px;">`;
-    } else {
-        content.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">📷 Фото не добавлено</div>`;
+    try {
+        const url = await getPhotoUrl(itemId);
+        
+        if (url) {
+            content.innerHTML = `<img src="${url}" alt="Фото товара" style="max-width: 100%; max-height: 60vh; border-radius: 12px; object-fit: contain;">`;
+        } else {
+            content.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">📷 Фото не добавлено</div>`;
+        }
+    } catch(e) {
+        console.error("Error loading photo to modal:", e);
+        content.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">❌ Ошибка загрузки фото</div>`;
     }
 }
 
@@ -369,8 +382,9 @@ function initPhotoUploadInEditModal() {
     }
     
     if (uploadBtn) {
-        uploadBtn.removeEventListener('click', () => {});
-        uploadBtn.addEventListener('click', () => {
+        const newUploadBtn = uploadBtn.cloneNode(true);
+        uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
+        newUploadBtn.addEventListener('click', () => {
             if (fileInput) fileInput.click();
         });
     }
