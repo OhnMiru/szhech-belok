@@ -306,7 +306,7 @@ function renderBookingsList() {
             html += `<tr style="border-top: 2px solid var(--border-color); font-weight: bold;">
                         <td colspan="4" class="text-right">Итого:</td>
                         <td class="text-right">${total} ₽</td>
-                      </tr>`;
+                       </tr>`;
             html += `</tbody>
                     </table>
                 </div>
@@ -356,7 +356,26 @@ function renderBookingProductSelect() {
 
 function toggleBookingProductSelect() {
     const dropdown = document.getElementById('bookingProductSelectDropdown');
-    if (dropdown) dropdown.classList.toggle('show');
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+        // Для мобильной версии добавляем центрирование
+        if (window.innerWidth <= 500) {
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = '50%';
+            dropdown.style.left = '50%';
+            dropdown.style.transform = 'translate(-50%, -50%)';
+            dropdown.style.width = '90%';
+            dropdown.style.maxWidth = '320px';
+            dropdown.style.maxHeight = '70vh';
+            dropdown.style.zIndex = '2000';
+        } else {
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = '100%';
+            dropdown.style.left = '0';
+            dropdown.style.transform = 'none';
+            dropdown.style.width = '100%';
+        }
+    }
 }
 
 function toggleBookingProduct(id, name, type, price, cost) {
@@ -472,14 +491,9 @@ function viewBookingDetails(bookingId) {
 function openBookingsModal() {
     const modal = document.getElementById('bookingsModal');
     if (modal) {
-        // Показываем модалку сразу с локальными данными
         modal.style.display = 'block';
-        
-        // Загружаем данные из localStorage мгновенно
         loadBookingsFromLocal();
         renderBookingsList();
-        
-        // Фоново обновляем с сервера
         loadBookingsFromServer().then(() => {
             renderBookingsList();
         });
@@ -495,7 +509,6 @@ function closeBookingsModal() {
 
 // Инициализация
 document.addEventListener('DOMContentLoaded', () => {
-    // Предварительно загружаем бронирования из localStorage при старте
     loadBookingsFromLocal();
     
     document.addEventListener('click', (e) => {
