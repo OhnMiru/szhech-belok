@@ -152,6 +152,14 @@
                         <button class="history-filter-btn history-filter-btn-large" data-type="return" onclick="setHistoryTypeFilter('return')">Возвраты</button>
                     </div>
                 </div>
+                <!-- НОВЫЕ ФИЛЬТРЫ ПО ТИПУ ОПЛАТЫ -->
+                <div class="history-filter-row">
+                    <div class="history-filter-buttons-group">
+                        <button class="history-filter-btn history-filter-btn-small" data-payment="all" onclick="setHistoryPaymentFilter('all')">💵 Все</button>
+                        <button class="history-filter-btn history-filter-btn-large" data-payment="cash" onclick="setHistoryPaymentFilter('cash')">💰 Наличные</button>
+                        <button class="history-filter-btn history-filter-btn-large" data-payment="transfer" onclick="setHistoryPaymentFilter('transfer')">💳 Перевод</button>
+                    </div>
+                </div>
                 <div class="history-filter-bottom">
                     <div class="history-filter-left">
                         <div class="custom-datetime" id="datetimeFromContainer">
