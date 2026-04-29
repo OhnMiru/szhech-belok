@@ -101,7 +101,8 @@ function updateCartUI() {
                 </div>
                 <div id="discount-content" class="discount-content" style="display: ${discountPanelOpenLocal ? 'block' : 'none'};">
                     <div class="discount-group">
-                        <div class="discount-row">
+                        <!-- Строка 1: селекторы и кнопки +/- -->
+                        <div class="discount-row discount-row-1" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
                             <div class="discount-custom-select">
                                 <div class="discount-custom-select-trigger" id="itemDiscountSelectTrigger" onclick="event.stopPropagation(); toggleItemDiscountSelect()">%</div>
                                 <div class="discount-custom-select-dropdown" id="itemDiscountSelectDropdown">
@@ -110,21 +111,25 @@ function updateCartUI() {
                                 </div>
                                 <input type="hidden" id="itemDiscountTypeSelect" data-value="percent">
                             </div>
-                            <div class="discount-amount-control">
+                            <div class="discount-amount-control" style="display: flex; align-items: center; gap: 4px;">
                                 <input type="number" id="itemDiscountValue" class="discount-amount-input" placeholder="Сумма" value="0" onchange="updateItemDiscountFromInput()">
                                 <button class="discount-step-btn" onclick="changeItemDiscountValue(-1)">−</button>
                                 <button class="discount-step-btn" onclick="changeItemDiscountValue(1)">+</button>
                             </div>
+                        </div>
+                        <!-- Строка 2: кнопки Товары, Все, Ничего -->
+                        <div class="discount-row discount-row-2" style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 8px;">
                             <button class="discount-products-btn" onclick="toggleDiscountProductsList()">Товары</button>
                             <button class="discount-all-btn" onclick="selectAllProductsForDiscount()">Всё</button>
                             <button class="discount-none-btn" onclick="selectNoneProductsForDiscount()">Ничего</button>
                         </div>
                         <div id="productDiscountList" style="display: none; margin-top: 8px;"></div>
                     </div>
-                    <div class="discount-buttons-row">
-                        <button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()">Отмена</button>
-                        <button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()">Сбросить скидки</button>
-                        <button class="discount-action-btn apply-btn" onclick="applyItemDiscount()">Применить</button>
+                    <!-- Строка 3: кнопки Отмена, Сбросить скидки, Применить -->
+                    <div class="discount-buttons-row" style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                        <button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()" style="flex: 1; min-width: 70px;">Отмена</button>
+                        <button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()" style="flex: 2; min-width: 100px;">Сбросить скидки</button>
+                        <button class="discount-action-btn apply-btn" onclick="applyItemDiscount()" style="flex: 1; min-width: 70px;">Применить</button>
                     </div>
                 </div>
             </div>`;
