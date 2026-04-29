@@ -86,7 +86,8 @@ function updateCartUI() {
         const best = getBestDiscountForItem(id, card.price, qty, subtotal);
         const originalItemTotal = card.price * qty;
         const discountedItemTotal = best.price * qty;
-        total += discountedItemTotal;
+        const finalDiscountedItemTotal = Math.ceil(discountedItemTotal);
+        total += finalDiscountedItemTotal;
         const isZero = qty === 0;
         const hasDiscount = best.discountValue > 0;
         let discountText = '';
@@ -95,12 +96,13 @@ function updateCartUI() {
             if (best.discountType === 'percent') {
                 discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${best.discountValue}%</div>`;
             } else if (best.discountType === 'fixed') {
-                discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${Math.ceil(totalDiscountForItem)} ₽</div>`;
+                const roundedDiscount = Math.ceil(totalDiscountForItem);
+                discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${roundedDiscount} ₽</div>`;
             }
         }
         const displayName = `${card.type} ${card.name}`;
         html += `<div class="cart-item ${isZero ? 'disabled' : ''}"><div class="cart-item-info"><div class="cart-item-name">${escapeHtml(displayName)}</div>
-                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${Math.ceil(originalItemTotal)} ₽</span> ${Math.ceil(discountedItemTotal)} ₽` : `${Math.ceil(originalItemTotal)} ₽`}</div>${discountText}</div>
+                <div class="cart-item-price">${card.price} ₽ × ${qty} = ${hasDiscount ? `<span class="strikethrough">${Math.ceil(originalItemTotal)} ₽</span> ${Math.ceil(finalDiscountedItemTotal)} ₽` : `${Math.ceil(originalItemTotal)} ₽`}</div>${discountText}</div>
                 <div class="cart-item-quantity"><button class="cart-qty-btn" onclick="changeCartQty(${id}, -1)" ${isZero ? 'disabled' : ''}>−</button><span class="cart-item-qty">${qty}</span><button class="cart-qty-btn" onclick="changeCartQty(${id}, 1)">+</button><button class="cart-item-remove" onclick="removeFromCart(${id})">🗑</button></div></div>`;
     }
     cartItemsDiv.innerHTML = html;
@@ -390,50 +392,52 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             return;
         }
         
-        // Сортируем по цене (от дешёвых к дорогим)
+        // Сортируем от самых дешёвых к самым дорогим
         items.sort((a, b) => a.price - b.price);
         
         let remainingDiscount = totalDiscountValue;
         const discountsByItem = {};
+        let discountApplied = 0;
         
-        // Первый проход: обнуляем дешёвые товары
+        // Первый проход: распределяем скидку, округляя ВНИЗ до целого рубля
         for (const item of items) {
             const maxDiscountForItem = item.totalPrice;
             if (remainingDiscount >= maxDiscountForItem) {
+                // Полностью обнуляем товар
                 discountsByItem[item.id] = maxDiscountForItem;
+                discountApplied += maxDiscountForItem;
                 remainingDiscount -= maxDiscountForItem;
             } else {
-                discountsByItem[item.id] = remainingDiscount;
-                remainingDiscount = 0;
+                // Частичная скидка — округляем вниз
+                const discountForItem = Math.floor(remainingDiscount);
+                discountsByItem[item.id] = discountForItem;
+                discountApplied += discountForItem;
+                remainingDiscount = totalDiscountValue - discountApplied;
                 break;
             }
         }
         
-        // Второй проход: если осталась скидка, распределяем на оставшиеся товары
-        if (remainingDiscount > 0) {
-            const remainingItems = items.filter(item => {
-                const receivedDiscount = discountsByItem[item.id] || 0;
-                return receivedDiscount < item.totalPrice;
-            });
-            
-            if (remainingItems.length > 0) {
-                const additionalPerItem = remainingDiscount / remainingItems.length;
-                let remainingToDistribute = remainingDiscount;
+        // Второй проход: распределяем ОСТАТОК (если есть) по одному рублю на товары
+        let leftover = Math.round(remainingDiscount);
+        
+        if (leftover > 0) {
+            for (const item of items) {
+                if (leftover <= 0) break;
                 
-                for (const item of remainingItems) {
-                    const currentDiscount = discountsByItem[item.id] || 0;
-                    const maxAdditional = item.totalPrice - currentDiscount;
-                    let additional = additionalPerItem;
-                    if (additional > maxAdditional) additional = maxAdditional;
-                    
-                    discountsByItem[item.id] = currentDiscount + additional;
-                    remainingToDistribute -= additional;
-                }
+                const currentDiscount = discountsByItem[item.id] || 0;
+                const maxDiscountForItem = item.totalPrice;
                 
-                if (remainingToDistribute > 0 && remainingItems.length > 0) {
-                    discountsByItem[remainingItems[0].id] += remainingToDistribute;
+                if (currentDiscount < maxDiscountForItem) {
+                    discountsByItem[item.id] = currentDiscount + 1;
+                    leftover--;
                 }
             }
+        }
+        
+        // Финальная проверка: если остаток всё ещё есть, добавляем на самый дорогой товар
+        if (leftover > 0) {
+            const mostExpensiveItem = items.reduce((max, item) => item.price > max.price ? item : max, items[0]);
+            discountsByItem[mostExpensiveItem.id] = (discountsByItem[mostExpensiveItem.id] || 0) + leftover;
         }
         
         // Применяем скидки
@@ -451,51 +455,35 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             }
         }
         
-        // === ПРИНУДИТЕЛЬНАЯ ФИНАЛЬНАЯ КОРРЕКТИРОВКА ===
-        // Находим самый дорогой товар
-        let mostExpensiveId = null;
-        let mostExpensivePrice = -1;
-        for (const [idStr, qty] of Object.entries(cart)) {
-            if (qty > 0) {
-                const id = parseInt(idStr);
-                const card = originalCardsData.find(c => c.id === id);
-                if (card && card.price > mostExpensivePrice) {
-                    mostExpensivePrice = card.price;
-                    mostExpensiveId = id;
-                }
-            }
+        // Финальная корректировка: пересчитываем реально применённую скидку
+        let actualDiscount = 0;
+        for (const [id, disc] of Object.entries(itemDiscounts)) {
+            const numericId = parseInt(id);
+            const qty = cart[numericId] || 1;
+            actualDiscount += disc.value * qty;
         }
         
-        if (mostExpensiveId !== null) {
-            const qty = cart[mostExpensiveId];
-            
-            // Считаем текущую общую скидку для всех товаров, КРОМЕ самого дорогого
-            let discountWithoutExpensive = 0;
-            for (const [id, disc] of Object.entries(itemDiscounts)) {
-                const numericId = parseInt(id);
-                if (numericId !== mostExpensiveId) {
-                    const qtyItem = cart[numericId] || 1;
-                    discountWithoutExpensive += disc.value * qtyItem;
+        const diff = Math.round(totalDiscountValue - actualDiscount);
+        if (Math.abs(diff) >= 1) {
+            let mostExpensiveId = null;
+            let mostExpensivePrice = -1;
+            for (const item of items) {
+                if (item.price > mostExpensivePrice) {
+                    mostExpensivePrice = item.price;
+                    mostExpensiveId = item.id;
                 }
             }
             
-            // Скидка на самый дорогой товар = общая скидка - скидка на остальные
-            const expensiveDiscount = totalDiscountValue - discountWithoutExpensive;
-            
-            // Если скидка на дорогой товар получилась отрицательной или больше его стоимости, корректируем
-            const maxExpensiveDiscount = mostExpensivePrice * qty;
-            let finalExpensiveDiscount = Math.min(Math.max(0, expensiveDiscount), maxExpensiveDiscount);
-            
-            // Округляем до целого
-            finalExpensiveDiscount = Math.round(finalExpensiveDiscount);
-            
-            // Применяем скидку на единицу
-            const discountPerUnit = finalExpensiveDiscount / qty;
-            itemDiscounts[mostExpensiveId] = {
-                type: 'fixed',
-                value: discountPerUnit,
-                valuePerItem: discountPerUnit
-            };
+            if (mostExpensiveId !== null) {
+                const qty = cart[mostExpensiveId];
+                const currentDiscount = itemDiscounts[mostExpensiveId]?.value || 0;
+                const newDiscountPerUnit = currentDiscount + (diff / qty);
+                itemDiscounts[mostExpensiveId] = {
+                    type: 'fixed',
+                    value: newDiscountPerUnit,
+                    valuePerItem: newDiscountPerUnit
+                };
+            }
         }
     }
     
