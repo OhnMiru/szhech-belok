@@ -23,15 +23,19 @@ function loadBookingsFromLocal() {
 
 async function syncFullBookingsToServer() {
     if (!isOnline) {
-        addPendingOperation("syncFullBookings", `&data=${encodeURIComponent(JSON.stringify(bookings))}`);
+        addPendingOperation("syncFullBookings", bookings);
         return;
     }
     try {
         const data = encodeURIComponent(JSON.stringify(bookings));
-        await fetch(buildApiUrl("syncFullBookings", `&data=${data}`));
+        const response = await fetch(buildApiUrl("syncFullBookings", `&data=${data}`));
+        const result = await response.json();
+        if (!result.success) {
+            addPendingOperation("syncFullBookings", bookings);
+        }
     } catch(e) {
         console.error(e);
-        addPendingOperation("syncFullBookings", `&data=${encodeURIComponent(JSON.stringify(bookings))}`);
+        addPendingOperation("syncFullBookings", bookings);
     }
 }
 
@@ -50,6 +54,7 @@ async function loadBookingsFromServer() {
         }
         return false;
     } catch(e) {
+        console.error(e);
         return false;
     }
 }
@@ -108,10 +113,10 @@ function addBooking(nickname, items) {
             // Отправляем обновление на сервер
             if (isOnline) {
                 fetch(buildApiUrl("update", `&id=${item.id}&delta=-${item.qty}`)).catch(e => {
-                    addPendingOperation("update", `&id=${item.id}&delta=-${item.qty}`);
+                    addPendingOperation("update", { id: item.id, delta: -item.qty });
                 });
             } else {
-                addPendingOperation("update", `&id=${item.id}&delta=-${item.qty}`);
+                addPendingOperation("update", { id: item.id, delta: -item.qty });
             }
         }
     }
@@ -143,17 +148,17 @@ async function cancelBooking(bookingId, restoreStock = true) {
                 
                 if (isOnline) {
                     fetch(buildApiUrl("update", `&id=${item.id}&delta=+${item.qty}`)).catch(e => {
-                        addPendingOperation("update", `&id=${item.id}&delta=+${item.qty}`);
+                        addPendingOperation("update", { id: item.id, delta: +item.qty });
                     });
                 } else {
-                    addPendingOperation("update", `&id=${item.id}&delta=+${item.qty}`);
+                    addPendingOperation("update", { id: item.id, delta: +item.qty });
                 }
             }
         }
     }
     
     if (!isOnline) {
-        addPendingOperation("cancelBooking", `&id=${bookingId}&restoreStock=${restoreStock}`);
+        addPendingOperation("cancelBooking", { id: bookingId, restoreStock: restoreStock });
         booking.status = "cancelled";
         saveBookings();
         renderBookingsList();
@@ -179,7 +184,8 @@ async function cancelBooking(bookingId, restoreStock = true) {
             return false;
         }
     } catch(e) {
-        addPendingOperation("cancelBooking", `&id=${bookingId}&restoreStock=${restoreStock}`);
+        console.error(e);
+        addPendingOperation("cancelBooking", { id: bookingId, restoreStock: restoreStock });
         booking.status = "cancelled";
         saveBookings();
         renderBookingsList();
@@ -306,7 +312,7 @@ function renderBookingsList() {
             html += `<tr style="border-top: 2px solid var(--border-color); font-weight: bold;">
                         <td colspan="4" class="text-right">Итого:</td>
                         <td class="text-right">${total} ₽</td>
-                       </tr>`;
+                      </tr>`;
             html += `</tbody>
                     </table>
                 </div>
