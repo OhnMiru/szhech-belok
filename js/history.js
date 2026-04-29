@@ -18,15 +18,20 @@ function loadHistoryFromLocal() {
 
 async function syncFullHistoryToServer() {
     if (!isOnline) {
-        addPendingOperation("syncFullHistory", `&data=${encodeURIComponent(JSON.stringify(salesHistory))}`);
+        // Сохраняем всю историю целиком
+        addPendingOperation("syncFullHistory", salesHistory);
         return;
     }
     try {
         const data = encodeURIComponent(JSON.stringify(salesHistory));
-        await fetch(buildApiUrl("syncFullHistory", `&data=${data}`));
+        const response = await fetch(buildApiUrl("syncFullHistory", `&data=${data}`));
+        const result = await response.json();
+        if (!result.success) {
+            addPendingOperation("syncFullHistory", salesHistory);
+        }
     } catch(e) {
         console.error(e);
-        addPendingOperation("syncFullHistory", `&data=${encodeURIComponent(JSON.stringify(salesHistory))}`);
+        addPendingOperation("syncFullHistory", salesHistory);
     }
 }
 
@@ -87,7 +92,7 @@ async function hideHistoryEntry(id) {
         const entry = salesHistory.find(e => e.id == id);
         if (entry) entry.hidden = true;
         saveHistory();
-        addPendingOperation("hideHistoryEntry", `&id=${id}`);
+        addPendingOperation("hideHistoryEntry", { id: id });
         renderHistoryList();
         showToast("Запись скрыта (будет синхронизировано позже)", true);
         return;
@@ -103,7 +108,7 @@ async function hideHistoryEntry(id) {
         const entry = salesHistory.find(e => e.id == id);
         if (entry) entry.hidden = true;
         saveHistory();
-        addPendingOperation("hideHistoryEntry", `&id=${id}`);
+        addPendingOperation("hideHistoryEntry", { id: id });
         showToast("Запись скрыта (будет синхронизировано позже)", true);
     }
 }
@@ -117,7 +122,7 @@ async function cancelHistoryEntry(id) {
     }
 
     if (!isOnline) {
-        addPendingOperation("cancelHistoryEntry", `&id=${id}`);
+        addPendingOperation("cancelHistoryEntry", { id: id });
         showToast("Отмена продажи будет выполнена при восстановлении соединения", true);
         return;
     }
@@ -135,7 +140,7 @@ async function cancelHistoryEntry(id) {
             showToast("Ошибка отмены: " + (result.error || "неизвестная"), false);
         }
     } catch(e) {
-        addPendingOperation("cancelHistoryEntry", `&id=${id}`);
+        addPendingOperation("cancelHistoryEntry", { id: id });
         showToast("Отмена продажи будет выполнена при восстановлении соединения", true);
     }
 }
@@ -265,17 +270,9 @@ function renderHistoryList() {
         const paymentIcon = entry.paymentType === 'transfer' ? '💳' : '💰';
         const paymentText = entry.paymentType === 'transfer' ? 'Перевод' : 'Наличные';
         
-        // Для мобильной версии — бейджи только с иконками, для продажи используем другой значок
-        let methodLabel, actionLabel;
-        if (isMobile) {
-            methodLabel = isBasket ? '🛒' : '🔢';
-            actionLabel = isReturn ? '↩️' : '✨';
-        } else {
-            methodLabel = isBasket ? 'Корзина' : 'Поштучно';
-            actionLabel = isReturn ? 'Возврат' : 'Продажа';
-        }
+        const methodLabel = isBasket ? (isMobile ? '🛒' : 'Корзина') : (isMobile ? '🔢' : 'Поштучно');
+        const actionLabel = isReturn ? (isMobile ? '↩️' : 'Возврат') : (isMobile ? '✨' : 'Продажа');
         
-        // Формируем список товаров с переносами строк на мобильных
         let itemsHtml = '';
         for (const item of entry.items) {
             const card = originalCardsData.find(c => c.id === item.id);
