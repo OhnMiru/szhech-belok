@@ -36,6 +36,7 @@ let cart = {};
 let extraCosts = [];
 let salesHistory = [];
 let historyMethodFilter = "all";
+let historyPaymentFilter = "all";
 let historyTypeFilter = "all";
 let bookingsList = [];
 let selectedBookingNickname = null;
