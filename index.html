@@ -31,7 +31,7 @@
     <div id="mainContent" style="display:none;">
         <div class="header-row">
             <div class="title-area">
-                <h1 id="shopTitle">🍌 Учёт мерча 🍌</h1>
+                <h1 id="shopTitle">🍌 Учёт мерча</h1>
                 <span class="beta-badge">beta</span>
             </div>
             <div class="header-buttons">
@@ -53,9 +53,9 @@
             <button class="refresh-btn" id="rulesButton">📋 Правила</button>
             <button class="history-btn" onclick="showHistory()">📜 История</button>
             <button class="refresh-btn" id="statsButton">📊 Статистика</button>
+            <button class="refresh-btn" id="addItemButton">➕ Добавить товар</button>
             <button class="refresh-btn" id="globalStatsBtn" style="display: none;">📊 Статистика всех</button>
             <button class="refresh-btn" id="bookingsButton">📦 Бронирование</button>
-            <button class="refresh-btn" id="addItemButton">➕ Добавить товар</button>
         </div>
 
         <div id="progressContainer" class="progress-container">
@@ -99,7 +99,7 @@
             </div>
             <div id="discount-panel" class="discount-section" style="display: none;"></div>
             <div id="cart-items-list">
-                <div class="empty-cart">Корзина пуста</div>
+                <div class="empty-cart">🍌 Корзина пуста</div>
             </div>
             <div id="cart-total" class="cart-total" style="display:none;">Итого: 0 ₽</div>
             <div class="cart-actions" id="cart-actions" style="display:none;">
@@ -153,7 +153,6 @@
                         <button class="history-filter-btn history-filter-btn-large" data-type="return" onclick="setHistoryTypeFilter('return')">Возвраты</button>
                     </div>
                 </div>
-                <!-- НОВЫЕ ФИЛЬТРЫ ПО ТИПУ ОПЛАТЫ - БЕЗ ЭМОДЗИ -->
                 <div class="history-filter-row">
                     <div class="history-filter-buttons-group">
                         <button class="history-filter-btn history-filter-btn-small" data-payment="all" onclick="setHistoryPaymentFilter('all')">Все</button>
