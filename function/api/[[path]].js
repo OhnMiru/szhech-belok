@@ -1,4 +1,4 @@
-// functions/api/[[path]].js
+// functions/api/[[path]].js 
 
 // URL вашего Google Apps Script
 const GS_API_URL = "https://script.google.com/macros/s/AKfycbwA9I9ehMqUlgATO2rIrRMI2QgVJ2Bd-lDDmizIToCa61ux5r5sxkjTvsBf2u0IKooP/exec";
