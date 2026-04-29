@@ -57,6 +57,7 @@ function updateCartUI() {
         return;
     }
     
+    // Блок скидок
     let discountHtml = `<div class="discount-section"><div class="discount-header" onclick="toggleDiscountPanel()"><span class="discount-title">🎯 Скидки</span><span class="discount-chevron" id="discount-chevron">▼</span></div>
             <div id="discount-content" class="discount-content" style="display: ${discountPanelOpen ? 'block' : 'none'};">
                 <div class="discount-group"><div class="discount-row">
@@ -69,39 +70,38 @@ function updateCartUI() {
                 <div class="discount-buttons-row"><button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()">Отмена</button><button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()">Сбросить скидки</button><button class="discount-action-btn apply-btn" onclick="applyItemDiscount()">Применить</button></div>
             </div></div>`;
     
-    let paymentHtml = `<div class="discount-section" style="margin-bottom: 16px;">
-        <div class="discount-header" style="cursor: default;">
-            <span class="discount-title">💰 Способ оплаты</span>
-        </div>
-        <div class="discount-content" style="display: block; padding: 0 12px 12px 12px;">
-            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--text-primary);">
-                <input type="checkbox" id="paymentTypeCheckbox" ${currentPaymentType === 'transfer' ? 'checked' : ''} 
-                       style="width: 20px; height: 20px; cursor: pointer;">
-                <span>💳 Оплата переводом (по умолчанию — наличные)</span>
-            </label>
-        </div>
-    </div>`;
-    
     if (discountPanelDiv) {
-        discountPanelDiv.innerHTML = discountHtml + paymentHtml;
-        const paymentCheckbox = document.getElementById('paymentTypeCheckbox');
-        if (paymentCheckbox) {
-            paymentCheckbox.addEventListener('change', function(e) {
-                currentPaymentType = e.target.checked ? 'transfer' : 'cash';
-            });
-        }
+        discountPanelDiv.innerHTML = discountHtml;
     }
     
+    // Активные правила
     const activeRules = checkRulesForCart();
-    let total = 0;
     let html = '';
     if (activeRules.length > 0) {
         html += `<div style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);"><div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">✨ Активные правила ✨</div>`;
         for (const rule of activeRules) html += `<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); padding: 4px 0;"><span style="font-size: 16px;">${escapeHtml(rule.icon)}</span><span><span class="rule-text-bold">${escapeHtml(rule.message)}</span> <span class="rule-text-normal">${escapeHtml(rule.condition)}</span></span></div>`;
         html += `</div>`;
     }
+    
+    // Блок способа оплаты (отдельный, без объединения со скидками)
+    let paymentHtml = `<div class="payment-section" style="background: var(--badge-bg); border-radius: 16px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);">
+        <div class="payment-header" style="padding: 10px 12px; font-weight: bold; font-size: 13px; color: var(--badge-text); border-bottom: 1px solid var(--border-color);">💰 Способ оплаты</div>
+        <div class="payment-content" style="padding: 12px;">
+            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--text-primary);">
+                <input type="checkbox" id="paymentTypeCheckbox" ${currentPaymentType === 'transfer' ? 'checked' : ''} 
+                       style="width: 20px; height: 20px; cursor: pointer; accent-color: #f39c12;">
+                <span>Оплата переводом (по умолчанию — наличные)</span>
+            </label>
+        </div>
+    </div>`;
+    
+    // Добавляем блок оплаты после активных правил
+    html += paymentHtml;
+    
     let subtotal = 0;
     for (const [idStr, qty] of Object.entries(cart)) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (card) subtotal += qty * card.price; }
+    
+    let total = 0;
     for (const [idStr, qty] of Object.entries(cart)) {
         const id = parseInt(idStr);
         const card = originalCardsData.find(c => c.id === id);
@@ -129,6 +129,7 @@ function updateCartUI() {
                 <div class="cart-item-quantity"><button class="cart-qty-btn" onclick="changeCartQty(${id}, -1)" ${isZero ? 'disabled' : ''}>−</button><span class="cart-item-qty">${qty}</span><button class="cart-qty-btn" onclick="changeCartQty(${id}, 1)">+</button><button class="cart-item-remove" onclick="removeFromCart(${id})">🗑</button></div></div>`;
     }
     cartItemsDiv.innerHTML = html;
+    
     if (cartTotalDiv) {
         cartTotalDiv.style.display = 'block';
         const hasAnyDiscount = Object.values(itemDiscounts).length > 0;
@@ -141,8 +142,18 @@ function updateCartUI() {
             cartTotalDiv.innerHTML = `🍌 Итого: ${roundedTotal} ₽`; 
         }
     }
+    
     if (cartActionsDiv && totalPositiveCount > 0) cartActionsDiv.style.display = 'flex';
     else if (cartActionsDiv) cartActionsDiv.style.display = 'none';
+    
+    // Обработчик чекбокса оплаты
+    const paymentCheckbox = document.getElementById('paymentTypeCheckbox');
+    if (paymentCheckbox) {
+        paymentCheckbox.addEventListener('change', function(e) {
+            currentPaymentType = e.target.checked ? 'transfer' : 'cash';
+        });
+    }
+    
     updateCardBadges();
 }
 
