@@ -134,7 +134,7 @@ async function getPhotoUrl(itemId) {
     }
     
     try {
-        const response = await fetch(buildApiUrl("getPhotoUrl", `&itemId=${itemId}&userId=${CURRENT_USER.id}`));
+        const response = await fetch(buildApiUrl("getPhotoUrl", `&itemId=${itemId}`));
         const result = await response.json();
         
         if (result.success && result.hasPhoto && result.url) {
@@ -148,25 +148,52 @@ async function getPhotoUrl(itemId) {
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ ФОТО - использует FormData вместо GET параметров
 async function uploadPhoto(itemId, file) {
     if (!isOnline) {
         showToast("Загрузка фото доступна только онлайн", false);
         return false;
     }
     
-    return new Promise((resolve, reject) => {
+    // Проверяем размер файла (максимум 5 МБ)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast("Файл слишком большой. Максимум 5 МБ", false);
+        return false;
+    }
+    
+    // Проверяем тип файла
+    if (!file.type.startsWith('image/')) {
+        showToast("Пожалуйста, выберите изображение", false);
+        return false;
+    }
+    
+    return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = async function() {
             try {
                 const base64Data = reader.result;
-                const params = `&itemId=${itemId}&userId=${CURRENT_USER.id}&base64Data=${encodeURIComponent(base64Data)}&fileName=${encodeURIComponent(file.name)}`;
-                const response = await fetch(buildApiUrl("uploadPhoto", params), {
+                
+                // Используем FormData для отправки файла
+                const formData = new FormData();
+                formData.append('action', 'uploadPhoto');
+                formData.append('participant', CURRENT_USER.id);
+                formData.append('itemId', itemId.toString());
+                formData.append('base64Data', base64Data);
+                formData.append('fileName', file.name);
+                
+                console.log("Uploading photo for item:", itemId);
+                console.log("File name:", file.name);
+                console.log("File size:", (file.size / 1024).toFixed(2), "KB");
+                
+                const response = await fetch(CENTRAL_API_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
+                    body: formData
                 });
+                
+                console.log("Response status:", response.status);
+                
                 const result = await response.json();
+                console.log("Response result:", result);
                 
                 if (result.success) {
                     // Обновляем кэш
@@ -180,12 +207,13 @@ async function uploadPhoto(itemId, file) {
                     resolve(false);
                 }
             } catch(e) {
-                console.error(e);
-                showToast("Ошибка загрузки фото", false);
+                console.error("Upload error:", e);
+                showToast("Ошибка загрузки фото: " + e.message, false);
                 resolve(false);
             }
         };
         reader.onerror = function() {
+            console.error("FileReader error");
             showToast("Ошибка чтения файла", false);
             resolve(false);
         };
@@ -200,13 +228,16 @@ async function deletePhoto(itemId) {
     }
     
     try {
-        const params = `&itemId=${itemId}&userId=${CURRENT_USER.id}`;
-        const response = await fetch(buildApiUrl("deletePhoto", params), {
+        const formData = new FormData();
+        formData.append('action', 'deletePhoto');
+        formData.append('participant', CURRENT_USER.id);
+        formData.append('itemId', itemId.toString());
+        
+        const response = await fetch(CENTRAL_API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
+            body: formData
         });
+        
         const result = await response.json();
         
         if (result.success) {
