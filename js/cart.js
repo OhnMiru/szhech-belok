@@ -117,8 +117,8 @@ function updateCartUI() {
                                 <button class="discount-step-btn" onclick="changeItemDiscountValue(1)">+</button>
                             </div>
                         </div>
-                        <!-- Строка 2: кнопки Товары, Все, Ничего -->
-                        <div class="discount-row discount-row-2" style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 8px;">
+                        <!-- Строка 2: кнопки Товары, Все, Ничего (на мобильных по левому краю) -->
+                        <div class="discount-row discount-row-2" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; justify-content: flex-start;">
                             <button class="discount-products-btn" onclick="toggleDiscountProductsList()">Товары</button>
                             <button class="discount-all-btn" onclick="selectAllProductsForDiscount()">Всё</button>
                             <button class="discount-none-btn" onclick="selectNoneProductsForDiscount()">Ничего</button>
