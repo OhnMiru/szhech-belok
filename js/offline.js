@@ -25,7 +25,12 @@ async function processPendingOperations(silent = false) {
     const failed = [];
     for (const op of pendingOperations) {
         try {
-            let url = buildApiUrl(op.action, op.params);
+            let url;
+            if (op.action === "addItem") {
+                url = buildApiUrl("addItem", op.params);
+            } else {
+                url = buildApiUrl(op.action, op.params);
+            }
             const response = await fetch(url);
             const result = await response.json();
             if (!result.success) {
