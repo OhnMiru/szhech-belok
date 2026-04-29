@@ -12,13 +12,28 @@ function renderStats() {
     
     const sales = salesHistory.filter(entry => !entry.isReturn && !entry.hidden);
     let totalRevenue = 0, totalItemsSold = 0, orderCount = sales.length;
+    let cashRevenue = 0, transferRevenue = 0, cashOrders = 0, transferOrders = 0;
+    
     for (const sale of sales) { 
-        let saleItems = 0; 
+        let saleItems = 0;
+        let saleTotal = 0;
         for (const item of sale.items) { 
-            totalRevenue += item.qty * item.price; 
-            saleItems += item.qty; 
+            const itemTotal = item.qty * item.price;
+            totalRevenue += itemTotal;
+            saleItems += item.qty;
+            saleTotal += itemTotal;
         } 
-        totalItemsSold += saleItems; 
+        totalItemsSold += saleItems;
+        
+        // Подсчёт по типам оплаты
+        if (sale.paymentType === 'transfer') {
+            transferRevenue += saleTotal;
+            transferOrders++;
+        } else {
+            // cash, undefined или другое — считаем как наличные
+            cashRevenue += saleTotal;
+            cashOrders++;
+        }
     }
     const averageCheck = orderCount > 0 ? Math.ceil(totalRevenue / orderCount) : 0;
     
@@ -134,6 +149,11 @@ function renderStats() {
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalStock)}</div><div class="stats-card-label">📦 Осталось товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
+        <!-- НОВЫЕ КАРТОЧКИ ДЛЯ НАЛИЧНЫХ И ПЕРЕВОДОВ -->
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(cashRevenue)}</div><div class="stats-card-label">💰 Наличные</div></div>
+        <div class="stats-card"><div class="stats-card-value">${formatCurrency(transferRevenue)}</div><div class="stats-card-label">💳 Перевод</div></div>
+        <div class="stats-card"><div class="stats-card-value">${cashOrders}</div><div class="stats-card-label">📊 Заказов (нал)</div></div>
+        <div class="stats-card"><div class="stats-card-value">${transferOrders}</div><div class="stats-card-label">📊 Заказов (пер)</div></div>
     </div>`;
     
     html += `<div class="profit-mobile-row">
