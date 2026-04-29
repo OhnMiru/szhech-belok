@@ -45,21 +45,22 @@ async function loadData(showLoading = true, showProgress = false) {
 
 async function updateFullItem(id, type, name, stock, total, price, cost) {
     if (!isOnline) {
-        addPendingOperation("updateFullItem", `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}`);
+        addPendingOperation("updateFullItem", { id: id, type: type, name: name, stock: stock, total: total, price: price, cost: cost });
         return { success: true, offline: true };
     }
     try {
-        const response = await fetch(buildApiUrl("updateFullItem", `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}`));
+        const params = `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}`;
+        const response = await fetch(buildApiUrl("updateFullItem", params));
         return await response.json();
     } catch(e) {
-        addPendingOperation("updateFullItem", `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}`);
+        addPendingOperation("updateFullItem", { id: id, type: type, name: name, stock: stock, total: total, price: price, cost: cost });
         return { success: true, offline: true };
     }
 }
 
 async function sendAddItemRequest(type, name, total, stock, price, cost) {
     if (!isOnline) {
-        addPendingOperation("addItem", `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`);
+        addPendingOperation("addItem", { type: type, name: name, total: total, stock: stock, price: price, cost: cost });
         const tempId = -Date.now();
         const newItem = {
             id: tempId,
@@ -78,7 +79,8 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
     }
     
     try {
-        const response = await fetch(buildApiUrl("addItem", `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`));
+        const params = `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`;
+        const response = await fetch(buildApiUrl("addItem", params));
         const result = await response.json();
         if (result.success) {
             const newItem = {
@@ -100,7 +102,7 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
         return result;
     } catch(e) {
         console.error(e);
-        addPendingOperation("addItem", `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`);
+        addPendingOperation("addItem", { type: type, name: name, total: total, stock: stock, price: price, cost: cost });
         const tempId = -Date.now();
         const newItem = {
             id: tempId,
