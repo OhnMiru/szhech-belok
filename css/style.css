@@ -841,6 +841,10 @@ button:active {
     font-size: 11px;
     color: var(--text-muted);
     margin-bottom: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
 }
 
 .history-details {
@@ -2211,6 +2215,9 @@ body.dark .extra-cost-amount {
     flex-shrink: 0;
 }
 
+/* ========== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ СТАТИСТИКИ ========== */
+
+/* Плашка рентабельности на ноутбуке/планшете — на всю ширину, вертикально меньше */
 .profit-card-single {
     background: var(--btn-bg);
     border-radius: 16px;
@@ -2234,21 +2241,25 @@ body.dark .extra-cost-amount {
     font-weight: 500;
 }
 
+/* Мобильные плашки (скрыты на ноутбуке) */
 .profit-mobile-row {
     display: none;
 }
 
+/* Обёртка для таблиц с горизонтальной прокруткой */
 .table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     margin-bottom: 12px;
 }
 
+/* Основные таблицы */
 .detail-table {
     min-width: 700px;
     width: 100%;
 }
 
+/* Маленькие таблицы для топов */
 .detail-table-small {
     width: 100%;
     border-collapse: collapse;
@@ -2273,6 +2284,7 @@ body.dark .extra-cost-amount {
     text-align: right;
 }
 
+/* Компактная таблица для детализации */
 .detail-table-compact {
     min-width: 500px;
 }
@@ -2293,6 +2305,7 @@ body.dark .extra-cost-amount {
     padding-right: 8px;
 }
 
+/* Стили для сообщений о приватности */
 .stats-privacy-message {
     text-align: center;
     padding: 40px;
@@ -2303,6 +2316,7 @@ body.dark .extra-cost-amount {
     margin: 20px 0;
 }
 
+/* Заголовок статистики участника */
 .stats-header-info {
     text-align: center;
     margin-bottom: 20px;
@@ -2313,10 +2327,12 @@ body.dark .extra-cost-amount {
     color: var(--badge-text);
 }
 
+/* Отступ для блока дополнительных доходов */
 .extra-income-section {
     margin-top: 24px;
 }
 
+/* Стили для блока способа оплаты */
 .payment-section {
     background: var(--badge-bg);
     border-radius: 16px;
@@ -2358,6 +2374,7 @@ body.dark .extra-cost-amount {
     accent-color: #f39c12;
 }
 
+/* Стили для модалки добавления товара */
 #addItemModal .edit-row {
     margin-bottom: 15px;
 }
@@ -2377,6 +2394,159 @@ body.dark .extra-cost-amount {
     color: var(--text-primary);
 }
 
+/* ========== МОБИЛЬНЫЕ СТИЛИ (только для телефонов, ширина до 500px) ========== */
+@media (max-width: 500px) {
+    
+    /* 1. Фильтр времени в истории — построчно */
+    .history-filter-bottom {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .history-filter-left {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+    
+    .custom-datetime {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        height: auto;
+        padding: 8px 12px;
+    }
+    
+    .custom-datetime .datetime-label {
+        width: 100%;
+        margin-bottom: 4px;
+    }
+    
+    .datetime-group {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .history-price-filter {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .history-price-filter input {
+        width: 60px;
+    }
+    
+    .history-filter-reset-row {
+        justify-content: center;
+        margin-top: 8px;
+    }
+    
+    /* 2. Компактные бейджи в истории */
+    .history-badge {
+        font-size: 9px;
+        padding: 2px 5px;
+        margin-left: 4px;
+    }
+    
+    /* 3. Селектор товаров в бронировании на телефоне — по центру */
+    .discount-custom-select-dropdown {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 320px;
+        max-height: 70vh;
+        z-index: 2000;
+    }
+    
+    /* 4. Кнопка "Применить" в фильтре типов */
+    .filter-apply-btn,
+    .filter-reset-btn {
+        font-size: 11px;
+        padding: 8px 0;
+        white-space: nowrap;
+    }
+    
+    .filter-buttons {
+        gap: 6px;
+    }
+    
+    /* 5. Корзина — компактные кнопки скидок */
+    .discount-row {
+        flex-wrap: wrap;
+    }
+    
+    .discount-custom-select {
+        min-width: 60px;
+    }
+    
+    .discount-custom-select-trigger {
+        padding: 5px 8px;
+        font-size: 11px;
+    }
+    
+    .discount-amount-control {
+        flex: 1;
+        min-width: 100px;
+    }
+    
+    .discount-amount-input {
+        width: 60px;
+        font-size: 11px;
+        padding: 5px;
+    }
+    
+    .discount-step-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+    }
+    
+    /* Кнопки Товары, Все, Ничего — на одной строке */
+    .discount-products-btn,
+    .discount-all-btn,
+    .discount-none-btn {
+        font-size: 10px;
+        padding: 5px 8px;
+        white-space: nowrap;
+    }
+    
+    /* Три строки для скидок */
+    .discount-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .discount-row:first-child {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    /* Кнопки Отмена, Сбросить, Применить */
+    .discount-buttons-row {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .discount-action-btn.cancel-btn,
+    .discount-action-btn.apply-btn {
+        flex: 1;
+        max-width: none;
+        font-size: 10px;
+        padding: 6px 0;
+    }
+    
+    .discount-action-btn.reset-btn {
+        flex: 2;
+        font-size: 10px;
+        padding: 6px 0;
+    }
+}
+
+/* Адаптация для планшетов */
 @media (min-width: 768px) and (max-width: 1024px) {
     .stats-grid {
         grid-template-columns: repeat(5, 1fr);
