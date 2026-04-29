@@ -34,7 +34,7 @@ function renderCards() {
                 <div class="title-row">
                     ${type ? `<span class="type-badge" style="background: ${typeColor}20; color: ${typeColor}; border: 1px solid ${typeColor}40;">${escapeHtml(type)}</span>` : ''}
                     ${currentSortBy === 'custom' ? '<span class="sort-handle">⋮⋮</span>' : ''}
-                    <span class="name">${escapeHtml(name)}</span>
+                    <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>
                 </div>
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
                 <div class="total-row"><span class="total">📦 Всего: ${total} шт</span><button class="edit-icon" onclick="openEditProductModal(${id})">✏️</button></div>
@@ -48,15 +48,31 @@ function renderCards() {
         `;
         container.appendChild(cardDiv);
     });
+    
     document.querySelectorAll('.minus, .plus').forEach(btn => {
         btn.removeEventListener('click', handleButtonClick);
         btn.addEventListener('click', handleButtonClick);
     });
+    
     document.querySelectorAll('.add-to-cart').forEach(btn => {
         btn.removeEventListener('click', handleAddToCart);
         btn.addEventListener('click', handleAddToCart);
     });
+    
+    // Добавляем обработчики клика по названию товара для открытия фото
+    document.querySelectorAll('.name.clickable').forEach(nameEl => {
+        nameEl.removeEventListener('click', handleNameClick);
+        nameEl.addEventListener('click', handleNameClick);
+    });
+    
     updateCardBadges();
+}
+
+function handleNameClick(e) {
+    e.stopPropagation();
+    const id = parseInt(e.currentTarget.dataset.id);
+    const name = e.currentTarget.dataset.name;
+    openPhotoModal(id, name);
 }
 
 function handleAddToCart(e) {
