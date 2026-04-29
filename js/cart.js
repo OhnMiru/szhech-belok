@@ -38,6 +38,23 @@ function getBestDiscountForItem(id, originalPrice, qty, subtotal) {
     return { price: finalPrice, discountValue: discountValue, discountType: discountType };
 }
 
+function getActiveRulesFiltered() {
+    // Получаем все активные правила
+    const allActiveRules = checkRulesForCart();
+    
+    // Если оплата переводом, фильтруем правила с типом 'bonus'
+    if (currentPaymentType === 'transfer') {
+        return allActiveRules.filter(rule => {
+            // Проверяем, является ли правило бонусным
+            // Ищем соответствующее правило в rulesList
+            const matchingRule = rulesList.find(r => r.message === rule.message && r.icon === rule.icon);
+            return !matchingRule || matchingRule.type !== 'bonus';
+        });
+    }
+    
+    return allActiveRules;
+}
+
 function updateCartUI() {
     const totalPositiveCount = Object.values(cart).reduce((a, b) => a + (b > 0 ? b : 0), 0);
     const cartCountSpan = document.getElementById('cartCount');
@@ -74,8 +91,8 @@ function updateCartUI() {
         discountPanelDiv.innerHTML = discountHtml;
     }
     
-    // Активные правила
-    const activeRules = checkRulesForCart();
+    // Активные правила (с фильтрацией по типу оплаты)
+    const activeRules = getActiveRulesFiltered();
     let html = '';
     if (activeRules.length > 0) {
         html += `<div style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);"><div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">✨ Активные правила ✨</div>`;
@@ -83,11 +100,11 @@ function updateCartUI() {
         html += `</div>`;
     }
     
-    // Блок способа оплаты (отдельный, без объединения со скидками)
+    // Блок способа оплаты
     let paymentHtml = `<div class="payment-section" style="background: var(--badge-bg); border-radius: 16px; margin-bottom: 16px; border-left: 4px solid var(--btn-bg);">
-        <div class="payment-header" style="padding: 10px 12px; font-weight: bold; font-size: 13px; color: var(--badge-text); border-bottom: 1px solid var(--border-color);">💰 Способ оплаты</div>
+        <div class="payment-header" style="padding: 10px 12px; font-weight: bold; font-size: 13px; color: var(--badge-text);">💰 Способ оплаты</div>
         <div class="payment-content" style="padding: 12px;">
-            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--text-primary);">
+            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--text-primary); font-weight: bold; font-size: 13px;">
                 <input type="checkbox" id="paymentTypeCheckbox" ${currentPaymentType === 'transfer' ? 'checked' : ''} 
                        style="width: 20px; height: 20px; cursor: pointer; accent-color: #f39c12;">
                 <span>Оплата переводом (по умолчанию — наличные)</span>
@@ -95,7 +112,13 @@ function updateCartUI() {
         </div>
     </div>`;
     
-    // Добавляем блок оплаты после активных правил
+    // Добавляем блоки в правильном порядке:
+    // 1. Активные правила
+    // 2. Скидки (уже в discountPanelDiv)
+    // 3. Способ оплаты
+    // Примечание: discountPanelDiv находится выше в DOM, поэтому 
+    // блок способа оплаты добавляем в html после правил, а скидки уже в discountPanelDiv
+    
     html += paymentHtml;
     
     let subtotal = 0;
@@ -149,8 +172,14 @@ function updateCartUI() {
     // Обработчик чекбокса оплаты
     const paymentCheckbox = document.getElementById('paymentTypeCheckbox');
     if (paymentCheckbox) {
-        paymentCheckbox.addEventListener('change', function(e) {
+        // Убираем старый обработчик, чтобы не навешивать несколько
+        const newCheckbox = paymentCheckbox.cloneNode(true);
+        paymentCheckbox.parentNode.replaceChild(newCheckbox, paymentCheckbox);
+        
+        newCheckbox.addEventListener('change', function(e) {
             currentPaymentType = e.target.checked ? 'transfer' : 'cash';
+            // Обновляем UI для отображения отфильтрованных правил
+            updateCartUI();
         });
     }
     
@@ -533,8 +562,15 @@ async function checkout() {
     let total = 0;
     for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); const best = getBestDiscountForItem(id, card.price, qty, subtotal); total += best.price * qty; }
     for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (qty > card.stock) { showToast(`Не хватает "${card.name}" (нужно ${qty}, есть ${card.stock})`, false); return; } }
-    const activeRules = checkRulesForCart();
-    if (activeRules.length > 0) { let rulesMessage = "Не забудьте:\n"; for (const rule of activeRules) rulesMessage += `• ${rule.message}\n`; showToast(rulesMessage, true); }
+    
+    // Получаем активные правила с учётом текущего типа оплаты для отображения в тосте
+    let activeRules = getActiveRulesFiltered();
+    if (activeRules.length > 0) { 
+        let rulesMessage = "Не забудьте:\n"; 
+        for (const rule of activeRules) rulesMessage += `• ${rule.message}\n`; 
+        showToast(rulesMessage, true); 
+    }
+    
     const historyItems = items.map(([idStr, qty]) => { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); return { id: card.id, name: card.name, qty: qty, price: card.price }; });
     const roundedTotal = Math.floor(total);
     addToHistory(historyItems, roundedTotal, 'basket', false, currentPaymentType);
@@ -556,6 +592,9 @@ async function checkout() {
             delete cartBookingMap[id];
         }
     }
+    
+    // Сбрасываем тип оплаты на наличные после продажи
+    currentPaymentType = 'cash';
     
     updateCartUI();
     for (const [idStr, qty] of Object.entries(cartCopy)) {
