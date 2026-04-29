@@ -391,14 +391,14 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             return;
         }
         
+        // Шаг 1: равномерно распределяем скидку с округлением вниз
+        const baseDiscount = Math.floor(totalDiscountValue / units.length);
         let remainingDiscount = totalDiscountValue;
         
-        // Первый проход: равномерно распределяем скидку на все единицы
         const unitDiscounts = new Array(units.length).fill(0);
-        const equalShare = remainingDiscount / units.length;
         
         for (let i = 0; i < units.length; i++) {
-            let discountForUnit = equalShare;
+            let discountForUnit = baseDiscount;
             if (discountForUnit > units[i].currentPrice) {
                 discountForUnit = units[i].currentPrice;
             }
@@ -407,36 +407,22 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             remainingDiscount -= discountForUnit;
         }
         
-        // Второй проход: пока есть остаток, распределяем его на единицы, которые ещё не обнулились
-        let iteration = 0;
-        const maxIterations = 100;
+        // Шаг 2: распределяем оставшиеся рубли по одному на самые дорогие единицы
+        const indices = Array.from(units.keys());
+        indices.sort((a, b) => units[b].currentPrice - units[a].currentPrice);
         
-        while (remainingDiscount > 0.01 && iteration < maxIterations) {
-            iteration++;
-            
-            const activeUnits = [];
-            for (let i = 0; i < units.length; i++) {
-                if (units[i].currentPrice > 0) {
-                    activeUnits.push(i);
-                }
+        let remainder = Math.round(remainingDiscount);
+        
+        for (let i = 0; i < indices.length && remainder > 0; i++) {
+            const idx = indices[i];
+            if (units[idx].currentPrice > 0) {
+                unitDiscounts[idx] += 1;
+                units[idx].currentPrice -= 1;
+                remainder--;
             }
-            
-            if (activeUnits.length === 0) break;
-            
-            const additionalPerUnit = remainingDiscount / activeUnits.length;
-            let distributedThisRound = 0;
-            
-            for (const idx of activeUnits) {
-                const discountToApply = Math.min(additionalPerUnit, units[idx].currentPrice);
-                unitDiscounts[idx] += discountToApply;
-                units[idx].currentPrice -= discountToApply;
-                distributedThisRound += discountToApply;
-            }
-            
-            remainingDiscount -= distributedThisRound;
         }
         
-        // Собираем скидки по каждому товару
+        // Шаг 3: собираем скидки по каждому товару
         const discountsByItem = {};
         for (let i = 0; i < units.length; i++) {
             const unit = units[i];
@@ -462,25 +448,18 @@ function applyCartDiscountToAll(type, totalDiscountValue) {
             }
         }
         
-        // КОРРЕКТИРУЮЩИЙ ШАГ: проверяем, совпадает ли общая скидка с заданной
+        // Шаг 4: финальная корректировка
         let actualTotalDiscount = 0;
         for (const [id, disc] of Object.entries(itemDiscounts)) {
             const numericId = parseInt(id);
             const qty = cart[numericId] || 1;
-            let discountPerUnit = disc.value;
-            if (disc.type === 'percent') {
-                const card = originalCardsData.find(c => c.id === numericId);
-                if (card) {
-                    discountPerUnit = card.price * (disc.value / 100);
-                }
-            }
-            actualTotalDiscount += discountPerUnit * qty;
+            actualTotalDiscount += disc.value * qty;
         }
         
         const difference = Math.round(totalDiscountValue - actualTotalDiscount);
         
-        if (Math.abs(difference) > 0 && difference > 0) {
-            // Нужно добавить недостающую скидку (1-3 рубля) к самому дорогому товару
+        if (difference !== 0) {
+            // Находим самый дорогой товар
             let mostExpensiveId = null;
             let mostExpensivePrice = 0;
             
