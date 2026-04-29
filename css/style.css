@@ -2358,6 +2358,25 @@ body.dark .extra-cost-amount {
     accent-color: #f39c12;
 }
 
+#addItemModal .edit-row {
+    margin-bottom: 15px;
+}
+
+#addItemModal select.edit-input,
+#addItemModal input.edit-input {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+#addItemModal select.edit-input option {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
 @media (min-width: 768px) and (max-width: 1024px) {
     .stats-grid {
         grid-template-columns: repeat(5, 1fr);
