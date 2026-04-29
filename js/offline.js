@@ -40,23 +40,19 @@ async function processPendingOperations(silent = false) {
     for (const op of pendingOperations) {
         try {
             let url;
-            let params;
             
             switch (op.action) {
                 case "addItem":
-                    params = buildParamsFromObject(op.params);
-                    url = buildApiUrl("addItem", params);
+                    url = buildApiUrl("addItem", buildParamsFromObject(op.params));
                     break;
                 case "updateFullItem":
-                    params = buildParamsFromObject(op.params);
-                    url = buildApiUrl("updateFullItem", params);
+                    url = buildApiUrl("updateFullItem", buildParamsFromObject(op.params));
                     break;
                 case "update":
-                    params = buildParamsFromObject(op.params);
-                    url = buildApiUrl("update", params);
+                    url = buildApiUrl("update", buildParamsFromObject(op.params));
                     break;
                 case "syncFullHistory":
-                    // Для истории данные уже в правильном формате (не двойное кодирование)
+                    // ВАЖНО: op.params уже является массивом истории, НЕ закодированным
                     const historyData = encodeURIComponent(JSON.stringify(op.params));
                     url = buildApiUrl("syncFullHistory", `&data=${historyData}`);
                     break;
@@ -81,24 +77,20 @@ async function processPendingOperations(silent = false) {
                     url = buildApiUrl("syncFullRules", `&data=${rulesData}`);
                     break;
                 case "hideHistoryEntry":
-                    params = buildParamsFromObject(op.params);
-                    url = buildApiUrl("hideHistoryEntry", params);
+                    url = buildApiUrl("hideHistoryEntry", buildParamsFromObject(op.params));
                     break;
                 case "cancelHistoryEntry":
-                    params = buildParamsFromObject(op.params);
-                    url = buildApiUrl("cancelHistoryEntry", params);
+                    url = buildApiUrl("cancelHistoryEntry", buildParamsFromObject(op.params));
                     break;
                 case "savePrivacy":
                     const privacyData = encodeURIComponent(JSON.stringify(op.params));
                     url = buildApiUrl("savePrivacy", `&data=${privacyData}`);
                     break;
                 case "cancelBooking":
-                    params = buildParamsFromObject(op.params);
-                    url = buildApiUrl("cancelBooking", params);
+                    url = buildApiUrl("cancelBooking", buildParamsFromObject(op.params));
                     break;
                 default:
-                    params = buildParamsFromObject(op.params);
-                    url = buildApiUrl(op.action, params);
+                    url = buildApiUrl(op.action, buildParamsFromObject(op.params));
             }
             
             const response = await fetch(url);
