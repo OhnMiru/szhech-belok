@@ -5,7 +5,7 @@ export async function onRequest(context) {
     const url = new URL(request.url);
     
     // URL вашего Google Apps Script (работает)
-    const GS_API_URL = "https://script.google.com/macros/s/AKfycbwA9I9ehMqUlgATO2rIrRMI2QgVJ2Bd-lDDmizIToCa61ux5r5sxkjTvsBf2u0IKooP/exec";
+    const GS_API_URL = "https://script.google.com/macros/s/AKfycbwOTzlhSyDBm1hqc60Lcym_gzrqyWf0dyPFLYtXVcYFDFPxzsJ5ioPbFFW8fTUemqdu/exec";
     
     // Строим URL для Google Apps Script с теми же параметрами
     const gsUrl = new URL(GS_API_URL);
