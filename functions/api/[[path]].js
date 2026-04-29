@@ -1,7 +1,7 @@
 // functions/api/[[path]].js 
 
 // URL вашего Google Apps Script
-const GS_API_URL = "https://script.google.com/macros/s/AKfycbwA9I9ehMqUlgATO2rIrRMI2QgVJ2Bd-lDDmizIToCa61ux5r5sxkjTvsBf2u0IKooP/exec";
+const GS_API_URL = "https://script.google.com/macros/s/AKfycbxY14PLnxxxDKeEskGtcAZZ6hrL33IaFi7AkZLsO3NZY7hFB3Buni5nnCWrfA2-B9wa/exec";
 
 export async function onRequest(context) {
     const { request } = context;
