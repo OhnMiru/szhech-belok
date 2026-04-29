@@ -37,10 +37,27 @@ function closeCartModal() {
 function openEditProductModal(id) {
     currentEditId = id;
     const card = originalCardsData.find(c => c.id === id);
+    
     if (card) {
-        document.getElementById('editTotal').value = card.total;
+        document.getElementById('editTitle').textContent = `✏️ Редактирование товара №${card.id}`;
+        document.getElementById('editType').value = card.type || "";
+        document.getElementById('editName').value = card.name || "";
         document.getElementById('editStock').value = card.stock;
+        document.getElementById('editTotal').value = card.total;
+        document.getElementById('editPrice').value = card.price;
+        document.getElementById('editCost').value = card.cost || 0;
+        
+        // Загружаем фото в превью
+        loadPhotoPreview(id);
+        
         document.getElementById('editProductModal').style.display = 'block';
+        
+        // ВАЖНО: инициализируем обработчики ПОСЛЕ того как модалка открылась
+        setTimeout(() => {
+            initPhotoUploadInEditModal();
+        }, 100);
+    } else {
+        showToast("Товар не найден", false);
     }
 }
 
