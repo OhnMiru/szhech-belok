@@ -72,6 +72,7 @@ function handleNameClick(e) {
     e.stopPropagation();
     const id = parseInt(e.currentTarget.dataset.id);
     const name = e.currentTarget.dataset.name;
+    console.log("Opening photo modal for:", name, "id:", id);
     openPhotoModal(id, name);
 }
 
