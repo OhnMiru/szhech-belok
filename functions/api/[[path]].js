@@ -1,20 +1,17 @@
-// functions/api/[[path]].js - минимальный рабочий прокси
+// functions/api/[[path]].js
 
 export async function onRequest(context) {
     const { request } = context;
     const url = new URL(request.url);
     
-    // URL вашего Google Apps Script (работает)
     const GS_API_URL = "https://script.google.com/macros/s/AKfycbzY3CQq4TROQyTm6XyRtN7KJ7qknVj-3D0bbCExezNtevlTb6zEywhAhUqvWtVHEtU/exec";
     
-    // Строим URL для Google Apps Script с теми же параметрами
     const gsUrl = new URL(GS_API_URL);
     for (const [key, value] of url.searchParams.entries()) {
         gsUrl.searchParams.append(key, value);
     }
     
     try {
-        // Просто передаём запрос дальше
         const gsResponse = await fetch(gsUrl.toString(), {
             method: request.method,
             headers: {
@@ -24,11 +21,21 @@ export async function onRequest(context) {
         
         const responseText = await gsResponse.text();
         
-        // Возвращаем ответ с CORS заголовками
-        return new Response(responseText, {
+        // Проверяем, что ответ — JSON
+        let responseBody = responseText;
+        let contentType = 'application/json';
+        
+        if (responseText.trim().startsWith('<')) {
+            responseBody = JSON.stringify({ 
+                error: 'Google Apps Script returned HTML', 
+                details: responseText.substring(0, 200) 
+            });
+        }
+        
+        return new Response(responseBody, {
             status: gsResponse.status,
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': contentType,
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type'
