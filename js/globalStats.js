@@ -1,7 +1,4 @@
 // ========== ГЛОБАЛЬНАЯ СТАТИСТИКА ==========
-let globalExtraCosts = [];
-let globalExtraIncomes = [];
-
 async function loadGlobalExtraCosts() {
     if (!isOnline) {
         const saved = localStorage.getItem('merch_global_costs');
