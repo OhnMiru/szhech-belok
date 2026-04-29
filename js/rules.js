@@ -6,15 +6,19 @@ let scrollPosition = 0;
 
 async function syncFullRulesToServer() {
     if (!isOnline) {
-        addPendingOperation("syncFullRules", `&data=${encodeURIComponent(JSON.stringify(rulesList))}`);
+        addPendingOperation("syncFullRules", rulesList);
         return;
     }
     try {
         const data = encodeURIComponent(JSON.stringify(rulesList));
-        await fetch(buildApiUrl("syncFullRules", `&data=${data}`));
+        const response = await fetch(buildApiUrl("syncFullRules", `&data=${data}`));
+        const result = await response.json();
+        if (!result.success) {
+            addPendingOperation("syncFullRules", rulesList);
+        }
     } catch(e) { 
         console.error(e); 
-        addPendingOperation("syncFullRules", `&data=${encodeURIComponent(JSON.stringify(rulesList))}`);
+        addPendingOperation("syncFullRules", rulesList);
     }
 }
 
@@ -24,7 +28,6 @@ async function loadRulesFromServer() {
         if (saved) {
             try {
                 rulesList = JSON.parse(saved);
-                // Фильтруем битые правила
                 rulesList = rulesList.filter(rule => rule && rule.type);
             } catch(e) {
                 rulesList = [];
@@ -40,14 +43,16 @@ async function loadRulesFromServer() {
         const data = await response.json();
         if (data && data.rules) {
             rulesList = data.rules;
-            // Фильтруем битые правила
             rulesList = rulesList.filter(rule => rule && rule.type);
             localStorage.setItem('merch_rules_structured', JSON.stringify(rulesList));
             renderRulesList();
             return true;
         }
         return false;
-    } catch(e) { return false; }
+    } catch(e) { 
+        console.error(e);
+        return false;
+    }
 }
 
 async function loadRules() {
@@ -208,7 +213,7 @@ function renderRuleForm() {
     } else if (currentRuleType === 'product') {
         container.innerHTML = `
             <div id="productMultiSelectContainer"></div>
-            <input type="number" id="ruleProductQty" class="rule-styled-input" placeholder="Количество от (шт)" min="1" step="1>
+            <input type="number" id="ruleProductQty" class="rule-styled-input" placeholder="Количество от (шт)" min="1" step="1">
             <input type="text" id="ruleProductMessage" class="rule-styled-input" placeholder="Что выводить? (например: Наклейка на лист интерактива)">
         `;
         renderProductMultiSelect(false);
@@ -273,7 +278,6 @@ function renderRulesList() {
     const container = document.getElementById('rules-list');
     if (!container) return;
     
-    // Фильтруем для отображения только валидные правила
     const validRules = rulesList.filter(rule => rule && rule.type);
     
     if (validRules.length === 0) {
@@ -370,7 +374,6 @@ function checkRulesForCart() {
     
     const activeRules = [];
     for (const rule of rulesList) {
-        // Пропускаем битые правила
         if (!rule || !rule.type) continue;
         if (rule.active === false) continue;
         
