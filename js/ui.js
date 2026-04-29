@@ -108,7 +108,6 @@ function closeBookingsModal() {
 // ========== ДОБАВЛЕНИЕ ТОВАРА ==========
 
 function openAddItemModal() {
-    // Заполняем выпадающий список типов
     const typeSelect = document.getElementById('addItemType');
     if (typeSelect) {
         typeSelect.innerHTML = '<option value="">Выберите или добавьте новый</option>';
@@ -121,21 +120,18 @@ function openAddItemModal() {
         }
     }
     
-    // Очищаем поля
     document.getElementById('addItemName').value = '';
     document.getElementById('addItemTotal').value = '0';
     document.getElementById('addItemStock').value = '0';
     document.getElementById('addItemPrice').value = '0';
     document.getElementById('addItemCost').value = '0';
     
-    // Скрываем поле нового типа
     const newTypeInput = document.getElementById('addItemNewType');
     if (newTypeInput) {
         newTypeInput.style.display = 'none';
         newTypeInput.value = '';
     }
     
-    // Показываем селект
     if (typeSelect) typeSelect.style.display = 'flex';
     
     const modal = document.getElementById('addItemModal');
@@ -153,18 +149,15 @@ function toggleNewTypeInput() {
     const toggleBtn = document.getElementById('toggleNewTypeBtn');
     
     if (typeSelect.style.display !== 'none') {
-        // Скрываем селект, показываем поле ввода
         typeSelect.style.display = 'none';
         newTypeInput.style.display = 'flex';
         toggleBtn.textContent = '📋';
         newTypeInput.focus();
     } else {
-        // Показываем селект, скрываем поле ввода
         typeSelect.style.display = 'flex';
         newTypeInput.style.display = 'none';
         newTypeInput.value = '';
         toggleBtn.textContent = '➕';
-        // Обновляем список типов
         const currentType = typeSelect.value;
         typeSelect.innerHTML = '<option value="">Выберите или добавьте новый</option>';
         const sortedTypes = [...typeOptions].sort();
@@ -183,7 +176,6 @@ function toggleNewTypeInput() {
 function onTypeSelectChange() {
     const typeSelect = document.getElementById('addItemType');
     if (typeSelect.value === "") {
-        // Если выбран "добавить новый", открываем поле ввода
         if (typeSelect.style.display !== 'none') {
             toggleNewTypeInput();
         }
@@ -191,7 +183,6 @@ function onTypeSelectChange() {
 }
 
 async function addNewItem() {
-    // Получаем тип
     let type = '';
     const typeSelect = document.getElementById('addItemType');
     const newTypeInput = document.getElementById('addItemNewType');
@@ -210,14 +201,12 @@ async function addNewItem() {
         }
     }
     
-    // Получаем название
     const name = document.getElementById('addItemName').value.trim();
     if (name === "") {
         showToast("Введите название товара", false);
         return;
     }
     
-    // Получаем количество
     const total = parseInt(document.getElementById('addItemTotal').value) || 0;
     const stock = parseInt(document.getElementById('addItemStock').value) || 0;
     
@@ -230,23 +219,19 @@ async function addNewItem() {
         return;
     }
     
-    // Получаем цену
     const price = parseFloat(document.getElementById('addItemPrice').value) || 0;
     if (price < 0) {
         showToast("Цена не может быть отрицательной", false);
         return;
     }
     
-    // Получаем себестоимость
     const cost = parseFloat(document.getElementById('addItemCost').value) || 0;
     if (cost < 0) {
         showToast("Себестоимость не может быть отрицательной", false);
         return;
     }
     
-    // Добавляем товар
-    await addNewItem(type, name, total, stock, price, cost);
+    await sendAddItemRequest(type, name, total, stock, price, cost);
     
-    // Закрываем модалку
     closeAddItemModal();
 }
