@@ -57,3 +57,67 @@ async function updateFullItem(id, type, name, stock, total, price, cost) {
         return { success: true, offline: true };
     }
 }
+
+async function addNewItem(type, name, total, stock, price, cost) {
+    if (!isOnline) {
+        addPendingOperation("addItem", `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`);
+        // Временно добавляем товар в локальный массив
+        const tempId = -Date.now();
+        const newItem = {
+            id: tempId,
+            type: type,
+            name: name,
+            total: total,
+            stock: stock,
+            price: price,
+            cost: cost || 0
+        };
+        originalCardsData.push(newItem);
+        updateTypeOptions();
+        filterAndSort();
+        showToast(`Товар "${name}" добавлен (будет синхронизирован при восстановлении соединения)`, true);
+        return { success: true, offline: true, id: tempId };
+    }
+    
+    try {
+        const response = await fetch(buildApiUrl("addItem", `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`));
+        const result = await response.json();
+        if (result.success) {
+            // Добавляем товар в локальный массив с полученным ID
+            const newItem = {
+                id: result.id,
+                type: type,
+                name: name,
+                total: total,
+                stock: stock,
+                price: price,
+                cost: cost || 0
+            };
+            originalCardsData.push(newItem);
+            updateTypeOptions();
+            filterAndSort();
+            showToast(`Товар "${name}" добавлен!`, true);
+        } else {
+            showToast("Ошибка: " + (result.error || "неизвестная"), false);
+        }
+        return result;
+    } catch(e) {
+        console.error(e);
+        addPendingOperation("addItem", `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`);
+        const tempId = -Date.now();
+        const newItem = {
+            id: tempId,
+            type: type,
+            name: name,
+            total: total,
+            stock: stock,
+            price: price,
+            cost: cost || 0
+        };
+        originalCardsData.push(newItem);
+        updateTypeOptions();
+        filterAndSort();
+        showToast(`Товар "${name}" добавлен (будет синхронизирован при восстановлении соединения)`, true);
+        return { success: true, offline: true, id: tempId };
+    }
+}
