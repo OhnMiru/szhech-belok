@@ -12,7 +12,12 @@ function openEditProductModal(id) {
         document.getElementById('editTotal').value = card.total;
         document.getElementById('editPrice').value = card.price;
         document.getElementById('editCost').value = card.cost || 0;
+        
+        // Загружаем фото в превью
+        loadPhotoPreview(id);
+        
         document.getElementById('editProductModal').style.display = 'block';
+        initPhotoUploadInEditModal();
     } else {
         showToast("Товар не найден", false);
     }
@@ -82,7 +87,7 @@ async function saveProductChanges() {
     }
     
     if (!isOnline) {
-        addPendingOperation("updateFullItem", `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`);
+        addPendingOperation("updateFullItem", { id: currentEditId, type: newType, name: newName, stock: newStock, total: newTotal, price: newPrice, cost: newCost });
         showToast(`Товар "${newName}" обновлён (будет синхронизировано при восстановлении соединения)`, true);
         closeEditProductModal();
         return;
@@ -99,7 +104,7 @@ async function saveProductChanges() {
         }
     } catch (e) {
         console.error(e);
-        addPendingOperation("updateFullItem", `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`);
+        addPendingOperation("updateFullItem", { id: currentEditId, type: newType, name: newName, stock: newStock, total: newTotal, price: newPrice, cost: newCost });
         showToast(`Товар "${newName}" обновлён (будет синхронизировано при восстановлении соединения)`, true);
         closeEditProductModal();
     }
