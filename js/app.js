@@ -2,37 +2,32 @@
 function initApp() {
     console.log("Инициализация приложения...");
     
-    // Проверяем, что все необходимые функции загружены
-    if (typeof initCustomSelects !== 'function') {
-        console.error("initCustomSelects not loaded");
-        return;
-    }
-    if (typeof loadRules !== 'function') {
-        console.error("loadRules not loaded");
-        return;
-    }
-    if (typeof loadHistory !== 'function') {
-        console.error("loadHistory not loaded");
-        return;
-    }
-    if (typeof loadExtraCosts !== 'function') {
-        console.error("loadExtraCosts not loaded");
-        return;
-    }
-    if (typeof loadExtraIncomes !== 'function') {
-        console.error("loadExtraIncomes not loaded");
-        return;
-    }
-    if (typeof loadData !== 'function') {
-        console.error("loadData not loaded");
-        return;
-    }
+    // Загружаем данные с задержкой, чтобы все скрипты успели загрузиться
+    setTimeout(() => {
+        if (typeof loadData === 'function') {
+            loadData(true, true);
+        } else {
+            console.error("loadData still not loaded, checking again in 1 second...");
+            setTimeout(() => {
+                if (typeof loadData === 'function') {
+                    loadData(true, true);
+                } else {
+                    console.error("loadData failed to load - check if api.js is blocked");
+                    const container = document.getElementById('cards-container');
+                    if (container) {
+                        container.innerHTML = '<div class="loading">❌ Ошибка загрузки данных. Попробуйте обновить страницу.</div>';
+                    }
+                }
+            }, 1000);
+        }
+    }, 200);
     
-    initCustomSelects();
-    loadRules();
-    loadHistory();
-    loadExtraCosts();
-    loadExtraIncomes();
+    // Загружаем остальные данные
+    if (typeof initCustomSelects === 'function') initCustomSelects();
+    if (typeof loadRules === 'function') loadRules();
+    if (typeof loadHistory === 'function') loadHistory();
+    if (typeof loadExtraCosts === 'function') loadExtraCosts();
+    if (typeof loadExtraIncomes === 'function') loadExtraIncomes();
     
     if (CURRENT_USER.role === 'organizer') {
         if (typeof loadGlobalExtraCosts === 'function') loadGlobalExtraCosts();
@@ -43,12 +38,9 @@ function initApp() {
     if (typeof bindDateTimeEvents === 'function') bindDateTimeEvents();
     if (typeof initCustomOrder === 'function') initCustomOrder();
     
-    // Загружаем данные
-    loadData(true, true);
-    
     // Запускаем автообновление
-    startAutoRefresh();
-    startHistoryAutoSync();
+    if (typeof startAutoRefresh === 'function') startAutoRefresh();
+    if (typeof startHistoryAutoSync === 'function') startHistoryAutoSync();
     
     // Загружаем бронирования
     if (typeof loadBookings === 'function') {
@@ -64,44 +56,72 @@ function initApp() {
     const bookingsBtn = document.getElementById('bookingsButton');
     const addItemBtn = document.getElementById('addItemButton');
     const supplyBtn = document.getElementById('supplyButton');
+    const rulesBtn = document.getElementById('rulesButton');
+    const statsBtn = document.getElementById('statsButton');
+    const globalStatsBtn = document.getElementById('globalStatsBtn');
   
     if (bookingsBtn) {
-        bookingsBtn.addEventListener('click', openBookingsModal);
+        bookingsBtn.addEventListener('click', () => {
+            if (typeof openBookingsModal === 'function') openBookingsModal();
+        });
     }
     
     if (addItemBtn) {
-        addItemBtn.addEventListener('click', openAddItemModal);
+        addItemBtn.addEventListener('click', () => {
+            if (typeof openAddItemModal === 'function') openAddItemModal();
+        });
     }
     
     if (supplyBtn) {
-        supplyBtn.addEventListener('click', openSupplyModal);
+        supplyBtn.addEventListener('click', () => {
+            if (typeof openSupplyModal === 'function') openSupplyModal();
+        });
+    }
+    
+    if (rulesBtn) {
+        rulesBtn.addEventListener('click', () => {
+            if (typeof openRulesModal === 'function') openRulesModal();
+        });
+    }
+    
+    if (statsBtn) {
+        statsBtn.addEventListener('click', () => {
+            if (typeof openStatsModal === 'function') openStatsModal();
+        });
+    }
+    
+    if (globalStatsBtn && CURRENT_USER.role === 'organizer') {
+        globalStatsBtn.style.display = 'inline-flex';
+        globalStatsBtn.addEventListener('click', () => {
+            if (typeof showGlobalStats === 'function') showGlobalStats();
+        });
     }
 
     if (settingsToggle) {
         settingsToggle.addEventListener('click', (e) => {
             e.stopPropagation();
-            settingsDropdown.classList.toggle('hidden');
+            if (settingsDropdown) settingsDropdown.classList.toggle('hidden');
         });
     }
     
     if (shareStatsBtn) {
         shareStatsBtn.addEventListener('click', () => {
-            toggleShareStats();
-            settingsDropdown.classList.add('hidden');
+            if (typeof toggleShareStats === 'function') toggleShareStats();
+            if (settingsDropdown) settingsDropdown.classList.add('hidden');
         });
     }
     
     if (hideStatsBtn) {
         hideStatsBtn.addEventListener('click', () => {
-            toggleHideStats();
-            settingsDropdown.classList.add('hidden');
+            if (typeof toggleHideStats === 'function') toggleHideStats();
+            if (settingsDropdown) settingsDropdown.classList.add('hidden');
         });
     }
     
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            logout();
-            settingsDropdown.classList.add('hidden');
+            if (typeof logout === 'function') logout();
+            if (settingsDropdown) settingsDropdown.classList.add('hidden');
         });
     }
 
@@ -110,7 +130,7 @@ function initApp() {
             settingsDropdown.classList.add('hidden');
     });
     
-    // Загружаем комментарии после инициализации
+    // Загружаем комментарии
     if (typeof loadAllComments === 'function') {
         loadAllComments();
     }
@@ -118,13 +138,14 @@ function initApp() {
     console.log("Инициализация приложения завершена");
 }
 
-// Обработчик кликов для закрытия модальных окон
+// Обработчик кликов для закрытия выпадающих списков правил
 document.addEventListener('click', function(event) {
     if (!event.target.closest('.rule-custom-select')) {
         if (typeof closeAllRuleSelects === 'function') closeAllRuleSelects();
     }
 });
 
+// Обработчик для закрытия модальных окон при клике на фон
 window.onclick = function(event) {
     const historyModal = document.getElementById('historyModal');
     const cartModal = document.getElementById('cartModal');
@@ -155,66 +176,82 @@ window.onclick = function(event) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM полностью загружен");
     
-    initTheme();
+    // Инициализируем тему
+    if (typeof initTheme === 'function') {
+        initTheme();
+    } else {
+        console.warn("initTheme not loaded");
+    }
     
+    // Кнопка переключения темы
     const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            if (typeof toggleTheme === 'function') toggleTheme();
+        });
+    }
 
+    // Кнопка входа
     const loginBtn = document.getElementById('loginBtn');
-    if (loginBtn) loginBtn.addEventListener('click', login);
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            if (typeof login === 'function') login();
+        });
+    }
 
+    // Вход по Enter
     const loginInput = document.getElementById('loginInput');
-    const passwordInput2 = document.getElementById('passwordInput');
-    if (loginInput) loginInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
-    if (passwordInput2) passwordInput2.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
+    const passwordInput = document.getElementById('passwordInput');
+    if (loginInput) {
+        loginInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter' && typeof login === 'function') login(); 
+        });
+    }
+    if (passwordInput) {
+        passwordInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter' && typeof login === 'function') login(); 
+        });
+    }
 
+    // Поиск
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.addEventListener('input', () => {
-        if (typeof filterAndSort === 'function') filterAndSort();
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            if (typeof filterAndSort === 'function') filterAndSort();
+        });
+    }
 
+    // Сброс фильтров
     const resetBtn = document.getElementById('resetFilters');
-    if (resetBtn) resetBtn.addEventListener('click', () => {
-        if (typeof resetAllFilters === 'function') resetAllFilters();
-    });
-
-    const rulesBtn = document.getElementById('rulesButton');
-    if (rulesBtn) rulesBtn.addEventListener('click', () => {
-        if (typeof openRulesModal === 'function') openRulesModal();
-    });
-
-    const statsBtn = document.getElementById('statsButton');
-    if (statsBtn) statsBtn.addEventListener('click', () => {
-        if (typeof openStatsModal === 'function') openStatsModal();
-    });
-
-    const globalStatsBtn = document.getElementById('globalStatsBtn');
-    if (globalStatsBtn) globalStatsBtn.addEventListener('click', () => {
-        if (typeof showGlobalStats === 'function') showGlobalStats();
-    });
-
-    const bookingsBtn = document.getElementById('bookingsButton');
-    if (bookingsBtn) bookingsBtn.addEventListener('click', () => {
-        if (typeof openBookingsModal === 'function') openBookingsModal();
-    });
-    
-    const addItemBtn = document.getElementById('addItemButton');
-    if (addItemBtn) addItemBtn.addEventListener('click', () => {
-        if (typeof openAddItemModal === 'function') openAddItemModal();
-    });
-    
-    const supplyBtn = document.getElementById('supplyButton');
-    if (supplyBtn) supplyBtn.addEventListener('click', () => {
-        if (typeof openSupplyModal === 'function') openSupplyModal();
-    });
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            if (typeof resetAllFilters === 'function') resetAllFilters();
+        });
+    }
 
     // Проверяем авторизацию
-    if (!checkExistingAuth()) {
-        console.log("Ожидание ручного входа");
+    if (typeof checkExistingAuth === 'function') {
+        if (!checkExistingAuth()) {
+            console.log("Ожидание ручного входа");
+        } else {
+            // Небольшая задержка для полной загрузки всех скриптов
+            setTimeout(() => {
+                initApp();
+            }, 100);
+        }
     } else {
-        // Если уже авторизованы, запускаем приложение
+        console.error("checkExistingAuth not loaded - waiting for scripts");
+        // Повторная попытка через 500 мс
         setTimeout(() => {
-            initApp();
-        }, 100);
+            if (typeof checkExistingAuth === 'function') {
+                if (!checkExistingAuth()) {
+                    console.log("Ожидание ручного входа");
+                } else {
+                    initApp();
+                }
+            } else {
+                console.error("Still no checkExistingAuth, giving up");
+            }
+        }, 500);
     }
 });
