@@ -4,7 +4,7 @@ export async function onRequest(context) {
     const { request } = context;
     const url = new URL(request.url);
     
-    const GS_API_URL = "https://script.google.com/macros/s/AKfycbzY3CQq4TROQyTm6XyRtN7KJ7qknVj-3D0bbCExezNtevlTb6zEywhAhUqvWtVHEtU/exec";
+    const GS_API_URL = "https://script.google.com/macros/s/AKfycbyyyax00NsylFxnHaSXwViY49meNUszWMPmDRCCGQrAfUSvA5H5T0H789gINIKKcoW6/exec";
     
     const gsUrl = new URL(GS_API_URL);
     for (const [key, value] of url.searchParams.entries()) {
