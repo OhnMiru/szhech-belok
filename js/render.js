@@ -17,7 +17,7 @@ function renderCards() {
         const isOutOfStock = stock === 0;
         const typeColor = type ? getTypeColor(type) : '#c25d1a';
         
-        // Проверяем, есть ли комментарий
+        //Проверяем, есть ли комментарий
         const hasComment = commentsCache.has(id) && commentsCache.get(id).comment && commentsCache.get(id).comment.trim() !== "";
         
         const cardDiv = document.createElement('div');
@@ -45,6 +45,9 @@ function renderCards() {
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
                 <div class="total-row">
                     <span class="total">📦 Всего: ${total} шт</span>
+                </div>
+                <div class="price-row">
+                    <span class="price">💰 Цена: ${price} ₽</span>
                     <div class="action-buttons">
                         <button class="edit-icon" onclick="openEditProductModal(${id})" title="Редактировать">✏️</button>
                         <button class="comment-icon ${hasComment ? 'has-comment' : ''}" onclick="showCommentModal(${id}, '${escapeHtml(name).replace(/'/g, "\\'")}')" title="Комментарий">
