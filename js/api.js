@@ -121,7 +121,7 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
     }
 }
 
-// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО ==========
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО (НОВАЯ ВЕРСИЯ - ЧЕРЕЗ ТАБЛИЦУ) ==========
 
 async function getPhotoUrl(itemId) {
     // Проверяем кэш
@@ -143,21 +143,20 @@ async function getPhotoUrl(itemId) {
         }
         return null;
     } catch(e) {
-        console.error("Error getting photo URL:", e);
+        console.error("Error getting photo:", e);
         return null;
     }
 }
 
-// ========== ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ ФОТО (упрощённая версия с FormData) ==========
 async function uploadPhoto(itemId, file) {
     if (!isOnline) {
         showToast("Загрузка фото доступна только онлайн", false);
         return false;
     }
     
-    // Проверяем размер файла (максимум 5 МБ)
-    if (file.size > 5 * 1024 * 1024) {
-        showToast("Файл слишком большой. Максимум 5 МБ", false);
+    // Проверяем размер файла (максимум 500KB для Google Sheets)
+    if (file.size > 500 * 1024) {
+        showToast("Файл слишком большой. Максимум 500KB. Используйте сжатие.", false);
         return false;
     }
     
@@ -173,63 +172,47 @@ async function uploadPhoto(itemId, file) {
             try {
                 const base64Data = reader.result;
                 
-                // Используем FormData для отправки (самый надёжный способ)
-                const formData = new FormData();
-                formData.append('action', 'uploadPhoto');
-                formData.append('participant', CURRENT_USER.id);
-                formData.append('itemId', itemId.toString());
-                formData.append('userId', CURRENT_USER.id);
-                formData.append('base64Data', base64Data);
-                formData.append('fileName', file.name);
+                const params = new URLSearchParams();
+                params.append('action', 'uploadPhoto');
+                params.append('participant', CURRENT_USER.id);
+                params.append('itemId', itemId.toString());
+                params.append('userId', CURRENT_USER.id);
+                params.append('base64Data', base64Data);
+                params.append('fileName', file.name);
                 
                 console.log("📤 Загрузка фото:");
                 console.log("  - itemId:", itemId);
                 console.log("  - userId:", CURRENT_USER.id);
                 console.log("  - fileName:", file.name);
                 console.log("  - fileSize:", (file.size / 1024).toFixed(2), "KB");
-                console.log("  - base64Length:", base64Data.length);
                 
                 const response = await fetch(CENTRAL_API_URL, {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: params.toString()
                 });
                 
-                console.log("  - response status:", response.status);
-                
-                // Получаем ответ как текст для отладки
-                const responseText = await response.text();
-                console.log("  - response text:", responseText.substring(0, 500));
-                
-                let result;
-                try {
-                    result = JSON.parse(responseText);
-                } catch(e) {
-                    console.error("  - Failed to parse JSON:", e);
-                    showToast("Ошибка сервера: неверный формат ответа", false);
-                    resolve(false);
-                    return;
-                }
+                const result = await response.json();
                 
                 if (result.success) {
-                    if (result.url) {
-                        photoCache.set(itemId, result.url);
-                    }
-                    console.log("  ✅ Фото загружено успешно!");
-                    showToast("Фото загружено", true);
+                    photoCache.set(itemId, base64Data);
+                    console.log("✅ Фото сохранено в таблицу");
+                    showToast("Фото сохранено", true);
                     resolve(true);
                 } else {
-                    console.error("  ❌ Ошибка загрузки:", result.error);
-                    showToast("Ошибка загрузки фото: " + (result.error || "неизвестная"), false);
+                    console.error("❌ Ошибка:", result.error);
+                    showToast("Ошибка: " + (result.error || "неизвестная"), false);
                     resolve(false);
                 }
             } catch(e) {
-                console.error("❌ Upload error:", e);
-                showToast("Ошибка загрузки фото: " + e.message, false);
+                console.error("Upload error:", e);
+                showToast("Ошибка: " + e.message, false);
                 resolve(false);
             }
         };
         reader.onerror = function() {
-            console.error("❌ FileReader error");
             showToast("Ошибка чтения файла", false);
             resolve(false);
         };
@@ -244,34 +227,33 @@ async function deletePhoto(itemId) {
     }
     
     try {
-        const formData = new FormData();
-        formData.append('action', 'deletePhoto');
-        formData.append('participant', CURRENT_USER.id);
-        formData.append('itemId', itemId.toString());
-        formData.append('userId', CURRENT_USER.id);
-        
-        console.log("🗑 Удаление фото для itemId:", itemId);
+        const params = new URLSearchParams();
+        params.append('action', 'deletePhoto');
+        params.append('participant', CURRENT_USER.id);
+        params.append('itemId', itemId.toString());
+        params.append('userId', CURRENT_USER.id);
         
         const response = await fetch(CENTRAL_API_URL, {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: params.toString()
         });
         
         const result = await response.json();
         
         if (result.success) {
             photoCache.delete(itemId);
-            console.log("✅ Фото удалено");
             showToast("Фото удалено", true);
             return true;
         } else {
-            console.error("❌ Ошибка удаления:", result.error);
-            showToast("Ошибка удаления фото: " + (result.error || "неизвестная"), false);
+            showToast("Ошибка: " + (result.error || "неизвестная"), false);
             return false;
         }
     } catch(e) {
-        console.error("❌ Delete error:", e);
-        showToast("Ошибка удаления фото", false);
+        console.error("Delete error:", e);
+        showToast("Ошибка удаления", false);
         return false;
     }
 }
