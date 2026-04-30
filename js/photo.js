@@ -1,16 +1,61 @@
-// ========== МОДУЛЬ ДЛЯ РАБОТЫ С ФОТО (через прокси) ==========
+// ========== МОДУЛЬ ДЛЯ РАБОТЫ С ФОТО ==========
 
+// Функция для сжатия изображения перед загрузкой
+async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                
+                // Вычисляем новые размеры с сохранением пропорций
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                if (height > maxHeight) {
+                    width = (width * maxHeight) / height;
+                    height = maxHeight;
+                }
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.toBlob((blob) => {
+                    console.log(`Сжато: ${(file.size / 1024).toFixed(0)}KB → ${(blob.size / 1024).toFixed(0)}KB`);
+                    resolve(blob);
+                }, 'image/jpeg', quality);
+            };
+        };
+    });
+}
+
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ - принудительно удаляет кэш
 async function loadPhotoPreview(itemId) {
     const container = document.getElementById('photoPreviewContainer');
     if (!container) return;
     
     try {
+        // ВАЖНО: принудительно удаляем из кэша, чтобы получить свежее фото
+        if (photoCache) {
+            photoCache.delete(itemId);
+        }
+        
         const url = await getPhotoUrl(itemId);
         console.log("Preview URL:", url);
         
         if (url) {
-            container.innerHTML = `<img src="${url}?t=${Date.now()}" alt="Фото товара" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain; border: 1px solid var(--border-color);"
-                onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\"display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);\">❌ Ошибка загрузки фото</div>';">`;
+            // Добавляем случайный параметр чтобы избежать кэширования браузером
+            const urlWithCache = `${url}&_=${Date.now()}`;
+            container.innerHTML = `<img src="${urlWithCache}" alt="Фото товара" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain; border: 1px solid var(--border-color);"
+                onerror="this.onerror=null; console.error('Image failed to load:', this.src); this.parentElement.innerHTML='<div style=\"display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);\">❌ Ошибка загрузки фото</div>';">`;
             const deleteBtn = document.getElementById('deletePhotoBtn');
             if (deleteBtn) deleteBtn.style.display = 'inline-flex';
         } else {
@@ -28,15 +73,14 @@ async function handlePhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    console.log("Selected file:", file.name, (file.size / 1024).toFixed(2) + "KB");
+    console.log("Выбран файл:", {
+        name: file.name,
+        type: file.type,
+        size: (file.size / 1024).toFixed(2) + " KB"
+    });
     
     if (!file.type.startsWith('image/')) {
         showToast("Пожалуйста, выберите изображение", false);
-        return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) {
-        showToast("Файл слишком большой. Максимум 5MB", false);
         return;
     }
     
@@ -45,10 +89,28 @@ async function handlePhotoUpload(event) {
         return;
     }
     
+    showToast("Сжатие фото...", true);
+    
+    let fileToUpload = file;
+    
+    // Сжимаем фото если оно больше 500KB
+    if (file.size > 500 * 1024) {
+        try {
+            const compressedBlob = await compressImage(file, 1024, 1024, 0.8);
+            fileToUpload = new File([compressedBlob], 'photo.jpg', { type: 'image/jpeg' });
+            showToast(`Размер после сжатия: ${(fileToUpload.size / 1024).toFixed(0)}KB`, true);
+        } catch(e) {
+            console.warn("Сжатие не удалось, загружаем оригинал:", e);
+            showToast("Сжатие не удалось", false);
+        }
+    }
+    
     showToast("Загрузка фото...", true);
-    const success = await uploadPhoto(currentEditId, file);
+    const success = await uploadPhoto(currentEditId, fileToUpload);
     
     if (success) {
+        // Очищаем кэш после загрузки
+        if (photoCache) photoCache.delete(currentEditId);
         await loadPhotoPreview(currentEditId);
         const fileInput = document.getElementById('photoFileInput');
         if (fileInput) fileInput.value = '';
@@ -65,6 +127,7 @@ async function handleDeletePhoto() {
         showToast("Удаление фото...", true);
         const success = await deletePhoto(currentEditId);
         if (success) {
+            if (photoCache) photoCache.delete(currentEditId);
             await loadPhotoPreview(currentEditId);
         }
     }
@@ -94,10 +157,14 @@ async function loadPhotoToModal(itemId) {
     if (!content) return;
     
     try {
+        // Очищаем кэш для модального окна
+        if (photoCache) photoCache.delete(itemId);
+        
         const url = await getPhotoUrl(itemId);
         
         if (url) {
-            content.innerHTML = `<img src="${url}?t=${Date.now()}" alt="Фото товара" style="max-width: 100%; max-height: 60vh; border-radius: 12px; object-fit: contain;">`;
+            const urlWithCache = `${url}&_=${Date.now()}`;
+            content.innerHTML = `<img src="${urlWithCache}" alt="Фото товара" style="max-width: 100%; max-height: 60vh; border-radius: 12px; object-fit: contain;">`;
         } else {
             content.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">📷 Фото не добавлено</div>`;
         }
@@ -119,6 +186,8 @@ function initPhotoUploadInEditModal() {
     const deleteBtn = document.getElementById('deletePhotoBtn');
     const uploadBtn = document.getElementById('uploadPhotoBtn');
     
+    console.log("Инициализация загрузки фото");
+    
     if (uploadBtn) {
         const newUploadBtn = uploadBtn.cloneNode(true);
         uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
@@ -126,6 +195,7 @@ function initPhotoUploadInEditModal() {
         newUploadBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            console.log("Кнопка загрузки нажата");
             if (fileInput) fileInput.click();
         });
     }
@@ -135,6 +205,7 @@ function initPhotoUploadInEditModal() {
         fileInput.parentNode.replaceChild(newFileInput, fileInput);
         
         newFileInput.addEventListener('change', function(e) {
+            console.log("Файл выбран");
             const file = e.target.files[0];
             if (file) handlePhotoUpload(e);
         });
@@ -147,6 +218,7 @@ function initPhotoUploadInEditModal() {
         newDeleteBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            console.log("Кнопка удаления нажата");
             handleDeletePhoto();
         });
     }
