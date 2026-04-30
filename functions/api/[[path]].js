@@ -147,7 +147,7 @@ export async function onRequest(context) {
     }
     
     // ===== ПРОКСИ ДЛЯ GOOGLE APPS SCRIPT =====
-    const GS_API_URL = "https://script.google.com/macros/s/AKfycbzY3CQq4TROQyTm6XyRtN7KJ7qknVj-3D0bbCExezNtevlTb6zEywhAhUqvWtVHEtU/exec";
+    const GS_API_URL = "https://script.google.com/macros/s/AKfycbwJLRWYUNwuT4eXdamNrFm9zC9DEsBzPV6zgnZnKuhHVISQUofk0R0hxBzucqAjVV_j/exec";
     
     // Проверяем, является ли запрос multipart/form-data (загрузка фото)
     const contentType = request.headers.get('content-type') || '';
