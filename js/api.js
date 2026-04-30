@@ -121,7 +121,7 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
     }
 }
 
-// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО (НОВАЯ ВЕРСИЯ - ЧЕРЕЗ ТАБЛИЦУ) ==========
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО ==========
 
 async function getPhotoUrl(itemId) {
     // Проверяем кэш
@@ -148,21 +148,22 @@ async function getPhotoUrl(itemId) {
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ - без ограничения на размер (максимум 10MB)
 async function uploadPhoto(itemId, file) {
     if (!isOnline) {
         showToast("Загрузка фото доступна только онлайн", false);
         return false;
     }
     
-    // Проверяем размер файла (максимум 500KB для Google Sheets)
-    if (file.size > 500 * 1024) {
-        showToast("Файл слишком большой. Максимум 500KB. Используйте сжатие.", false);
-        return false;
-    }
-    
     // Проверяем тип файла
     if (!file.type.startsWith('image/')) {
         showToast("Пожалуйста, выберите изображение", false);
+        return false;
+    }
+    
+    // Максимум 10MB (можно увеличить при необходимости)
+    if (file.size > 10 * 1024 * 1024) {
+        showToast("Файл слишком большой. Максимум 10MB", false);
         return false;
     }
     
@@ -197,9 +198,10 @@ async function uploadPhoto(itemId, file) {
                 const result = await response.json();
                 
                 if (result.success) {
-                    photoCache.set(itemId, base64Data);
-                    console.log("✅ Фото сохранено в таблицу");
-                    showToast("Фото сохранено", true);
+                    // Очищаем кэш чтобы при следующем запросе получили новое фото
+                    photoCache.delete(itemId);
+                    console.log("✅ Фото загружено успешно!");
+                    showToast("Фото загружено", true);
                     resolve(true);
                 } else {
                     console.error("❌ Ошибка:", result.error);
