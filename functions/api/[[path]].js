@@ -1,10 +1,153 @@
 // functions/api/[[path]].js
 
+// ========== ОБРАБОТЧИК ЗАПРОСОВ ИЗОБРАЖЕНИЙ ==========
+async function handleImageRequest(request) {
+    const url = new URL(request.url);
+    const fileId = url.searchParams.get('id');
+    
+    if (!fileId) {
+        return new Response(JSON.stringify({ error: 'Missing file id parameter' }), {
+            status: 400,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
+        });
+    }
+    
+    // Проверяем, есть ли изображение в кэше Cloudflare
+    const cacheKey = new Request(`https://drive-image-cache/${fileId}`, request);
+    const cache = caches.default;
+    
+    // Пытаемся получить из кэша
+    let response = await cache.match(cacheKey);
+    
+    if (!response) {
+        try {
+            // Пробуем несколько вариантов URL Google Drive
+            const driveUrls = [
+                `https://drive.google.com/uc?export=download&id=${fileId}`,
+                `https://drive.google.com/uc?export=view&id=${fileId}`,
+                `https://drive.google.com/file/d/${fileId}/view`
+            ];
+            
+            let imageData = null;
+            let contentType = 'image/jpeg';
+            
+            for (const driveUrl of driveUrls) {
+                try {
+                    const driveResponse = await fetch(driveUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                            'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
+                        }
+                    });
+                    
+                    if (driveResponse.ok) {
+                        // Проверяем, не HTML ли это (страница входа Google)
+                        const contentTypeHeader = driveResponse.headers.get('Content-Type') || '';
+                        
+                        if (contentTypeHeader.includes('image/')) {
+                            imageData = await driveResponse.arrayBuffer();
+                            contentType = contentTypeHeader;
+                            break;
+                        } else if (contentTypeHeader.includes('text/html')) {
+                            // Возможно, это страница входа, пробуем следующий URL
+                            continue;
+                        } else {
+                            // Пробуем прочитать как изображение
+                            const buffer = await driveResponse.arrayBuffer();
+                            if (buffer.byteLength > 1000) { // Не пустой файл
+                                imageData = buffer;
+                                // Пытаемся определить тип по магии байтов
+                                if (imageData.byteLength > 2) {
+                                    const view = new Uint8Array(imageData);
+                                    if (view[0] === 0xFF && view[1] === 0xD8) {
+                                        contentType = 'image/jpeg';
+                                    } else if (view[0] === 0x89 && view[1] === 0x50 && view[2] === 0x4E && view[3] === 0x47) {
+                                        contentType = 'image/png';
+                                    } else if (view[0] === 0x47 && view[1] === 0x49 && view[2] === 0x46) {
+                                        contentType = 'image/gif';
+                                    } else if (view[0] === 0x52 && view[1] === 0x49 && view[2] === 0x46 && view[3] === 0x46) {
+                                        contentType = 'image/webp';
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.error(`Error fetching from ${driveUrl}:`, e);
+                }
+            }
+            
+            if (!imageData) {
+                return new Response(JSON.stringify({ error: 'Image not found or cannot be accessed' }), {
+                    status: 404,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    }
+                });
+            }
+            
+            // Создаём ответ с изображением
+            response = new Response(imageData, {
+                headers: {
+                    'Content-Type': contentType,
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Cache-Control': 'public, max-age=86400', // Кэшируем на 24 часа
+                    'Cross-Origin-Resource-Policy': 'cross-origin',
+                    'Cross-Origin-Embedder-Policy': 'credentialless'
+                }
+            });
+            
+            // Сохраняем в кэш
+            await cache.put(cacheKey, response.clone());
+            
+        } catch (error) {
+            console.error('Image proxy error:', error);
+            return new Response(JSON.stringify({ error: 'Internal server error', details: error.message }), {
+                status: 500,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            });
+        }
+    }
+    
+    return response;
+}
+
+// ========== ОСНОВНОЙ ОБРАБОТЧИК ==========
 export async function onRequest(context) {
     const { request } = context;
     const url = new URL(request.url);
     
-    const GS_API_URL = "https://script.google.com/macros/s/AKfycbz3O0-XHI0bP5yevLA16bHnGMu-LfWkNI9-cOewybdTgAw95trtj0xCMxOgpRPy8k1i/exec";
+    // Обработка OPTIONS запросов для CORS preflight
+    if (request.method === 'OPTIONS') {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Max-Age': '86400'
+            }
+        });
+    }
+    
+    // ===== ОБРАБОТКА ЗАПРОСОВ ИЗОБРАЖЕНИЙ =====
+    // Если запрос к /image или /api/image
+    if (url.pathname === '/image' || url.pathname === '/api/image' || url.pathname.endsWith('/image')) {
+        return handleImageRequest(request);
+    }
+    
+    // ===== ПРОКСИ ДЛЯ GOOGLE APPS SCRIPT =====
+    const GS_API_URL = "https://script.google.com/macros/s/AKfycbzY3CQq4TROQyTm6XyRtN7KJ7qknVj-3D0bbCExezNtevlTb6zEywhAhUqvWtVHEtU/exec";
     
     // Проверяем, является ли запрос multipart/form-data (загрузка фото)
     const contentType = request.headers.get('content-type') || '';
@@ -53,7 +196,10 @@ export async function onRequest(context) {
             
             // Копируем все параметры из исходного URL
             for (const [key, value] of url.searchParams.entries()) {
-                gsUrl.searchParams.append(key, value);
+                // Пропускаем route параметры
+                if (key !== 'route') {
+                    gsUrl.searchParams.append(key, value);
+                }
             }
             
             console.log("Proxying standard request to:", gsUrl.toString());
@@ -116,7 +262,7 @@ export async function onRequest(context) {
     }
 }
 
-// Обработка OPTIONS запросов для CORS
+// ========== ОБРАБОТКА OPTIONS ЗАПРОСОВ ДЛЯ CORS ==========
 export async function onRequestOptions() {
     return new Response(null, {
         status: 204,
