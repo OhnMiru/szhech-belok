@@ -12,7 +12,6 @@ async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.
                 let width = img.width;
                 let height = img.height;
                 
-                // Вычисляем новые размеры с сохранением пропорций
                 if (width > maxWidth) {
                     height = (height * maxWidth) / width;
                     width = maxWidth;
@@ -37,22 +36,25 @@ async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.
     });
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ - принудительно удаляет кэш
 async function loadPhotoPreview(itemId) {
+    console.log("loadPhotoPreview called with itemId:", itemId);
+    
     const container = document.getElementById('photoPreviewContainer');
     if (!container) return;
     
+    if (!itemId) {
+        console.log("No itemId provided");
+        container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);">📷 Нет фото</div>`;
+        return;
+    }
+    
     try {
-        // ВАЖНО: принудительно удаляем из кэша, чтобы получить свежее фото
-        if (photoCache) {
-            photoCache.delete(itemId);
-        }
+        if (photoCache) photoCache.delete(itemId);
         
         const url = await getPhotoUrl(itemId);
         console.log("Preview URL:", url);
         
         if (url) {
-            // Добавляем случайный параметр чтобы избежать кэширования браузером
             const urlWithCache = `${url}&_=${Date.now()}`;
             container.innerHTML = `<img src="${urlWithCache}" alt="Фото товара" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain; border: 1px solid var(--border-color);"
                 onerror="this.onerror=null; console.error('Image failed to load:', this.src); this.parentElement.innerHTML='<div style=\"display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);\">❌ Ошибка загрузки фото</div>';">`;
@@ -107,7 +109,6 @@ async function handlePhotoUpload(event) {
     const success = await uploadPhoto(currentEditId, fileToUpload);
     
     if (success) {
-        // Ждём ещё немного и обновляем превью
         setTimeout(async () => {
             if (photoCache) photoCache.delete(currentEditId);
             await loadPhotoPreview(currentEditId);
@@ -158,7 +159,6 @@ async function loadPhotoToModal(itemId) {
     if (!content) return;
     
     try {
-        // Очищаем кэш для модального окна
         if (photoCache) photoCache.delete(itemId);
         
         const url = await getPhotoUrl(itemId);
