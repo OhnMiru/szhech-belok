@@ -1,26 +1,61 @@
 // ========== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ==========
 function initApp() {
+    console.log("Инициализация приложения...");
+    
+    // Проверяем, что все необходимые функции загружены
+    if (typeof initCustomSelects !== 'function') {
+        console.error("initCustomSelects not loaded");
+        return;
+    }
+    if (typeof loadRules !== 'function') {
+        console.error("loadRules not loaded");
+        return;
+    }
+    if (typeof loadHistory !== 'function') {
+        console.error("loadHistory not loaded");
+        return;
+    }
+    if (typeof loadExtraCosts !== 'function') {
+        console.error("loadExtraCosts not loaded");
+        return;
+    }
+    if (typeof loadExtraIncomes !== 'function') {
+        console.error("loadExtraIncomes not loaded");
+        return;
+    }
+    if (typeof loadData !== 'function') {
+        console.error("loadData not loaded");
+        return;
+    }
+    
     initCustomSelects();
     loadRules();
     loadHistory();
     loadExtraCosts();
     loadExtraIncomes();
+    
     if (CURRENT_USER.role === 'organizer') {
-        loadGlobalExtraCosts();
-        loadGlobalExtraIncomes();
+        if (typeof loadGlobalExtraCosts === 'function') loadGlobalExtraCosts();
+        if (typeof loadGlobalExtraIncomes === 'function') loadGlobalExtraIncomes();
     }
-    initDateTimeSelects();
-    bindDateTimeEvents();
-    initCustomOrder();
+    
+    if (typeof initDateTimeSelects === 'function') initDateTimeSelects();
+    if (typeof bindDateTimeEvents === 'function') bindDateTimeEvents();
+    if (typeof initCustomOrder === 'function') initCustomOrder();
+    
+    // Загружаем данные
     loadData(true, true);
+    
+    // Запускаем автообновление
     startAutoRefresh();
     startHistoryAutoSync();
+    
+    // Загружаем бронирования
     if (typeof loadBookings === 'function') {
         loadBookings().catch(e => console.warn("Bookings load error:", e));
     }
     
-    
-    // Настройка кнопок
+    // Настраиваем кнопки
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsDropdown = document.getElementById('settingsDropdown');
     const shareStatsBtn = document.getElementById('shareStatsBtn');
@@ -29,10 +64,6 @@ function initApp() {
     const bookingsBtn = document.getElementById('bookingsButton');
     const addItemBtn = document.getElementById('addItemButton');
     const supplyBtn = document.getElementById('supplyButton');
-    
-    if (supplyBtn) {
-        supplyBtn.addEventListener('click', openSupplyModal);
-    }
   
     if (bookingsBtn) {
         bookingsBtn.addEventListener('click', openBookingsModal);
@@ -41,6 +72,10 @@ function initApp() {
     if (addItemBtn) {
         addItemBtn.addEventListener('click', openAddItemModal);
     }
+    
+    if (supplyBtn) {
+        supplyBtn.addEventListener('click', openSupplyModal);
+    }
 
     if (settingsToggle) {
         settingsToggle.addEventListener('click', (e) => {
@@ -48,18 +83,21 @@ function initApp() {
             settingsDropdown.classList.toggle('hidden');
         });
     }
+    
     if (shareStatsBtn) {
         shareStatsBtn.addEventListener('click', () => {
             toggleShareStats();
             settingsDropdown.classList.add('hidden');
         });
     }
+    
     if (hideStatsBtn) {
         hideStatsBtn.addEventListener('click', () => {
             toggleHideStats();
             settingsDropdown.classList.add('hidden');
         });
     }
+    
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             logout();
@@ -72,43 +110,53 @@ function initApp() {
             settingsDropdown.classList.add('hidden');
     });
     
-    // Добавляем обработчик для кнопки обновления
-    const globalStatsBtn = document.getElementById('globalStatsBtn');
-    if (globalStatsBtn && CURRENT_USER.role === 'organizer') {
-        globalStatsBtn.addEventListener('click', showGlobalStats);
+    // Загружаем комментарии после инициализации
+    if (typeof loadAllComments === 'function') {
+        loadAllComments();
     }
     
-    // Инициализация фото-кэша (очистка старых URL при необходимости)
-    if (photoCache.size > 100) {
-        // Ограничиваем размер кэша
-        const keys = Array.from(photoCache.keys());
-        for (let i = 0; i < keys.length - 50; i++) {
-            photoCache.delete(keys[i]);
-        }
-    }
-    
-    console.log("App initialized successfully");
+    console.log("Инициализация приложения завершена");
 }
 
+// Обработчик кликов для закрытия модальных окон
 document.addEventListener('click', function(event) {
-    if (!event.target.closest('.rule-custom-select')) closeAllRuleSelects();
+    if (!event.target.closest('.rule-custom-select')) {
+        if (typeof closeAllRuleSelects === 'function') closeAllRuleSelects();
+    }
 });
 
 window.onclick = function(event) {
-    if (event.target === document.getElementById('historyModal')) closeHistory();
-    if (event.target === document.getElementById('cartModal')) closeCartModal();
-    if (event.target === document.getElementById('rulesModal')) closeRulesModal();
-    if (event.target === document.getElementById('statsModal')) closeStatsModal();
-    if (event.target === document.getElementById('globalStatsModal')) closeGlobalStatsModal();
-    if (event.target === document.getElementById('editProductModal')) closeEditProductModal();
-    if (event.target === document.getElementById('addItemModal')) closeAddItemModal();
-    if (event.target === document.getElementById('photoViewModal')) closePhotoModal();
-    if (event.target === document.getElementById('bookingsModal')) closeBookingsModal();
+    const historyModal = document.getElementById('historyModal');
+    const cartModal = document.getElementById('cartModal');
+    const rulesModal = document.getElementById('rulesModal');
+    const statsModal = document.getElementById('statsModal');
+    const globalStatsModal = document.getElementById('globalStatsModal');
+    const editProductModal = document.getElementById('editProductModal');
+    const addItemModal = document.getElementById('addItemModal');
+    const photoViewModal = document.getElementById('photoViewModal');
+    const bookingsModal = document.getElementById('bookingsModal');
+    const supplyModal = document.getElementById('supplyModal');
+    const commentModal = document.getElementById('commentModal');
+    
+    if (event.target === historyModal && typeof closeHistory === 'function') closeHistory();
+    if (event.target === cartModal && typeof closeCartModal === 'function') closeCartModal();
+    if (event.target === rulesModal && typeof closeRulesModal === 'function') closeRulesModal();
+    if (event.target === statsModal && typeof closeStatsModal === 'function') closeStatsModal();
+    if (event.target === globalStatsModal && typeof closeGlobalStatsModal === 'function') closeGlobalStatsModal();
+    if (event.target === editProductModal && typeof closeEditProductModal === 'function') closeEditProductModal();
+    if (event.target === addItemModal && typeof closeAddItemModal === 'function') closeAddItemModal();
+    if (event.target === photoViewModal && typeof closePhotoModal === 'function') closePhotoModal();
+    if (event.target === bookingsModal && typeof closeBookingsModal === 'function') closeBookingsModal();
+    if (event.target === supplyModal && typeof closeSupplyModal === 'function') closeSupplyModal();
+    if (event.target === commentModal && typeof closeCommentModal === 'function') closeCommentModal();
 };
 
+// Инициализация после полной загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM fully loaded");
+    console.log("DOM полностью загружен");
+    
     initTheme();
+    
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
 
@@ -121,31 +169,52 @@ document.addEventListener('DOMContentLoaded', () => {
     if (passwordInput2) passwordInput2.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.addEventListener('input', () => filterAndSort());
+    if (searchInput) searchInput.addEventListener('input', () => {
+        if (typeof filterAndSort === 'function') filterAndSort();
+    });
 
     const resetBtn = document.getElementById('resetFilters');
-    if (resetBtn) resetBtn.addEventListener('click', resetAllFilters);
+    if (resetBtn) resetBtn.addEventListener('click', () => {
+        if (typeof resetAllFilters === 'function') resetAllFilters();
+    });
 
     const rulesBtn = document.getElementById('rulesButton');
-    if (rulesBtn) rulesBtn.addEventListener('click', openRulesModal);
+    if (rulesBtn) rulesBtn.addEventListener('click', () => {
+        if (typeof openRulesModal === 'function') openRulesModal();
+    });
 
     const statsBtn = document.getElementById('statsButton');
-    if (statsBtn) statsBtn.addEventListener('click', openStatsModal);
+    if (statsBtn) statsBtn.addEventListener('click', () => {
+        if (typeof openStatsModal === 'function') openStatsModal();
+    });
 
     const globalStatsBtn = document.getElementById('globalStatsBtn');
-    if (globalStatsBtn) globalStatsBtn.addEventListener('click', showGlobalStats);
+    if (globalStatsBtn) globalStatsBtn.addEventListener('click', () => {
+        if (typeof showGlobalStats === 'function') showGlobalStats();
+    });
 
     const bookingsBtn = document.getElementById('bookingsButton');
-    if (bookingsBtn) bookingsBtn.addEventListener('click', openBookingsModal);
+    if (bookingsBtn) bookingsBtn.addEventListener('click', () => {
+        if (typeof openBookingsModal === 'function') openBookingsModal();
+    });
     
     const addItemBtn = document.getElementById('addItemButton');
-    if (addItemBtn) addItemBtn.addEventListener('click', openAddItemModal);
-
+    if (addItemBtn) addItemBtn.addEventListener('click', () => {
+        if (typeof openAddItemModal === 'function') openAddItemModal();
+    });
+    
     const supplyBtn = document.getElementById('supplyButton');
-    if (supplyBtn) supplyBtn.addEventListener('click', openSupplyModal);
+    if (supplyBtn) supplyBtn.addEventListener('click', () => {
+        if (typeof openSupplyModal === 'function') openSupplyModal();
+    });
 
+    // Проверяем авторизацию
     if (!checkExistingAuth()) {
-        // ждём ручного входа
-        console.log("Waiting for manual login");
+        console.log("Ожидание ручного входа");
+    } else {
+        // Если уже авторизованы, запускаем приложение
+        setTimeout(() => {
+            initApp();
+        }, 100);
     }
 });
