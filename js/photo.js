@@ -93,15 +93,13 @@ async function handlePhotoUpload(event) {
     
     let fileToUpload = file;
     
-    // Сжимаем фото если оно больше 500KB
     if (file.size > 500 * 1024) {
         try {
             const compressedBlob = await compressImage(file, 1024, 1024, 0.8);
             fileToUpload = new File([compressedBlob], 'photo.jpg', { type: 'image/jpeg' });
             showToast(`Размер после сжатия: ${(fileToUpload.size / 1024).toFixed(0)}KB`, true);
         } catch(e) {
-            console.warn("Сжатие не удалось, загружаем оригинал:", e);
-            showToast("Сжатие не удалось", false);
+            console.warn("Сжатие не удалось:", e);
         }
     }
     
@@ -109,9 +107,12 @@ async function handlePhotoUpload(event) {
     const success = await uploadPhoto(currentEditId, fileToUpload);
     
     if (success) {
-        // Очищаем кэш после загрузки
-        if (photoCache) photoCache.delete(currentEditId);
-        await loadPhotoPreview(currentEditId);
+        // Ждём ещё немного и обновляем превью
+        setTimeout(async () => {
+            if (photoCache) photoCache.delete(currentEditId);
+            await loadPhotoPreview(currentEditId);
+        }, 500);
+        
         const fileInput = document.getElementById('photoFileInput');
         if (fileInput) fileInput.value = '';
     }
