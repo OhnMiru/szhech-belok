@@ -2519,11 +2519,84 @@ body.dark .extra-cost-amount {
     animation: spin 1s linear infinite;
 }
 
+/* ========== СТИЛИ ДЛЯ КНОПКИ КОММЕНТАРИЯ ========== */
+
+.comment-icon {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 6px;
+    margin-left: 4px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+    color: var(--text-muted);
+    position: relative;
+}
+
+.comment-icon:hover {
+    background: var(--badge-bg);
+    color: var(--badge-text);
+    transform: scale(1.05);
+}
+
+.comment-icon.has-comment {
+    color: var(--btn-bg);
+}
+
+.comment-badge {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 8px;
+    height: 8px;
+    background-color: #e74c3c;
+    border-radius: 50%;
+    border: 1px solid var(--card-bg);
+}
+
+/* Стили для модального окна комментария */
+.comment-item-name {
+    padding: 4px 0;
+}
+
+#commentText:focus {
+    outline: none;
+    border-color: var(--btn-bg);
+    box-shadow: 0 0 0 2px var(--btn-bg)20;
+}
+
+.comment-last-updated {
+    font-style: italic;
+}
+
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
 @media (max-width: 500px) {
+
+    .comment-icon {
+        font-size: 14px;
+        padding: 2px 4px;
+    }
+    
+    .comment-badge {
+        width: 6px;
+        height: 6px;
+        top: -1px;
+        right: -1px;
+    }
+    
+    #commentModal .modal-content {
+        width: 90%;
+        margin: 10% auto;
+    }
+    
+    #commentText {
+        font-size: 14px;
+        padding: 10px;
+    }
 
     .photo-preview {
         min-height: 120px;
