@@ -466,9 +466,9 @@ async function deletePhoto(itemId) {
 
 // ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
 
-async function addSupply(itemId, quantity, comment) {
+async function addSupply(itemId, quantity) {
     if (!isOnline) {
-        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity, comment: comment });
+        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity });
         // Временно обновляем локальные данные
         const card = originalCardsData.find(c => c.id === itemId);
         if (card) {
@@ -487,7 +487,6 @@ async function addSupply(itemId, quantity, comment) {
         params.append('userId', CURRENT_USER.id);
         params.append('itemId', itemId.toString());
         params.append('quantity', quantity.toString());
-        params.append('comment', comment);
         
         const response = await fetch(CENTRAL_API_URL, {
             method: 'POST',
@@ -513,9 +512,8 @@ async function addSupply(itemId, quantity, comment) {
         }
     } catch(e) {
         console.error("Add supply error:", e);
-        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity, comment: comment });
+        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity });
         showToast("Поставка сохранена локально", true);
         return true;
     }
-}
 }
