@@ -543,9 +543,9 @@ h1 {
 
 .total-row {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
     margin-bottom: 2px;
 }
 
@@ -569,23 +569,70 @@ h1 {
     color: var(--price-color);
 }
 
-.edit-icon {
-    font-size: 13px;
-    cursor: pointer;
-    color: var(--text-muted);
-    background: none;
-    border: none;
-    padding: 0;
-    width: auto;
-    height: auto;
-    box-shadow: none;
-    display: inline-flex;
+.action-buttons {
+    display: flex;
+    gap: 4px;
     align-items: center;
-    gap: 2px;
 }
 
-.edit-icon:hover {
-    color: var(--text-secondary);
+.edit-icon, .comment-icon {
+    background: none;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    color: var(--text-muted);
+    position: relative;
+    box-shadow: none;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.edit-icon:hover, .comment-icon:hover {
+    background: var(--badge-bg);
+    color: var(--badge-text);
+    transform: scale(1.05);
+}
+
+.comment-icon.has-comment {
+    color: var(--btn-bg);
+}
+
+.comment-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background-color: #e74c3c;
+    border-radius: 50%;
+    border: 1px solid var(--card-bg);
+}
+
+/* Убираем отдельную строку для комментария */
+.comment-row {
+    display: none;
+}
+
+/* Стили для модального окна комментария */
+.comment-item-name {
+    padding: 4px 0;
+}
+
+#commentText:focus {
+    outline: none;
+    border-color: var(--btn-bg);
+    box-shadow: 0 0 0 2px var(--btn-bg)20;
+}
+
+.comment-last-updated {
+    font-style: italic;
 }
 
 .buttons {
@@ -2519,72 +2566,16 @@ body.dark .extra-cost-amount {
     animation: spin 1s linear infinite;
 }
 
-.comment-row {
-    margin-top: 4px;
-    margin-bottom: 4px;
-}
-
-.comment-icon {
-    background: none;
-    border: none;
-    font-size: 12px;
-    cursor: pointer;
-    padding: 2px 8px;
-    border-radius: 16px;
-    transition: all 0.2s ease;
-    color: var(--text-muted);
-    position: relative;
-    box-shadow: none;
-    outline: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.comment-icon:hover {
-    background: var(--badge-bg);
-    color: var(--badge-text);
-}
-
-.comment-icon.has-comment {
-    color: var(--btn-bg);
-}
-
-.comment-badge {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 8px;
-    height: 8px;
-    background-color: #e74c3c;
-    border-radius: 50%;
-    border: 1px solid var(--card-bg);
-}
-
-/* Стили для модального окна комментария */
-.comment-item-name {
-    padding: 4px 0;
-}
-
-#commentText:focus {
-    outline: none;
-    border-color: var(--btn-bg);
-    box-shadow: 0 0 0 2px var(--btn-bg)20;
-}
-
-.comment-last-updated {
-    font-style: italic;
-}
-
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
 @media (max-width: 500px) {
-
-    .comment-icon {
-        font-size: 11px;
-        padding: 2px 6px;
+ 
+    .edit-icon, .comment-icon {
+        font-size: 12px;
+        width: 28px;
+        height: 28px;
     }
     
     .comment-badge {
