@@ -1,4 +1,4 @@
-// functions/api/[[path]].js - полный прокси с поддержкой фото
+// functions/api/[[path]].js
 
 // ========== ОБРАБОТЧИК ЗАПРОСОВ ИЗОБРАЖЕНИЙ ==========
 async function handleImageRequest(request) {
@@ -6,11 +6,13 @@ async function handleImageRequest(request) {
     const fileId = url.searchParams.get('id');
     
     if (!fileId) {
-        return new Response(JSON.stringify({ error: 'Missing file id' }), {
+        return new Response(JSON.stringify({ error: 'Missing file id parameter' }), {
             status: 400,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         });
     }
+    
+    console.log("🖼️ Image request for fileId:", fileId);
     
     // Прямая ссылка на скачивание с Google Drive
     const driveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
@@ -18,25 +20,23 @@ async function handleImageRequest(request) {
     try {
         const response = await fetch(driveUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
             }
         });
         
-        // Получаем данные изображения
+        if (!response.ok) {
+            console.error("Drive response not OK:", response.status);
+            return new Response(JSON.stringify({ error: 'Failed to fetch from Drive' }), {
+                status: response.status,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+            });
+        }
+        
+        const contentType = response.headers.get('Content-Type') || 'image/jpeg';
         const imageData = await response.arrayBuffer();
         
-        // Определяем тип содержимого
-        let contentType = 'image/jpeg';
-        const firstBytes = new Uint8Array(imageData.slice(0, 4));
-        
-        // Проверяем магические числа
-        if (firstBytes[0] === 0x89 && firstBytes[1] === 0x50 && firstBytes[2] === 0x4E && firstBytes[3] === 0x47) {
-            contentType = 'image/png';
-        } else if (firstBytes[0] === 0x47 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46) {
-            contentType = 'image/gif';
-        } else if (firstBytes[0] === 0x52 && firstBytes[1] === 0x49 && firstBytes[2] === 0x46 && firstBytes[3] === 0x46) {
-            contentType = 'image/webp';
-        }
+        console.log(`✅ Image fetched: ${contentType}, ${imageData.byteLength} bytes`);
         
         // Возвращаем изображение с правильными CORS заголовками
         return new Response(imageData, {
@@ -51,8 +51,8 @@ async function handleImageRequest(request) {
         });
         
     } catch (error) {
-        console.error('Image proxy error:', error);
-        return new Response(JSON.stringify({ error: 'Failed to fetch image' }), {
+        console.error("❌ Image proxy error:", error);
+        return new Response(JSON.stringify({ error: 'Internal server error', details: error.message }), {
             status: 500,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         });
@@ -63,6 +63,8 @@ async function handleImageRequest(request) {
 export async function onRequest(context) {
     const { request } = context;
     const url = new URL(request.url);
+    
+    console.log("📍 Request received:", request.method, url.pathname);
     
     // CORS preflight
     if (request.method === 'OPTIONS') {
@@ -77,8 +79,13 @@ export async function onRequest(context) {
         });
     }
     
-    // Обработка запросов изображений
-    if (url.pathname === '/image' || url.pathname === '/api/image') {
+    // ===== ВАЖНО: Обработка запросов изображений =====
+    // Проверяем разные варианты путей
+    if (url.pathname === '/image' || 
+        url.pathname === '/api/image' || 
+        url.pathname.startsWith('/image/') ||
+        url.pathname.includes('/image')) {
+        console.log("🖼️ Routing to image handler");
         return handleImageRequest(request);
     }
     
@@ -131,6 +138,7 @@ export async function onRequest(context) {
         });
         
     } catch (error) {
+        console.error("Proxy error:", error);
         return new Response(JSON.stringify({ error: 'Proxy error', details: error.message }), {
             status: 502,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -138,6 +146,7 @@ export async function onRequest(context) {
     }
 }
 
+// ========== ОБРАБОТКА OPTIONS ДЛЯ CORS ==========
 export async function onRequestOptions() {
     return new Response(null, {
         status: 204,
