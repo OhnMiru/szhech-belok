@@ -26,8 +26,9 @@ async function loadData(showLoading = true, showProgress = false) {
             filterAndSort();
             showUpdateTime();
             updateCartUI();
-            // Загружаем комментарии после загрузки товаров
-            loadAllComments();
+            if (typeof loadAllComments === 'function') {
+                loadAllComments();
+            }
         } else if (showLoading && !isAutoRefresh) {
             const container = document.getElementById('cards-container');
             if (container) container.innerHTML = '<div class="loading">Нет данных. Проверьте таблицу и лист "Мерч". 🍌</div>';
@@ -128,9 +129,8 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
 
 // ========== ФУНКЦИИ ДЛЯ КОММЕНТАРИЕВ ==========
 
-let commentsCache = new Map(); // { itemId: { comment, lastUpdated } }
+let commentsCache = new Map();
 
-// Загрузка всех комментариев
 async function loadAllComments() {
     if (!isOnline) {
         loadCommentsFromLocal();
@@ -149,7 +149,9 @@ async function loadAllComments() {
                 });
             }
             saveCommentsToLocal();
-            updateCommentIndicators();
+            if (typeof updateCommentIndicators === 'function') {
+                updateCommentIndicators();
+            }
         }
     } catch(e) {
         console.error("Error loading comments:", e);
@@ -157,13 +159,14 @@ async function loadAllComments() {
     }
 }
 
-// Сохранение комментария
 async function saveComment(itemId, comment) {
     if (!isOnline) {
         addPendingOperation("saveComment", { itemId: itemId, comment: comment });
         commentsCache.set(itemId, { comment: comment, lastUpdated: new Date().toISOString() });
         saveCommentsToLocal();
-        updateCommentIndicators();
+        if (typeof updateCommentIndicators === 'function') {
+            updateCommentIndicators();
+        }
         showToast("Комментарий сохранён локально", true);
         return true;
     }
@@ -187,7 +190,9 @@ async function saveComment(itemId, comment) {
         if (result.success) {
             commentsCache.set(itemId, { comment: comment, lastUpdated: new Date().toISOString() });
             saveCommentsToLocal();
-            updateCommentIndicators();
+            if (typeof updateCommentIndicators === 'function') {
+                updateCommentIndicators();
+            }
             showToast("Комментарий сохранён", true);
             return true;
         } else {
@@ -202,7 +207,6 @@ async function saveComment(itemId, comment) {
     }
 }
 
-// Получение комментария
 async function getComment(itemId) {
     if (commentsCache.has(itemId)) {
         return commentsCache.get(itemId);
@@ -228,33 +232,6 @@ async function getComment(itemId) {
     }
 }
 
-// Обновление индикаторов комментариев в карточках
-function updateCommentIndicators() {
-    document.querySelectorAll('.card').forEach(card => {
-        const itemId = parseInt(card.getAttribute('data-id'));
-        const hasComment = commentsCache.has(itemId) && commentsCache.get(itemId).comment && commentsCache.get(itemId).comment.trim() !== "";
-        
-        let commentBtn = card.querySelector('.comment-btn');
-        if (commentBtn) {
-            if (hasComment) {
-                commentBtn.classList.add('has-comment');
-                // Добавляем или обновляем бейдж
-                let badge = commentBtn.querySelector('.comment-badge');
-                if (!badge) {
-                    badge = document.createElement('span');
-                    badge.className = 'comment-badge';
-                    commentBtn.appendChild(badge);
-                }
-            } else {
-                commentBtn.classList.remove('has-comment');
-                const badge = commentBtn.querySelector('.comment-badge');
-                if (badge) badge.remove();
-            }
-        }
-    });
-}
-
-// Сохранение комментариев в localStorage
 function saveCommentsToLocal() {
     const commentsObj = {};
     for (const [key, value] of commentsCache.entries()) {
@@ -263,7 +240,6 @@ function saveCommentsToLocal() {
     localStorage.setItem('merch_comments', JSON.stringify(commentsObj));
 }
 
-// Загрузка комментариев из localStorage
 function loadCommentsFromLocal() {
     const saved = localStorage.getItem('merch_comments');
     if (saved) {
@@ -273,14 +249,70 @@ function loadCommentsFromLocal() {
             for (const [key, value] of Object.entries(commentsObj)) {
                 commentsCache.set(parseInt(key), value);
             }
-            updateCommentIndicators();
+            if (typeof updateCommentIndicators === 'function') {
+                updateCommentIndicators();
+            }
         } catch(e) {
             console.error("Error loading comments from localStorage:", e);
         }
     }
 }
 
+// ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
+
+async function addSupply(itemId, quantity) {
+    if (!isOnline) {
+        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity });
+        const card = originalCardsData.find(c => c.id === itemId);
+        if (card) {
+            card.total += quantity;
+            card.stock += quantity;
+            filterAndSort();
+            showToast(`Поставка добавлена локально (${quantity} шт)`, true);
+        }
+        return true;
+    }
+    
+    try {
+        const params = new URLSearchParams();
+        params.append('action', 'addSupply');
+        params.append('participant', CURRENT_USER.id);
+        params.append('userId', CURRENT_USER.id);
+        params.append('itemId', itemId.toString());
+        params.append('quantity', quantity.toString());
+        
+        const response = await fetch(CENTRAL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const card = originalCardsData.find(c => c.id === itemId);
+            if (card) {
+                card.total = result.newTotal;
+                card.stock = result.newStock;
+                filterAndSort();
+            }
+            showToast(`Поставка добавлена: +${quantity} шт`, true);
+            return true;
+        } else {
+            showToast("Ошибка: " + (result.error || "неизвестная"), false);
+            return false;
+        }
+    } catch(e) {
+        console.error("Add supply error:", e);
+        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity });
+        showToast("Поставка сохранена локально", true);
+        return true;
+    }
+}
+
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО ==========
+
+let photoCache = new Map();
 
 async function getPhotoUrl(itemId) {
     if (!isOnline) {
@@ -462,58 +494,5 @@ async function deletePhoto(itemId) {
         console.error("Delete error:", e);
         showToast("Ошибка удаления", false);
         return false;
-    }
-
-// ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
-
-async function addSupply(itemId, quantity) {
-    if (!isOnline) {
-        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity });
-        // Временно обновляем локальные данные
-        const card = originalCardsData.find(c => c.id === itemId);
-        if (card) {
-            card.total += quantity;
-            card.stock += quantity;
-            filterAndSort();
-            showToast(`Поставка добавлена локально (${quantity} шт)`, true);
-        }
-        return true;
-    }
-    
-    try {
-        const params = new URLSearchParams();
-        params.append('action', 'addSupply');
-        params.append('participant', CURRENT_USER.id);
-        params.append('userId', CURRENT_USER.id);
-        params.append('itemId', itemId.toString());
-        params.append('quantity', quantity.toString());
-        
-        const response = await fetch(CENTRAL_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Обновляем данные в памяти
-            const card = originalCardsData.find(c => c.id === itemId);
-            if (card) {
-                card.total = result.newTotal;
-                card.stock = result.newStock;
-                filterAndSort();
-            }
-            showToast(`Поставка добавлена: +${quantity} шт`, true);
-            return true;
-        } else {
-            showToast("Ошибка: " + (result.error || "неизвестная"), false);
-            return false;
-        }
-    } catch(e) {
-        console.error("Add supply error:", e);
-        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity });
-        showToast("Поставка сохранена локально", true);
-        return true;
     }
 }
