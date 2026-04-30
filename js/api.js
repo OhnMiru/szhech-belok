@@ -1,8 +1,7 @@
 // ========== API ФУНКЦИИ ==========
 function buildApiUrl(action, extraParams = "") {
     if (!CURRENT_USER.id) return "#";
-    // Для getPhotoUrl добавляем специальную обработку
-    if (action === "getPhotoUrl") {
+    if (action === "getPhotoUrl" || action === "getComment") {
         return `${CENTRAL_API_URL}?action=${action}&participant=${CURRENT_USER.id}${extraParams}&_=${Date.now()}`;
     }
     return `${CENTRAL_API_URL}?action=${action}&participant=${CURRENT_USER.id}${extraParams}&t=${Date.now()}`;
@@ -27,6 +26,8 @@ async function loadData(showLoading = true, showProgress = false) {
             filterAndSort();
             showUpdateTime();
             updateCartUI();
+            // Загружаем комментарии после загрузки товаров
+            loadAllComments();
         } else if (showLoading && !isAutoRefresh) {
             const container = document.getElementById('cards-container');
             if (container) container.innerHTML = '<div class="loading">Нет данных. Проверьте таблицу и лист "Мерч". 🍌</div>';
@@ -125,7 +126,162 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
     }
 }
 
+// ========== ФУНКЦИИ ДЛЯ КОММЕНТАРИЕВ ==========
+
+let commentsCache = new Map(); // { itemId: { comment, lastUpdated } }
+
+// Загрузка всех комментариев
+async function loadAllComments() {
+    if (!isOnline) {
+        loadCommentsFromLocal();
+        return;
+    }
+    
+    try {
+        const response = await fetch(buildApiUrl("getAllComments"));
+        const result = await response.json();
+        if (result.success && result.comments) {
+            commentsCache.clear();
+            for (const item of result.comments) {
+                commentsCache.set(item.itemId, {
+                    comment: item.comment,
+                    lastUpdated: item.lastUpdated
+                });
+            }
+            saveCommentsToLocal();
+            updateCommentIndicators();
+        }
+    } catch(e) {
+        console.error("Error loading comments:", e);
+        loadCommentsFromLocal();
+    }
+}
+
+// Сохранение комментария
+async function saveComment(itemId, comment) {
+    if (!isOnline) {
+        addPendingOperation("saveComment", { itemId: itemId, comment: comment });
+        commentsCache.set(itemId, { comment: comment, lastUpdated: new Date().toISOString() });
+        saveCommentsToLocal();
+        updateCommentIndicators();
+        showToast("Комментарий сохранён локально", true);
+        return true;
+    }
+    
+    try {
+        const params = new URLSearchParams();
+        params.append('action', 'saveComment');
+        params.append('participant', CURRENT_USER.id);
+        params.append('itemId', itemId.toString());
+        params.append('userId', CURRENT_USER.id);
+        params.append('comment', comment);
+        
+        const response = await fetch(CENTRAL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            commentsCache.set(itemId, { comment: comment, lastUpdated: new Date().toISOString() });
+            saveCommentsToLocal();
+            updateCommentIndicators();
+            showToast("Комментарий сохранён", true);
+            return true;
+        } else {
+            showToast("Ошибка: " + (result.error || "неизвестная"), false);
+            return false;
+        }
+    } catch(e) {
+        console.error("Save comment error:", e);
+        addPendingOperation("saveComment", { itemId: itemId, comment: comment });
+        showToast("Комментарий сохранён локально", true);
+        return true;
+    }
+}
+
+// Получение комментария
+async function getComment(itemId) {
+    if (commentsCache.has(itemId)) {
+        return commentsCache.get(itemId);
+    }
+    
+    if (!isOnline) {
+        return null;
+    }
+    
+    try {
+        const response = await fetch(buildApiUrl("getComment", `&itemId=${itemId}&userId=${CURRENT_USER.id}`));
+        const result = await response.json();
+        
+        if (result.success && result.comment !== null) {
+            commentsCache.set(itemId, { comment: result.comment, lastUpdated: result.lastUpdated });
+            saveCommentsToLocal();
+            return commentsCache.get(itemId);
+        }
+        return null;
+    } catch(e) {
+        console.error("Error getting comment:", e);
+        return null;
+    }
+}
+
+// Обновление индикаторов комментариев в карточках
+function updateCommentIndicators() {
+    document.querySelectorAll('.card').forEach(card => {
+        const itemId = parseInt(card.getAttribute('data-id'));
+        const hasComment = commentsCache.has(itemId) && commentsCache.get(itemId).comment && commentsCache.get(itemId).comment.trim() !== "";
+        
+        let commentBtn = card.querySelector('.comment-btn');
+        if (commentBtn) {
+            if (hasComment) {
+                commentBtn.classList.add('has-comment');
+                // Добавляем или обновляем бейдж
+                let badge = commentBtn.querySelector('.comment-badge');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'comment-badge';
+                    commentBtn.appendChild(badge);
+                }
+            } else {
+                commentBtn.classList.remove('has-comment');
+                const badge = commentBtn.querySelector('.comment-badge');
+                if (badge) badge.remove();
+            }
+        }
+    });
+}
+
+// Сохранение комментариев в localStorage
+function saveCommentsToLocal() {
+    const commentsObj = {};
+    for (const [key, value] of commentsCache.entries()) {
+        commentsObj[key] = value;
+    }
+    localStorage.setItem('merch_comments', JSON.stringify(commentsObj));
+}
+
+// Загрузка комментариев из localStorage
+function loadCommentsFromLocal() {
+    const saved = localStorage.getItem('merch_comments');
+    if (saved) {
+        try {
+            const commentsObj = JSON.parse(saved);
+            commentsCache.clear();
+            for (const [key, value] of Object.entries(commentsObj)) {
+                commentsCache.set(parseInt(key), value);
+            }
+            updateCommentIndicators();
+        } catch(e) {
+            console.error("Error loading comments from localStorage:", e);
+        }
+    }
+}
+
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО ==========
+
 async function getPhotoUrl(itemId) {
     if (!isOnline) {
         return null;
@@ -136,40 +292,42 @@ async function getPhotoUrl(itemId) {
         return null;
     }
     
-    // Сначала получаем fileId из Google Apps Script
-    const url = `${CENTRAL_API_URL}?action=getPhotoUrl&participant=${CURRENT_USER.id}&itemId=${itemId}&userId=${CURRENT_USER.id}&_=${Date.now()}`;
-    
-    console.log("🔍 Fetching photo URL:", url);
-    
-    const response = await fetch(url);
-    const result = await response.json();
-    
-    console.log("📸 Photo API response:", result);
-    
-    if (result.success && result.hasPhoto && result.url) {
-        // Извлекаем fileId из прямой ссылки Google Drive
-        let fileId = null;
-        if (result.url.includes('id=')) {
-            fileId = result.url.split('id=')[1];
-        } else if (result.url.includes('/d/')) {
-            fileId = result.url.split('/d/')[1].split('/')[0];
-        }
+    try {
+        const url = `${CENTRAL_API_URL}?action=getPhotoUrl&participant=${CURRENT_USER.id}&itemId=${itemId}&userId=${CURRENT_USER.id}&_=${Date.now()}`;
         
-        if (fileId) {
-            // ИСПРАВЛЕНО: используем /api/image вместо /image
-            const proxyUrl = `https://szhech-belochek.pages.dev/api/image?id=${fileId}`;
-            console.log("✅ Proxy URL:", proxyUrl);
+        console.log("🔍 Fetching photo URL:", url);
+        
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        console.log("📸 Photo API response:", result);
+        
+        if (result.success && result.hasPhoto && result.url) {
+            let fileId = null;
+            if (result.url.includes('id=')) {
+                fileId = result.url.split('id=')[1];
+            } else if (result.url.includes('/d/')) {
+                fileId = result.url.split('/d/')[1].split('/')[0];
+            }
             
-            if (photoCache) photoCache.set(itemId, proxyUrl);
-            return proxyUrl;
+            if (fileId) {
+                const proxyUrl = `https://szhech-belochek.pages.dev/api/image?id=${fileId}`;
+                console.log("✅ Proxy URL:", proxyUrl);
+                
+                if (photoCache) photoCache.set(itemId, proxyUrl);
+                return proxyUrl;
+            }
+            
+            if (photoCache) photoCache.set(itemId, result.url);
+            return result.url;
         }
         
-        if (photoCache) photoCache.set(itemId, result.url);
-        return result.url;
+        console.log("❌ No photo found for item", itemId);
+        return null;
+    } catch(e) {
+        console.error("Error getting photo:", e);
+        return null;
     }
-    
-    console.log("❌ No photo found for item", itemId);
-    return null;
 }
 
 async function uploadPhoto(itemId, file) {
@@ -205,9 +363,7 @@ async function uploadPhoto(itemId, file) {
                 
                 const response = await fetch(CENTRAL_API_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: params.toString()
                 });
                 
@@ -216,11 +372,9 @@ async function uploadPhoto(itemId, file) {
                 if (result.success) {
                     console.log("✅ Фото загружено на сервер!");
                     
-                    // Ждём 2 секунды для обработки Google Drive
                     showToast("Обработка фото...", true);
                     await new Promise(r => setTimeout(r, 2000));
                     
-                    // Пробуем получить фото несколько раз
                     let photoFound = false;
                     for (let attempt = 1; attempt <= 3; attempt++) {
                         console.log(`Попытка получить фото #${attempt}...`);
@@ -235,8 +389,14 @@ async function uploadPhoto(itemId, file) {
                         
                         if (checkResult.success && checkResult.hasPhoto && checkResult.url) {
                             photoFound = true;
-                            if (photoCache) photoCache.set(itemId, checkResult.url);
-                            console.log("✅ Фото найдено! URL:", checkResult.url);
+                            let fileId = null;
+                            if (checkResult.url.includes('id=')) {
+                                fileId = checkResult.url.split('id=')[1];
+                            }
+                            if (fileId) {
+                                const proxyUrl = `https://szhech-belochek.pages.dev/api/image?id=${fileId}`;
+                                if (photoCache) photoCache.set(itemId, proxyUrl);
+                            }
                             break;
                         }
                         
@@ -284,9 +444,7 @@ async function deletePhoto(itemId) {
         
         const response = await fetch(CENTRAL_API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: params.toString()
         });
         
