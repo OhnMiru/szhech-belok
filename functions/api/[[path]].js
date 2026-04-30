@@ -83,7 +83,7 @@ export async function onRequest(context) {
     }
     
     // ===== ПРОКСИ ДЛЯ GOOGLE APPS SCRIPT =====
-    const GS_API_URL = "https://script.google.com/macros/s/AKfycbx5vJfCu0rnJRcJCLYODFiyAaudwCMxtG9gutRPiSFVmr_E5s78U1JqkL_CDTrSP-AS/exec";
+    const GS_API_URL = "https://script.google.com/macros/s/AKfycbweUMiVw9QxMNzBbUa51WRYa4ds21laQtUfxghfVJyZGnVGRgyKzuSEnMlCu-QydgGS/exec";
     
     const gsUrl = new URL(GS_API_URL);
     for (const [key, value] of url.searchParams.entries()) {
