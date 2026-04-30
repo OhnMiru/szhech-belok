@@ -510,7 +510,7 @@ function openSupplyModal() {
             return aStr.localeCompare(bStr, 'ru');
         });
         for (const product of sortedProducts) {
-            if (product.stock >= 0) { // Показываем все товары
+            if (product.stock >= 0) {
                 const option = document.createElement('option');
                 option.value = product.id;
                 option.textContent = `${product.type} ${product.name} (остаток: ${product.stock} шт)`;
@@ -519,12 +519,9 @@ function openSupplyModal() {
         }
     }
     
-    // Очищаем поля
+    // Очищаем поле количества
     const quantityInput = document.getElementById('supplyQuantity');
     if (quantityInput) quantityInput.value = '1';
-    
-    const commentInput = document.getElementById('supplyComment');
-    if (commentInput) commentInput.value = '';
     
     const modal = document.getElementById('supplyModal');
     if (modal) modal.style.display = 'block';
@@ -539,7 +536,6 @@ async function addSupply() {
     const select = document.getElementById('supplyProductId');
     const itemId = parseInt(select?.value);
     const quantity = parseInt(document.getElementById('supplyQuantity')?.value) || 0;
-    const comment = document.getElementById('supplyComment')?.value || "";
     
     if (!itemId) {
         showToast("Выберите товар", false);
@@ -557,11 +553,9 @@ async function addSupply() {
         return;
     }
     
-    if (confirm(`Добавить поставку:\n\nТовар: ${product.type} ${product.name}\nКоличество: +${quantity} шт\n${comment ? `Комментарий: ${comment}` : ""}`)) {
-        const success = await addSupply(itemId, quantity, comment);
-        if (success) {
-            closeSupplyModal();
-        }
+    const success = await addSupply(itemId, quantity);
+    if (success) {
+        closeSupplyModal();
     }
 }
 
