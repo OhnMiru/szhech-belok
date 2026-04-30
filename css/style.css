@@ -2532,6 +2532,8 @@ body.dark .extra-cost-amount {
     transition: all 0.2s ease;
     color: var(--text-muted);
     position: relative;
+    box-shadow: none;
+    outline: none;
 }
 
 .comment-icon:hover {
