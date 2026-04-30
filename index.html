@@ -386,6 +386,38 @@
             </div>
         </div>
     </div>
+
+    <!-- Supply Modal -->
+    <div id="supplyModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close-btn" onclick="closeSupplyModal()">×</button>
+            <div class="modal-header">
+                <span>📦 Поставка товаров</span>
+            </div>
+            <div id="supply-content">
+                <div class="edit-row" style="margin-bottom: 16px;">
+                    <span class="edit-label">Товар</span>
+                    <div class="supply-product-select" id="supplyProductSelect" style="flex: 2;">
+                        <select id="supplyProductId" class="edit-input" style="width: 100%;">
+                            <option value="">Выберите товар</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="edit-row" style="margin-bottom: 16px;">
+                    <span class="edit-label">Количество</span>
+                    <input type="number" id="supplyQuantity" class="edit-input" value="1" min="1" step="1" style="flex: 2;">
+                </div>
+                <div class="edit-row" style="margin-bottom: 16px;">
+                    <span class="edit-label">Комментарий (опционально)</span>
+                    <input type="text" id="supplyComment" class="edit-input" placeholder="Например: новая партия" style="flex: 2;">
+                </div>
+                <div class="edit-buttons" style="margin-top: 20px;">
+                    <button class="edit-cancel-btn" onclick="closeSupplyModal()">❌ Отмена</button>
+                    <button class="edit-save-btn" onclick="addSupply()">📦 Добавить поставку</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
