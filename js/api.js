@@ -126,7 +126,6 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
 }
 
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО ==========
-
 async function getPhotoUrl(itemId) {
     if (!isOnline) {
         return null;
@@ -157,16 +156,14 @@ async function getPhotoUrl(itemId) {
         }
         
         if (fileId) {
-            // Используем прокси через Cloudflare Worker
-            const proxyUrl = `https://szhech-belochek.pages.dev/image?id=${fileId}`;
+            // ИСПРАВЛЕНО: используем /api/image вместо /image
+            const proxyUrl = `https://szhech-belochek.pages.dev/api/image?id=${fileId}`;
             console.log("✅ Proxy URL:", proxyUrl);
             
             if (photoCache) photoCache.set(itemId, proxyUrl);
             return proxyUrl;
         }
         
-        // Если не удалось извлечь fileId, пробуем прямой URL
-        console.log("⚠️ Using direct URL:", result.url);
         if (photoCache) photoCache.set(itemId, result.url);
         return result.url;
     }
