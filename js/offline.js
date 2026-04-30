@@ -108,6 +108,22 @@ async function processPendingOperations(silent = false) {
                     commentParams.append('itemId', op.params.itemId.toString());
                     commentParams.append('userId', CURRENT_USER.id);
                     commentParams.append('comment', op.params.comment);
+                case "addSupply":
+                    const supplyParams = new URLSearchParams();
+                    supplyParams.append('action', 'addSupply');
+                    supplyParams.append('participant', CURRENT_USER.id);
+                    supplyParams.append('userId', CURRENT_USER.id);
+                    supplyParams.append('itemId', op.params.itemId.toString());
+                    supplyParams.append('quantity', op.params.quantity.toString());
+                    supplyParams.append('comment', op.params.comment);
+    
+    fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: supplyParams.toString()
+    };
+    url = CENTRAL_API_URL;
+    break;
                     
                     fetchOptions = {
                         method: 'POST',
