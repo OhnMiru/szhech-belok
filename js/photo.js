@@ -1,4 +1,4 @@
-// ========== МОДУЛЬ ДЛЯ РАБОТЫ С ФОТО (через прокси) ==========
+// ========== МОДУЛЬ ДЛЯ РАБОТЫ С ФОТО ==========
 
 async function loadPhotoPreview(itemId) {
     const container = document.getElementById('photoPreviewContainer');
@@ -24,19 +24,19 @@ async function loadPhotoPreview(itemId) {
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ - без сжатия
 async function handlePhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    console.log("Selected file:", file.name, (file.size / 1024).toFixed(2) + "KB");
+    console.log("Выбран файл:", {
+        name: file.name,
+        type: file.type,
+        size: (file.size / 1024).toFixed(2) + " KB"
+    });
     
     if (!file.type.startsWith('image/')) {
         showToast("Пожалуйста, выберите изображение", false);
-        return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) {
-        showToast("Файл слишком большой. Максимум 5MB", false);
         return;
     }
     
@@ -119,6 +119,8 @@ function initPhotoUploadInEditModal() {
     const deleteBtn = document.getElementById('deletePhotoBtn');
     const uploadBtn = document.getElementById('uploadPhotoBtn');
     
+    console.log("Инициализация загрузки фото");
+    
     if (uploadBtn) {
         const newUploadBtn = uploadBtn.cloneNode(true);
         uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
@@ -126,6 +128,7 @@ function initPhotoUploadInEditModal() {
         newUploadBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            console.log("Кнопка загрузки нажата");
             if (fileInput) fileInput.click();
         });
     }
@@ -135,6 +138,7 @@ function initPhotoUploadInEditModal() {
         fileInput.parentNode.replaceChild(newFileInput, fileInput);
         
         newFileInput.addEventListener('change', function(e) {
+            console.log("Файл выбран");
             const file = e.target.files[0];
             if (file) handlePhotoUpload(e);
         });
@@ -147,6 +151,7 @@ function initPhotoUploadInEditModal() {
         newDeleteBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            console.log("Кнопка удаления нажата");
             handleDeletePhoto();
         });
     }
