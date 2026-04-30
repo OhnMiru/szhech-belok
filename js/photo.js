@@ -243,17 +243,3 @@ function initPhotoUploadInEditModal() {
         console.log("Delete button handler attached");
     }
 }
-
-// Функция для предварительного просмотра фото перед загрузкой (опционально)
-function previewPhotoBeforeUpload(file) {
-    const container = document.getElementById('photoPreviewContainer');
-    if (!container) return;
-    
-    if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            container.innerHTML = `<img src="${e.target.result}" alt="Предпросмотр" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain; border: 2px solid var(--btn-bg);">`;
-        };
-        reader.readAsDataURL(file);
-    }
-}
