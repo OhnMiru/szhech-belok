@@ -1,6 +1,10 @@
 // ========== API ФУНКЦИИ ==========
 function buildApiUrl(action, extraParams = "") {
     if (!CURRENT_USER.id) return "#";
+    // Для getPhotoUrl добавляем специальную обработку
+    if (action === "getPhotoUrl") {
+        return `${CENTRAL_API_URL}?action=${action}&participant=${CURRENT_USER.id}${extraParams}&_=${Date.now()}`;
+    }
     return `${CENTRAL_API_URL}?action=${action}&participant=${CURRENT_USER.id}${extraParams}&t=${Date.now()}`;
 }
 
@@ -124,31 +128,34 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО ==========
 
 async function getPhotoUrl(itemId) {
-    // Принудительно удаляем старый кэш
-    if (photoCache && photoCache.has(itemId)) {
-        photoCache.delete(itemId);
-    }
-    
     if (!isOnline) {
         return null;
     }
     
+    if (!itemId) {
+        console.error("getPhotoUrl called without itemId");
+        return null;
+    }
+    
     try {
-        // ВАЖНО: явно передаём параметры в URL
+        // Строим URL вручную, чтобы быть уверенными в параметрах
         const url = `${CENTRAL_API_URL}?action=getPhotoUrl&participant=${CURRENT_USER.id}&itemId=${itemId}&userId=${CURRENT_USER.id}&_=${Date.now()}`;
         
-        console.log("Requesting photo URL:", url);
+        console.log("🔍 Fetching photo URL:", url);
         
         const response = await fetch(url);
         const result = await response.json();
         
-        console.log("getPhotoUrl response:", result);
+        console.log("📸 Photo API response:", result);
         
         if (result.success && result.hasPhoto && result.url) {
             if (photoCache) photoCache.set(itemId, result.url);
+            console.log("✅ Photo URL obtained:", result.url);
             return result.url;
+        } else {
+            console.log("❌ No photo found for item", itemId);
+            return null;
         }
-        return null;
     } catch(e) {
         console.error("Error getting photo:", e);
         return null;
@@ -199,7 +206,7 @@ async function uploadPhoto(itemId, file) {
                 if (result.success) {
                     console.log("✅ Фото загружено на сервер!");
                     
-                    // Ждём 2 секунды, чтобы Google Drive успел обработать файл
+                    // Ждём 2 секунды для обработки Google Drive
                     showToast("Обработка фото...", true);
                     await new Promise(r => setTimeout(r, 2000));
                     
@@ -208,10 +215,10 @@ async function uploadPhoto(itemId, file) {
                     for (let attempt = 1; attempt <= 3; attempt++) {
                         console.log(`Попытка получить фото #${attempt}...`);
                         
-                        // Очищаем кэш
                         if (photoCache) photoCache.delete(itemId);
                         
-                        const checkResponse = await fetch(buildApiUrl("getPhotoUrl", `&itemId=${itemId}&_=${Date.now()}`));
+                        const checkUrl = `${CENTRAL_API_URL}?action=getPhotoUrl&participant=${CURRENT_USER.id}&itemId=${itemId}&userId=${CURRENT_USER.id}&_=${Date.now()}`;
+                        const checkResponse = await fetch(checkUrl);
                         const checkResult = await checkResponse.json();
                         
                         console.log(`Попытка ${attempt}:`, checkResult);
@@ -223,7 +230,6 @@ async function uploadPhoto(itemId, file) {
                             break;
                         }
                         
-                        // Ждём между попытками
                         if (attempt < 3) await new Promise(r => setTimeout(r, 1500));
                     }
                     
@@ -232,7 +238,7 @@ async function uploadPhoto(itemId, file) {
                         resolve(true);
                     } else {
                         showToast("Фото загружено, но не отображается. Обновите страницу.", false);
-                        resolve(true); // Всё равно возвращаем true, фото есть на диске
+                        resolve(true);
                     }
                 } else {
                     console.error("❌ Ошибка:", result.error);
