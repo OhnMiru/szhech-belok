@@ -40,6 +40,7 @@ async function processPendingOperations(silent = false) {
     for (const op of pendingOperations) {
         try {
             let url;
+            let fetchOptions = null;
             let isFormData = false;
             let formData = null;
             
@@ -91,14 +92,33 @@ async function processPendingOperations(silent = false) {
                     url = buildApiUrl("cancelBooking", buildParamsFromObject(op.params));
                     break;
                 case "uploadPhoto":
-                    // Для фото используем FormData
                     isFormData = true;
                     formData = new FormData();
                     formData.append('action', 'uploadPhoto');
                     formData.append('participant', CURRENT_USER.id);
                     formData.append('itemId', op.params.itemId);
+                    formData.append('userId', CURRENT_USER.id);
                     formData.append('base64Data', op.params.base64Data);
                     formData.append('fileName', op.params.fileName);
+                    break;
+                case "saveComment":
+                    const commentParams = new URLSearchParams();
+                    commentParams.append('action', 'saveComment');
+                    commentParams.append('participant', CURRENT_USER.id);
+                    commentParams.append('itemId', op.params.itemId.toString());
+                    commentParams.append('userId', CURRENT_USER.id);
+                    commentParams.append('comment', op.params.comment);
+                    
+                    fetchOptions = {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: commentParams.toString()
+                    };
+                    url = CENTRAL_API_URL;
+                    break;
+                case "syncFullComments":
+                    const commentsData = encodeURIComponent(JSON.stringify(op.params));
+                    url = buildApiUrl("syncFullComments", `&data=${commentsData}`);
                     break;
                 default:
                     url = buildApiUrl(op.action, buildParamsFromObject(op.params));
@@ -110,6 +130,8 @@ async function processPendingOperations(silent = false) {
                     method: 'POST',
                     body: formData
                 });
+            } else if (fetchOptions) {
+                response = await fetch(url, fetchOptions);
             } else if (url) {
                 response = await fetch(url);
             } else {
@@ -155,6 +177,7 @@ window.addEventListener('online', () => {
     showToast("Соединение восстановлено, синхронизация...", true);
     processPendingOperations(false);
     loadData(false, false);
+    loadAllComments(); // Загружаем комментарии после восстановления соединения
 });
 
 window.addEventListener('offline', () => {
