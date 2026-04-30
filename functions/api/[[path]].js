@@ -4,7 +4,7 @@ export async function onRequest(context) {
     const { request } = context;
     const url = new URL(request.url);
     
-    const GS_API_URL = "https://script.google.com/macros/s/AKfycbxDpHZ0SwkkXaj2tpjH2NH0zgC0cf3FHBRfy19dCVp0ZCis_m7ynkeieT6R9p9fO2qe/exec";
+    const GS_API_URL = "https://script.google.com/macros/s/AKfycbxOuwmiVGGiFzr6rkK5NHY8GxROx2R8dl_vNAyWH6vYzh_gweM3ADftvNTpfz1IW6YU/exec";
     
     // Проверяем, является ли запрос multipart/form-data (загрузка фото)
     const contentType = request.headers.get('content-type') || '';
