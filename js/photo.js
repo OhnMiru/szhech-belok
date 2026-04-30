@@ -1,41 +1,4 @@
-// ========== МОДУЛЬ ДЛЯ РАБОТЫ С ФОТО ==========
-
-// Функция для сжатия изображения перед загрузкой
-async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                let width = img.width;
-                let height = img.height;
-                
-                // Вычисляем новые размеры с сохранением пропорций
-                if (width > maxWidth) {
-                    height = (height * maxWidth) / width;
-                    width = maxWidth;
-                }
-                if (height > maxHeight) {
-                    width = (width * maxHeight) / height;
-                    height = maxHeight;
-                }
-                
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                canvas.toBlob((blob) => {
-                    console.log(`Сжато: ${(file.size / 1024).toFixed(0)}KB → ${(blob.size / 1024).toFixed(0)}KB`);
-                    resolve(blob);
-                }, 'image/jpeg', quality);
-            };
-        };
-    });
-}
+// ========== МОДУЛЬ ДЛЯ РАБОТЫ С ФОТО (через прокси) ==========
 
 async function loadPhotoPreview(itemId) {
     const container = document.getElementById('photoPreviewContainer');
@@ -65,14 +28,15 @@ async function handlePhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    console.log("Выбран файл:", {
-        name: file.name,
-        type: file.type,
-        size: (file.size / 1024).toFixed(2) + " KB"
-    });
+    console.log("Selected file:", file.name, (file.size / 1024).toFixed(2) + "KB");
     
     if (!file.type.startsWith('image/')) {
         showToast("Пожалуйста, выберите изображение", false);
+        return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+        showToast("Файл слишком большой. Максимум 5MB", false);
         return;
     }
     
@@ -81,24 +45,8 @@ async function handlePhotoUpload(event) {
         return;
     }
     
-    showToast("Сжатие фото...", true);
-    
-    let fileToUpload = file;
-    
-    // Сжимаем фото если оно больше 500KB
-    if (file.size > 500 * 1024) {
-        try {
-            const compressedBlob = await compressImage(file, 1024, 1024, 0.8);
-            fileToUpload = new File([compressedBlob], 'photo.jpg', { type: 'image/jpeg' });
-            showToast(`Размер после сжатия: ${(fileToUpload.size / 1024).toFixed(0)}KB`, true);
-        } catch(e) {
-            console.warn("Сжатие не удалось, загружаем оригинал:", e);
-            showToast("Сжатие не удалось", false);
-        }
-    }
-    
     showToast("Загрузка фото...", true);
-    const success = await uploadPhoto(currentEditId, fileToUpload);
+    const success = await uploadPhoto(currentEditId, file);
     
     if (success) {
         await loadPhotoPreview(currentEditId);
@@ -170,8 +118,6 @@ function initPhotoUploadInEditModal() {
     const fileInput = document.getElementById('photoFileInput');
     const deleteBtn = document.getElementById('deletePhotoBtn');
     const uploadBtn = document.getElementById('uploadPhotoBtn');
-    
-    console.log("Инициализация загрузки фото");
     
     if (uploadBtn) {
         const newUploadBtn = uploadBtn.cloneNode(true);
