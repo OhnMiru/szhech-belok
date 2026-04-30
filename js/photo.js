@@ -52,9 +52,17 @@ async function loadPhotoPreview(itemId) {
     
     try {
         const url = await getPhotoUrl(itemId);
+        console.log("Got URL for preview:", url);
         
         if (url) {
-            container.innerHTML = `<img src="${url}" alt="Фото товара" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain;">`;
+            // Прямая вставка ссылки с отладочной информацией
+            container.innerHTML = `
+                <div style="background: #f0f0f0; padding: 8px; border-radius: 8px; font-size: 11px; word-break: break-all;">
+                    <div>URL: ${url.substring(0, 80)}...</div>
+                    <img src="${url}" alt="Фото" style="max-width: 100%; max-height: 120px; border-radius: 8px; margin-top: 8px;" 
+                         onerror="console.error('Image failed to load:', this.src); this.parentElement.innerHTML+='<div style=\"color:red;\">❌ Ошибка загрузки изображения</div>'">
+                </div>
+            `;
             const deleteBtn = document.getElementById('deletePhotoBtn');
             if (deleteBtn) deleteBtn.style.display = 'inline-flex';
         } else {
@@ -64,7 +72,7 @@ async function loadPhotoPreview(itemId) {
         }
     } catch(e) {
         console.error("Error loading photo preview:", e);
-        container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);">❌ Ошибка загрузки фото</div>`;
+        container.innerHTML = `<div style="color: red;">❌ Ошибка: ${e.message}</div>`;
     }
 }
 
