@@ -497,6 +497,78 @@ async function saveCommentAndClose() {
     }
 }
 
+// ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
+
+function openSupplyModal() {
+    // Заполняем селектор товарами
+    const select = document.getElementById('supplyProductId');
+    if (select) {
+        select.innerHTML = '<option value="">Выберите товар</option>';
+        const sortedProducts = [...originalCardsData].sort((a, b) => {
+            const aStr = `${a.type} ${a.name}`;
+            const bStr = `${b.type} ${b.name}`;
+            return aStr.localeCompare(bStr, 'ru');
+        });
+        for (const product of sortedProducts) {
+            if (product.stock >= 0) { // Показываем все товары
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = `${product.type} ${product.name} (остаток: ${product.stock} шт)`;
+                select.appendChild(option);
+            }
+        }
+    }
+    
+    // Очищаем поля
+    const quantityInput = document.getElementById('supplyQuantity');
+    if (quantityInput) quantityInput.value = '1';
+    
+    const commentInput = document.getElementById('supplyComment');
+    if (commentInput) commentInput.value = '';
+    
+    const modal = document.getElementById('supplyModal');
+    if (modal) modal.style.display = 'block';
+}
+
+function closeSupplyModal() {
+    const modal = document.getElementById('supplyModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function addSupply() {
+    const select = document.getElementById('supplyProductId');
+    const itemId = parseInt(select?.value);
+    const quantity = parseInt(document.getElementById('supplyQuantity')?.value) || 0;
+    const comment = document.getElementById('supplyComment')?.value || "";
+    
+    if (!itemId) {
+        showToast("Выберите товар", false);
+        return;
+    }
+    
+    if (quantity < 1) {
+        showToast("Количество должно быть больше 0", false);
+        return;
+    }
+    
+    const product = originalCardsData.find(c => c.id === itemId);
+    if (!product) {
+        showToast("Товар не найден", false);
+        return;
+    }
+    
+    if (confirm(`Добавить поставку:\n\nТовар: ${product.type} ${product.name}\nКоличество: +${quantity} шт\n${comment ? `Комментарий: ${comment}` : ""}`)) {
+        const success = await addSupply(itemId, quantity, comment);
+        if (success) {
+            closeSupplyModal();
+        }
+    }
+}
+
+// Добавляем обработчик кнопки в initApp (в app.js)
+// В функции initApp добавьте:
+// const supplyBtn = document.getElementById('supplyButton');
+// if (supplyBtn) supplyBtn.addEventListener('click', openSupplyModal);
 // Экспортируем функции в глобальную область
 window.showCommentModal = showCommentModal;
 window.closeCommentModal = closeCommentModal;
