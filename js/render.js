@@ -43,10 +43,8 @@ function renderCards() {
                     <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>
                 </div>
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
-                <div class="total-row">
-                    <span class="total">📦 Всего: ${total} шт</span>
-                </div>
-                <div class="price-row">
+                <div class="total-row"><span class="total">📦 Всего: ${total} шт</span></div>
+                <div class="price-actions-row">
                     <span class="price">💰 Цена: ${price} ₽</span>
                     <div class="action-buttons">
                         <button class="edit-icon" onclick="openEditProductModal(${id})" title="Редактировать">✏️</button>
@@ -104,7 +102,7 @@ async function handleButtonClick(e) {
     await updateStock(id, delta);
 }
 
-// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С МОДАЛЬНЫМ ОКНОМ КОММЕНТАРИЯ ==========
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ ==========
 
 async function showCommentModal(itemId, itemName) {
     // Получаем текущий комментарий
@@ -185,7 +183,6 @@ async function saveCommentAndClose() {
     }
 }
 
-// Функция для обновления индикатора комментария на карточке
 function updateCommentIndicators() {
     document.querySelectorAll('.card').forEach(card => {
         const itemId = parseInt(card.getAttribute('data-id'));
