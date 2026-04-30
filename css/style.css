@@ -2519,27 +2519,31 @@ body.dark .extra-cost-amount {
     animation: spin 1s linear infinite;
 }
 
-/* ========== СТИЛИ ДЛЯ КНОПКИ КОММЕНТАРИЯ ========== */
+.comment-row {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
 
 .comment-icon {
     background: none;
     border: none;
-    font-size: 16px;
+    font-size: 12px;
     cursor: pointer;
-    padding: 4px 6px;
-    margin-left: 4px;
-    border-radius: 20px;
+    padding: 2px 8px;
+    border-radius: 16px;
     transition: all 0.2s ease;
     color: var(--text-muted);
     position: relative;
     box-shadow: none;
     outline: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .comment-icon:hover {
     background: var(--badge-bg);
     color: var(--badge-text);
-    transform: scale(1.05);
 }
 
 .comment-icon.has-comment {
@@ -2548,8 +2552,8 @@ body.dark .extra-cost-amount {
 
 .comment-badge {
     position: absolute;
-    top: 0px;
-    right: 0px;
+    top: -2px;
+    right: -2px;
     width: 8px;
     height: 8px;
     background-color: #e74c3c;
@@ -2579,8 +2583,8 @@ body.dark .extra-cost-amount {
 @media (max-width: 500px) {
 
     .comment-icon {
-        font-size: 14px;
-        padding: 2px 4px;
+        font-size: 11px;
+        padding: 2px 6px;
     }
     
     .comment-badge {
