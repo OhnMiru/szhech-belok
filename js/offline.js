@@ -115,15 +115,14 @@ async function processPendingOperations(silent = false) {
                     supplyParams.append('userId', CURRENT_USER.id);
                     supplyParams.append('itemId', op.params.itemId.toString());
                     supplyParams.append('quantity', op.params.quantity.toString());
-                    supplyParams.append('comment', op.params.comment);
     
-    fetchOptions = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: supplyParams.toString()
-    };
-    url = CENTRAL_API_URL;
-    break;
+                    fetchOptions = {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: supplyParams.toString()
+                    };
+                    url = CENTRAL_API_URL;
+                    break;
                     
                     fetchOptions = {
                         method: 'POST',
