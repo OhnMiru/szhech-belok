@@ -160,7 +160,7 @@ h1 {
 }
 
 /* ========== КНОПКИ УПРАВЛЕНИЯ ========== */
-.refresh-btn, .history-btn, .rules-btn, .stats-btn {
+.refresh-btn, .history-btn, .rules-btn, .stats-btn, .add-item-btn, .bookings-btn {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
@@ -174,7 +174,7 @@ h1 {
     gap: 6px;
 }
 
-.refresh-btn:hover, .history-btn:hover, .rules-btn:hover, .stats-btn:hover {
+.refresh-btn:hover, .history-btn:hover, .rules-btn:hover, .stats-btn:hover, .add-item-btn:hover, .bookings-btn:hover {
     background: var(--btn-bg);
     color: white;
     border-color: var(--btn-bg);
@@ -760,123 +760,121 @@ h1 {
     margin-right: 6px;
 }
 
-/* Секция скидок */
-.discount-section {
-    background: var(--badge-bg);
-    border-radius: 16px;
-    margin-bottom: 16px;
-}
-
-.discount-header {
-    padding: 12px;
-    cursor: pointer;
+/* ========== ПРАВИЛА ========== */
+.rule-type-buttons {
     display: flex;
-    justify-content: space-between;
-    font-weight: bold;
-    color: var(--badge-text);
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
 }
 
-.discount-content {
-    padding: 12px;
-    padding-top: 0;
+.rule-type-btn {
+    padding: 8px 16px;
+    border-radius: 30px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    cursor: pointer;
+    font-size: 13px;
 }
 
-.discount-row {
+.rule-type-btn.active {
+    background: var(--btn-bg);
+    color: white;
+    border-color: var(--btn-bg);
+}
+
+.rule-custom-select {
+    position: relative;
     margin-bottom: 12px;
 }
 
-.discount-custom-select {
-    position: relative;
-    display: inline-block;
-}
-
-.discount-custom-select-trigger {
+.rule-custom-select-trigger {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 30px;
-    padding: 8px 16px;
+    padding: 10px 14px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
 }
 
-.discount-custom-select-dropdown {
+.rule-custom-select-dropdown {
     position: absolute;
     top: 100%;
     left: 0;
+    right: 0;
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 12px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
     display: none;
     z-index: 100;
 }
 
-.discount-custom-select-dropdown.show {
+.rule-custom-select-dropdown.show {
     display: block;
 }
 
-.discount-select-option {
-    padding: 8px 16px;
+.rule-select-option {
+    padding: 10px 14px;
     cursor: pointer;
 }
 
-.discount-select-option:hover {
+.rule-select-option:hover {
     background: var(--badge-bg);
 }
 
-.discount-amount-control {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-left: 8px;
-}
-
-.discount-amount-input {
-    width: 80px;
-    padding: 8px;
+.rule-styled-input {
+    width: 100%;
+    padding: 10px 14px;
     border: 1px solid var(--border-color);
     border-radius: 30px;
     background: var(--card-bg);
     color: var(--text-primary);
+    margin-bottom: 12px;
 }
 
-.discount-step-btn {
-    width: 32px;
-    height: 32px;
+.price-control {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.price-step-btn {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     border: 1px solid var(--border-color);
     background: var(--card-bg);
     cursor: pointer;
 }
 
-.discount-products-btn, .discount-all-btn, .discount-none-btn {
-    padding: 6px 12px;
-    border-radius: 30px;
+.multi-select-container {
+    max-height: 200px;
+    overflow-y: auto;
     border: 1px solid var(--border-color);
-    background: var(--card-bg);
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.multi-select-item {
+    padding: 8px 12px;
     cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+}
+
+.multi-select-item.selected {
+    background: var(--btn-bg)20;
+}
+
+.selected-count {
     font-size: 12px;
-}
-
-.discount-action-btn {
-    padding: 8px 16px;
-    border-radius: 30px;
-    border: none;
-    cursor: pointer;
-}
-
-.discount-action-btn.cancel-btn {
-    background: var(--badge-bg);
     color: var(--text-muted);
-}
-
-.discount-action-btn.reset-btn {
-    background: var(--minus-bg);
-    color: var(--minus-color);
-}
-
-.discount-action-btn.apply-btn {
-    background: var(--btn-bg);
-    color: white;
+    margin-top: 8px;
 }
 
 /* ========== ИСТОРИЯ ========== */
@@ -1433,7 +1431,7 @@ h1 {
     color: var(--minus-color);
 }
 
-/* Бронирования */
+/* ========== БРОНИРОВАНИЯ ========== */
 .add-booking-form {
     margin-bottom: 20px;
     padding: 16px;
@@ -1549,6 +1547,125 @@ h1 {
         opacity: 0;
         transform: translateX(-50%) translateY(20px);
     }
+}
+
+/* ========== СКИДКИ ========== */
+.discount-section {
+    background: var(--badge-bg);
+    border-radius: 16px;
+    margin-bottom: 16px;
+}
+
+.discount-header {
+    padding: 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    color: var(--badge-text);
+}
+
+.discount-content {
+    padding: 12px;
+    padding-top: 0;
+}
+
+.discount-row {
+    margin-bottom: 12px;
+}
+
+.discount-custom-select {
+    position: relative;
+    display: inline-block;
+}
+
+.discount-custom-select-trigger {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.discount-custom-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    display: none;
+    z-index: 100;
+}
+
+.discount-custom-select-dropdown.show {
+    display: block;
+}
+
+.discount-select-option {
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.discount-select-option:hover {
+    background: var(--badge-bg);
+}
+
+.discount-amount-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.discount-amount-input {
+    width: 80px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.discount-step-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    cursor: pointer;
+}
+
+.discount-products-btn, .discount-all-btn, .discount-none-btn {
+    padding: 6px 12px;
+    border-radius: 30px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.discount-action-btn {
+    padding: 8px 16px;
+    border-radius: 30px;
+    border: none;
+    cursor: pointer;
+}
+
+.discount-action-btn.cancel-btn {
+    background: var(--badge-bg);
+    color: var(--text-muted);
+}
+
+.discount-action-btn.reset-btn {
+    background: var(--minus-bg);
+    color: var(--minus-color);
+}
+
+.discount-action-btn.apply-btn {
+    background: var(--btn-bg);
+    color: white;
 }
 
 /* ========== АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ========== */
@@ -1675,4 +1792,50 @@ h1 {
 
 .comment-last-updated {
     font-style: italic;
+}
+
+/* ========== ЭКРАН ВХОДА ========== */
+.login-card {
+    background: var(--card-bg);
+    padding: 32px 24px;
+    border-radius: 32px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 8px 24px var(--shadow-color);
+    border: 1px solid var(--border-color);
+}
+
+.login-card h2 {
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.password-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    outline: none;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    padding-right: 45px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--text-muted);
 }
