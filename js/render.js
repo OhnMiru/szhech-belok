@@ -46,7 +46,7 @@ function renderCards() {
                 <div class="total-row">
                     <span class="total">📦 Всего: ${total} шт</span>
                     <button class="edit-icon" onclick="openEditProductModal(${id})">✏️</button>
-                    <button class="comment-icon ${hasComment ? 'has-comment' : ''}" onclick="openCommentModal(${id}, '${escapeHtml(name).replace(/'/g, "\\'")}')" title="Комментарий">
+                    <button class="comment-icon ${hasComment ? 'has-comment' : ''}" onclick="showCommentModal(${id}, '${escapeHtml(name).replace(/'/g, "\\'")}')" title="Комментарий">
                         💬
                         ${hasComment ? '<span class="comment-badge"></span>' : ''}
                     </button>
