@@ -34,7 +34,6 @@ function closeCartModal() {
     if (modal) modal.style.display = 'none'; 
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТКРЫТИЯ РЕДАКТИРОВАНИЯ ТОВАРА
 function openEditProductModal(id) {
     currentEditId = id;
     const card = originalCardsData.find(c => c.id === id);
@@ -48,12 +47,10 @@ function openEditProductModal(id) {
         document.getElementById('editPrice').value = card.price;
         document.getElementById('editCost').value = card.cost || 0;
         
-        // Загружаем фото в превью
         loadPhotoPreview(id).catch(e => console.error("Error loading photo preview:", e));
         
         document.getElementById('editProductModal').style.display = 'block';
         
-        // ВАЖНО: инициализируем обработчики ПОСЛЕ того как модалка открылась
         setTimeout(() => {
             initPhotoUploadInEditModal();
         }, 100);
@@ -255,17 +252,22 @@ async function addNewItem() {
     closeAddItemModal();
 }
 
-// ========== ФУНКЦИИ ДЛЯ ФОТО (дублируются из photo.js для совместимости) ==========
+// ========== ФУНКЦИИ ДЛЯ ФОТО ==========
 
 async function loadPhotoPreview(itemId) {
     const container = document.getElementById('photoPreviewContainer');
     if (!container) return;
     
     try {
+        if (photoCache) photoCache.delete(itemId);
+        
         const url = await getPhotoUrl(itemId);
+        console.log("Preview URL:", url);
         
         if (url) {
-            container.innerHTML = `<img src="${url}" alt="Фото товара" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain;">`;
+            const urlWithCache = `${url}&_=${Date.now()}`;
+            container.innerHTML = `<img src="${urlWithCache}" alt="Фото товара" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain; border: 1px solid var(--border-color);"
+                onerror="this.onerror=null; console.error('Image failed to load:', this.src); this.parentElement.innerHTML='<div style=\"display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);\">❌ Ошибка загрузки фото</div>';">`;
             const deleteBtn = document.getElementById('deletePhotoBtn');
             if (deleteBtn) deleteBtn.style.display = 'inline-flex';
         } else {
@@ -275,7 +277,7 @@ async function loadPhotoPreview(itemId) {
         }
     } catch(e) {
         console.error("Error loading photo preview:", e);
-        container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);">❌ Ошибка загрузки</div>`;
+        container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 150px; background: var(--badge-bg); border-radius: 8px; color: var(--text-muted);">❌ Ошибка: ${e.message}</div>`;
     }
 }
 
@@ -283,13 +285,14 @@ async function handlePhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
+    console.log("Выбран файл:", {
+        name: file.name,
+        type: file.type,
+        size: (file.size / 1024).toFixed(2) + " KB"
+    });
+    
     if (!file.type.startsWith('image/')) {
         showToast("Пожалуйста, выберите изображение", false);
-        return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) {
-        showToast("Файл слишком большой. Максимум 5 МБ", false);
         return;
     }
     
@@ -298,11 +301,17 @@ async function handlePhotoUpload(event) {
         return;
     }
     
+    let fileToUpload = file;
+    
     showToast("Загрузка фото...", true);
-    const success = await uploadPhoto(currentEditId, file);
+    const success = await uploadPhoto(currentEditId, fileToUpload);
     
     if (success) {
-        await loadPhotoPreview(currentEditId);
+        setTimeout(async () => {
+            if (photoCache) photoCache.delete(currentEditId);
+            await loadPhotoPreview(currentEditId);
+        }, 500);
+        
         const fileInput = document.getElementById('photoFileInput');
         if (fileInput) fileInput.value = '';
     }
@@ -315,8 +324,10 @@ async function handleDeletePhoto() {
     }
     
     if (confirm("Удалить фото товара?")) {
+        showToast("Удаление фото...", true);
         const success = await deletePhoto(currentEditId);
         if (success) {
+            if (photoCache) photoCache.delete(currentEditId);
             await loadPhotoPreview(currentEditId);
         }
     }
@@ -346,10 +357,13 @@ async function loadPhotoToModal(itemId) {
     if (!content) return;
     
     try {
+        if (photoCache) photoCache.delete(itemId);
+        
         const url = await getPhotoUrl(itemId);
         
         if (url) {
-            content.innerHTML = `<img src="${url}" alt="Фото товара" style="max-width: 100%; max-height: 60vh; border-radius: 12px; object-fit: contain;">`;
+            const urlWithCache = `${url}&_=${Date.now()}`;
+            content.innerHTML = `<img src="${urlWithCache}" alt="Фото товара" style="max-width: 100%; max-height: 60vh; border-radius: 12px; object-fit: contain;">`;
         } else {
             content.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">📷 Фото не добавлено</div>`;
         }
@@ -389,3 +403,42 @@ function initPhotoUploadInEditModal() {
         });
     }
 }
+
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ (ГЛОБАЛЬНЫЕ) ==========
+
+function openCommentModal(itemId, itemName) {
+    if (typeof window.openCommentModalImpl === 'function') {
+        window.openCommentModalImpl(itemId, itemName);
+    } else {
+        console.error("openCommentModalImpl not defined");
+    }
+}
+
+function closeCommentModal() {
+    const modal = document.getElementById('commentModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function saveCommentAndClose() {
+    const modal = document.getElementById('commentModal');
+    if (!modal) return;
+    
+    const itemId = parseInt(modal.getAttribute('data-item-id'));
+    const commentText = document.getElementById('commentText').value;
+    
+    if (isNaN(itemId)) return;
+    
+    const success = await saveComment(itemId, commentText);
+    
+    if (success) {
+        if (typeof updateCommentIndicators === 'function') {
+            updateCommentIndicators();
+        }
+        closeCommentModal();
+    }
+}
+
+// Связываем функции из render.js с глобальной областью
+window.openCommentModalImpl = openCommentModal;
+window.closeCommentModal = closeCommentModal;
+window.saveCommentAndClose = saveCommentAndClose;
