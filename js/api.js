@@ -123,9 +123,8 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
 
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО ==========
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ - принудительно обновляет кэш
 async function getPhotoUrl(itemId) {
-    // Принудительно удаляем старый кэш при каждом запросе для свежести данных
+    // Принудительно удаляем старый кэш
     if (photoCache && photoCache.has(itemId)) {
         photoCache.delete(itemId);
     }
@@ -135,8 +134,12 @@ async function getPhotoUrl(itemId) {
     }
     
     try {
-        // Добавляем timestamp чтобы всегда получать свежие данные с сервера
-        const response = await fetch(buildApiUrl("getPhotoUrl", `&itemId=${itemId}&_=${Date.now()}`));
+        // ВАЖНО: явно передаём параметры в URL
+        const url = `${CENTRAL_API_URL}?action=getPhotoUrl&participant=${CURRENT_USER.id}&itemId=${itemId}&userId=${CURRENT_USER.id}&_=${Date.now()}`;
+        
+        console.log("Requesting photo URL:", url);
+        
+        const response = await fetch(url);
         const result = await response.json();
         
         console.log("getPhotoUrl response:", result);
