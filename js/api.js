@@ -123,9 +123,11 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
 
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ФОТО ==========
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ - принудительно обновляет кэш
 async function getPhotoUrl(itemId) {
-    if (photoCache.has(itemId)) {
-        return photoCache.get(itemId);
+    // Принудительно удаляем старый кэш при каждом запросе для свежести данных
+    if (photoCache && photoCache.has(itemId)) {
+        photoCache.delete(itemId);
     }
     
     if (!isOnline) {
@@ -133,11 +135,14 @@ async function getPhotoUrl(itemId) {
     }
     
     try {
-        const response = await fetch(buildApiUrl("getPhotoUrl", `&itemId=${itemId}`));
+        // Добавляем timestamp чтобы всегда получать свежие данные с сервера
+        const response = await fetch(buildApiUrl("getPhotoUrl", `&itemId=${itemId}&_=${Date.now()}`));
         const result = await response.json();
         
+        console.log("getPhotoUrl response:", result);
+        
         if (result.success && result.hasPhoto && result.url) {
-            photoCache.set(itemId, result.url);
+            if (photoCache) photoCache.set(itemId, result.url);
             return result.url;
         }
         return null;
@@ -189,7 +194,8 @@ async function uploadPhoto(itemId, file) {
                 const result = await response.json();
                 
                 if (result.success) {
-                    photoCache.delete(itemId);
+                    // Очищаем кэш после успешной загрузки
+                    if (photoCache) photoCache.delete(itemId);
                     console.log("✅ Фото загружено успешно!");
                     showToast("Фото загружено", true);
                     resolve(true);
@@ -236,7 +242,7 @@ async function deletePhoto(itemId) {
         const result = await response.json();
         
         if (result.success) {
-            photoCache.delete(itemId);
+            if (photoCache) photoCache.delete(itemId);
             showToast("Фото удалено", true);
             return true;
         } else {
