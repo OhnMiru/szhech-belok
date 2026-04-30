@@ -194,11 +194,43 @@ async function uploadPhoto(itemId, file) {
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Очищаем кэш после успешной загрузки
-                    if (photoCache) photoCache.delete(itemId);
-                    console.log("✅ Фото загружено успешно!");
-                    showToast("Фото загружено", true);
-                    resolve(true);
+                    console.log("✅ Фото загружено на сервер!");
+                    
+                    // Ждём 2 секунды, чтобы Google Drive успел обработать файл
+                    showToast("Обработка фото...", true);
+                    await new Promise(r => setTimeout(r, 2000));
+                    
+                    // Пробуем получить фото несколько раз
+                    let photoFound = false;
+                    for (let attempt = 1; attempt <= 3; attempt++) {
+                        console.log(`Попытка получить фото #${attempt}...`);
+                        
+                        // Очищаем кэш
+                        if (photoCache) photoCache.delete(itemId);
+                        
+                        const checkResponse = await fetch(buildApiUrl("getPhotoUrl", `&itemId=${itemId}&_=${Date.now()}`));
+                        const checkResult = await checkResponse.json();
+                        
+                        console.log(`Попытка ${attempt}:`, checkResult);
+                        
+                        if (checkResult.success && checkResult.hasPhoto && checkResult.url) {
+                            photoFound = true;
+                            if (photoCache) photoCache.set(itemId, checkResult.url);
+                            console.log("✅ Фото найдено! URL:", checkResult.url);
+                            break;
+                        }
+                        
+                        // Ждём между попытками
+                        if (attempt < 3) await new Promise(r => setTimeout(r, 1500));
+                    }
+                    
+                    if (photoFound) {
+                        showToast("Фото загружено", true);
+                        resolve(true);
+                    } else {
+                        showToast("Фото загружено, но не отображается. Обновите страницу.", false);
+                        resolve(true); // Всё равно возвращаем true, фото есть на диске
+                    }
                 } else {
                     console.error("❌ Ошибка:", result.error);
                     showToast("Ошибка: " + (result.error || "неизвестная"), false);
