@@ -557,10 +557,10 @@ h1 {
 
 .price-row {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 2px;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    margin-bottom: 8px;
 }
 
 .price {
@@ -590,8 +590,8 @@ h1 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
 }
 
 .edit-icon:hover, .comment-icon:hover {
@@ -613,11 +613,6 @@ h1 {
     background-color: #e74c3c;
     border-radius: 50%;
     border: 1px solid var(--card-bg);
-}
-
-/* Убираем отдельную строку для комментария */
-.comment-row {
-    display: none;
 }
 
 /* Стили для модального окна комментария */
@@ -2574,8 +2569,8 @@ body.dark .extra-cost-amount {
  
     .edit-icon, .comment-icon {
         font-size: 12px;
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
     }
     
     .comment-badge {
@@ -2594,7 +2589,7 @@ body.dark .extra-cost-amount {
         font-size: 14px;
         padding: 10px;
     }
-
+    
     .photo-preview {
         min-height: 120px;
     }
