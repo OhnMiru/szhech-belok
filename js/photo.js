@@ -1,6 +1,6 @@
 // ========== МОДУЛЬ ДЛЯ РАБОТЫ С ФОТО ==========
 
-// Функция для сжатия изображения перед загрузкой (уменьшает до 500KB)
+// Функция для сильного сжатия изображения (до 30-40KB)
 async function compressImageForSheet(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -9,12 +9,12 @@ async function compressImageForSheet(file) {
             const img = new Image();
             img.src = event.target.result;
             img.onload = () => {
-                let quality = 0.7;
+                // Сильно уменьшаем размеры
                 let width = img.width;
                 let height = img.height;
                 
-                // Уменьшаем размеры для экономии места
-                const maxSize = 600;
+                // Максимальный размер - 400px (было 600)
+                const maxSize = 400;
                 if (width > maxSize) {
                     height = (height * maxSize) / width;
                     width = maxSize;
@@ -30,18 +30,22 @@ async function compressImageForSheet(file) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // Пробуем с разным качеством, пока размер не станет < 500KB
+                // Начинаем с низкого качества 0.5 и уменьшаем если нужно
                 const tryQuality = (q) => {
                     canvas.toBlob((blob) => {
-                        if (blob.size > 500 * 1024 && q > 0.3) {
+                        const sizeKB = blob.size / 1024;
+                        console.log(`Пробуем качество ${Math.round(q * 100)}%: ${sizeKB.toFixed(0)}KB`);
+                        
+                        // Цель - 35KB (чтобы base64 был ~45KB)
+                        if (blob.size > 35 * 1024 && q > 0.2) {
                             tryQuality(q - 0.1);
                         } else {
-                            console.log(`Сжато до ${(blob.size / 1024).toFixed(0)}KB (качество ${Math.round(q * 100)}%)`);
+                            console.log(`✅ Фото сжато до ${sizeKB.toFixed(0)}KB`);
                             resolve(blob);
                         }
                     }, 'image/jpeg', q);
                 };
-                tryQuality(quality);
+                tryQuality(0.5);
             };
         };
     });
@@ -53,7 +57,6 @@ async function loadPhotoPreview(itemId) {
     
     try {
         const url = await getPhotoUrl(itemId);
-        console.log("URL для превью:", url ? url.substring(0, 100) + "..." : "null");
         
         if (url) {
             container.innerHTML = `<img src="${url}" alt="Фото товара" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain; border: 1px solid var(--border-color);"
@@ -81,7 +84,6 @@ async function handlePhotoUpload(event) {
         size: (file.size / 1024).toFixed(2) + " KB"
     });
     
-    // Проверяем тип файла
     if (!file.type.startsWith('image/')) {
         showToast("Пожалуйста, выберите изображение", false);
         return;
@@ -93,25 +95,30 @@ async function handlePhotoUpload(event) {
     }
     
     showToast("Сжатие фото...", true);
-    let fileToUpload = file;
     
     try {
         const compressedBlob = await compressImageForSheet(file);
-        fileToUpload = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, '.jpg'), { type: 'image/jpeg' });
-        showToast(`Размер: ${(fileToUpload.size / 1024).toFixed(0)}KB`, true);
+        const compressedSizeKB = compressedBlob.size / 1024;
+        
+        if (compressedBlob.size > 45 * 1024) {
+            showToast(`Фото всё ещё слишком большое (${compressedSizeKB.toFixed(0)}KB). Попробуйте другое фото.`, false);
+            return;
+        }
+        
+        const compressedFile = new File([compressedBlob], 'photo.jpg', { type: 'image/jpeg' });
+        showToast(`Размер после сжатия: ${compressedSizeKB.toFixed(0)}KB`, true);
+        
+        showToast("Загрузка фото...", true);
+        const success = await uploadPhoto(currentEditId, compressedFile);
+        
+        if (success) {
+            await loadPhotoPreview(currentEditId);
+            const fileInput = document.getElementById('photoFileInput');
+            if (fileInput) fileInput.value = '';
+        }
     } catch(e) {
-        console.warn("Сжатие не удалось, загружаем оригинал:", e);
-        showToast("Сжатие не удалось", false);
-    }
-    
-    showToast("Загрузка фото...", true);
-    const success = await uploadPhoto(currentEditId, fileToUpload);
-    
-    if (success) {
-        await loadPhotoPreview(currentEditId);
-        // Очищаем input
-        const fileInput = document.getElementById('photoFileInput');
-        if (fileInput) fileInput.value = '';
+        console.error("Compression error:", e);
+        showToast("Ошибка сжатия фото", false);
     }
 }
 
@@ -181,7 +188,6 @@ function initPhotoUploadInEditModal() {
     
     console.log("Инициализация загрузки фото");
     
-    // Настройка кнопки загрузки
     if (uploadBtn) {
         const newUploadBtn = uploadBtn.cloneNode(true);
         uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
@@ -190,13 +196,10 @@ function initPhotoUploadInEditModal() {
             e.preventDefault();
             e.stopPropagation();
             console.log("Кнопка загрузки нажата");
-            if (fileInput) {
-                fileInput.click();
-            }
+            if (fileInput) fileInput.click();
         });
     }
     
-    // Настройка input файла
     if (fileInput) {
         const newFileInput = fileInput.cloneNode(true);
         fileInput.parentNode.replaceChild(newFileInput, fileInput);
@@ -204,13 +207,10 @@ function initPhotoUploadInEditModal() {
         newFileInput.addEventListener('change', function(e) {
             console.log("Файл выбран");
             const file = e.target.files[0];
-            if (file) {
-                handlePhotoUpload(e);
-            }
+            if (file) handlePhotoUpload(e);
         });
     }
     
-    // Настройка кнопки удаления
     if (deleteBtn) {
         const newDeleteBtn = deleteBtn.cloneNode(true);
         deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
