@@ -137,29 +137,42 @@ async function getPhotoUrl(itemId) {
         return null;
     }
     
-    try {
-        // Строим URL вручную, чтобы быть уверенными в параметрах
-        const url = `${CENTRAL_API_URL}?action=getPhotoUrl&participant=${CURRENT_USER.id}&itemId=${itemId}&userId=${CURRENT_USER.id}&_=${Date.now()}`;
-        
-        console.log("🔍 Fetching photo URL:", url);
-        
-        const response = await fetch(url);
-        const result = await response.json();
-        
-        console.log("📸 Photo API response:", result);
-        
-        if (result.success && result.hasPhoto && result.url) {
-            if (photoCache) photoCache.set(itemId, result.url);
-            console.log("✅ Photo URL obtained:", result.url);
-            return result.url;
-        } else {
-            console.log("❌ No photo found for item", itemId);
-            return null;
+    // Сначала получаем fileId из Google Apps Script
+    const url = `${CENTRAL_API_URL}?action=getPhotoUrl&participant=${CURRENT_USER.id}&itemId=${itemId}&userId=${CURRENT_USER.id}&_=${Date.now()}`;
+    
+    console.log("🔍 Fetching photo URL:", url);
+    
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    console.log("📸 Photo API response:", result);
+    
+    if (result.success && result.hasPhoto && result.url) {
+        // Извлекаем fileId из прямой ссылки Google Drive
+        let fileId = null;
+        if (result.url.includes('id=')) {
+            fileId = result.url.split('id=')[1];
+        } else if (result.url.includes('/d/')) {
+            fileId = result.url.split('/d/')[1].split('/')[0];
         }
-    } catch(e) {
-        console.error("Error getting photo:", e);
-        return null;
+        
+        if (fileId) {
+            // Используем прокси через Cloudflare Worker
+            const proxyUrl = `https://szhech-belochek.pages.dev/image?id=${fileId}`;
+            console.log("✅ Proxy URL:", proxyUrl);
+            
+            if (photoCache) photoCache.set(itemId, proxyUrl);
+            return proxyUrl;
+        }
+        
+        // Если не удалось извлечь fileId, пробуем прямой URL
+        console.log("⚠️ Using direct URL:", result.url);
+        if (photoCache) photoCache.set(itemId, result.url);
+        return result.url;
     }
+    
+    console.log("❌ No photo found for item", itemId);
+    return null;
 }
 
 async function uploadPhoto(itemId, file) {
