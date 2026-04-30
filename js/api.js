@@ -148,7 +148,7 @@ async function getPhotoUrl(itemId) {
     }
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ ФОТО - использует FormData вместо GET параметров
+// ========== ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ ФОТО (упрощённая версия с FormData) ==========
 async function uploadPhoto(itemId, file) {
     if (!isOnline) {
         showToast("Загрузка фото доступна только онлайн", false);
@@ -173,47 +173,63 @@ async function uploadPhoto(itemId, file) {
             try {
                 const base64Data = reader.result;
                 
-                // Используем FormData для отправки файла
+                // Используем FormData для отправки (самый надёжный способ)
                 const formData = new FormData();
                 formData.append('action', 'uploadPhoto');
                 formData.append('participant', CURRENT_USER.id);
                 formData.append('itemId', itemId.toString());
+                formData.append('userId', CURRENT_USER.id);
                 formData.append('base64Data', base64Data);
                 formData.append('fileName', file.name);
                 
-                console.log("Uploading photo for item:", itemId);
-                console.log("File name:", file.name);
-                console.log("File size:", (file.size / 1024).toFixed(2), "KB");
+                console.log("📤 Загрузка фото:");
+                console.log("  - itemId:", itemId);
+                console.log("  - userId:", CURRENT_USER.id);
+                console.log("  - fileName:", file.name);
+                console.log("  - fileSize:", (file.size / 1024).toFixed(2), "KB");
+                console.log("  - base64Length:", base64Data.length);
                 
                 const response = await fetch(CENTRAL_API_URL, {
                     method: 'POST',
                     body: formData
                 });
                 
-                console.log("Response status:", response.status);
+                console.log("  - response status:", response.status);
                 
-                const result = await response.json();
-                console.log("Response result:", result);
+                // Получаем ответ как текст для отладки
+                const responseText = await response.text();
+                console.log("  - response text:", responseText.substring(0, 500));
+                
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch(e) {
+                    console.error("  - Failed to parse JSON:", e);
+                    showToast("Ошибка сервера: неверный формат ответа", false);
+                    resolve(false);
+                    return;
+                }
                 
                 if (result.success) {
-                    // Обновляем кэш
                     if (result.url) {
                         photoCache.set(itemId, result.url);
                     }
+                    console.log("  ✅ Фото загружено успешно!");
                     showToast("Фото загружено", true);
                     resolve(true);
                 } else {
+                    console.error("  ❌ Ошибка загрузки:", result.error);
                     showToast("Ошибка загрузки фото: " + (result.error || "неизвестная"), false);
                     resolve(false);
                 }
             } catch(e) {
-                console.error("Upload error:", e);
+                console.error("❌ Upload error:", e);
                 showToast("Ошибка загрузки фото: " + e.message, false);
                 resolve(false);
             }
         };
         reader.onerror = function() {
-            console.error("FileReader error");
+            console.error("❌ FileReader error");
             showToast("Ошибка чтения файла", false);
             resolve(false);
         };
@@ -232,6 +248,9 @@ async function deletePhoto(itemId) {
         formData.append('action', 'deletePhoto');
         formData.append('participant', CURRENT_USER.id);
         formData.append('itemId', itemId.toString());
+        formData.append('userId', CURRENT_USER.id);
+        
+        console.log("🗑 Удаление фото для itemId:", itemId);
         
         const response = await fetch(CENTRAL_API_URL, {
             method: 'POST',
@@ -242,14 +261,16 @@ async function deletePhoto(itemId) {
         
         if (result.success) {
             photoCache.delete(itemId);
+            console.log("✅ Фото удалено");
             showToast("Фото удалено", true);
             return true;
         } else {
+            console.error("❌ Ошибка удаления:", result.error);
             showToast("Ошибка удаления фото: " + (result.error || "неизвестная"), false);
             return false;
         }
     } catch(e) {
-        console.error(e);
+        console.error("❌ Delete error:", e);
         showToast("Ошибка удаления фото", false);
         return false;
     }
