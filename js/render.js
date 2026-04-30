@@ -17,7 +17,7 @@ function renderCards() {
         const isOutOfStock = stock === 0;
         const typeColor = type ? getTypeColor(type) : '#c25d1a';
         
-        //Проверяем, есть ли комментарий
+        // Проверяем, есть ли комментарий
         const hasComment = commentsCache.has(id) && commentsCache.get(id).comment && commentsCache.get(id).comment.trim() !== "";
         
         const cardDiv = document.createElement('div');
@@ -56,7 +56,6 @@ function renderCards() {
                         </button>
                     </div>
                 </div>
-                <div class="price-row"><span class="price">💰 Цена: ${price} ₽</span></div>
             </div>
             <div class="buttons">
                 <button class="minus" data-id="${id}" data-delta="-1">−1</button>
@@ -107,13 +106,12 @@ async function handleButtonClick(e) {
 
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С МОДАЛЬНЫМ ОКНОМ КОММЕНТАРИЯ ==========
 
-async function openCommentModal(itemId, itemName) {
+async function showCommentModal(itemId, itemName) {
     // Получаем текущий комментарий
     let currentComment = "";
     if (commentsCache.has(itemId) && commentsCache.get(itemId).comment) {
         currentComment = commentsCache.get(itemId).comment;
     } else if (isOnline) {
-        // Пробуем загрузить с сервера, если нет в кэше
         const commentData = await getComment(itemId);
         if (commentData && commentData.comment) {
             currentComment = commentData.comment;
@@ -136,7 +134,7 @@ async function openCommentModal(itemId, itemName) {
                     <div class="comment-item-name" id="commentItemName" style="margin-bottom: 12px; font-weight: bold; color: var(--badge-text);"></div>
                     <textarea id="commentText" rows="5" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); font-size: 14px; resize: vertical;" placeholder="Введите комментарий к товару..."></textarea>
                     <div class="comment-last-updated" id="commentLastUpdated" style="font-size: 11px; color: var(--text-muted); margin-top: 8px;"></div>
-                    <div class="edit-buttons" style="margin-top: 16px; display: flex; gap: 12px; justify-content: flex-end;">
+                    <div class="edit-buttons" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
                         <button class="edit-cancel-btn" onclick="closeCommentModal()">❌ Отмена</button>
                         <button class="edit-save-btn" onclick="saveCommentAndClose()">💾 Сохранить</button>
                     </div>
@@ -179,11 +177,9 @@ async function saveCommentAndClose() {
     
     if (isNaN(itemId)) return;
     
-    // Сохраняем комментарий
     const success = await saveComment(itemId, commentText);
     
     if (success) {
-        // Обновляем индикатор в карточке
         updateCommentIndicators();
         closeCommentModal();
     }
@@ -213,3 +209,9 @@ function updateCommentIndicators() {
         }
     });
 }
+
+// Экспортируем функции в глобальную область
+window.showCommentModal = showCommentModal;
+window.closeCommentModal = closeCommentModal;
+window.saveCommentAndClose = saveCommentAndClose;
+window.updateCommentIndicators = updateCommentIndicators;
