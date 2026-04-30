@@ -406,12 +406,71 @@ function initPhotoUploadInEditModal() {
 
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ (ГЛОБАЛЬНЫЕ) ==========
 
-function openCommentModal(itemId, itemName) {
-    if (typeof window.openCommentModalImpl === 'function') {
-        window.openCommentModalImpl(itemId, itemName);
-    } else {
-        console.error("openCommentModalImpl not defined");
+// Эта функция будет вызываться из render.js
+function showCommentModal(itemId, itemName) {
+    // Получаем текущий комментарий
+    let currentComment = "";
+    if (commentsCache.has(itemId) && commentsCache.get(itemId).comment) {
+        currentComment = commentsCache.get(itemId).comment;
+    } else if (isOnline) {
+        // Пробуем загрузить с сервера, если нет в кэше
+        getComment(itemId).then(commentData => {
+            if (commentData && commentData.comment) {
+                currentComment = commentData.comment;
+            }
+            renderCommentModal(itemId, itemName, currentComment);
+        }).catch(() => {
+            renderCommentModal(itemId, itemName, currentComment);
+        });
+        return;
     }
+    renderCommentModal(itemId, itemName, currentComment);
+}
+
+function renderCommentModal(itemId, itemName, currentComment) {
+    // Создаём или получаем модальное окно для комментария
+    let modal = document.getElementById('commentModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'commentModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <button class="modal-close-btn" onclick="closeCommentModal()">×</button>
+                <div class="modal-header">
+                    <span>💬 Комментарий к товару</span>
+                </div>
+                <div id="commentModalContent">
+                    <div class="comment-item-name" id="commentItemName" style="margin-bottom: 12px; font-weight: bold; color: var(--badge-text);"></div>
+                    <textarea id="commentText" rows="5" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); font-size: 14px; resize: vertical;" placeholder="Введите комментарий к товару..."></textarea>
+                    <div class="comment-last-updated" id="commentLastUpdated" style="font-size: 11px; color: var(--text-muted); margin-top: 8px;"></div>
+                    <div class="edit-buttons" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+                        <button class="edit-cancel-btn" onclick="closeCommentModal()">❌ Отмена</button>
+                        <button class="edit-save-btn" onclick="saveCommentAndClose()">💾 Сохранить</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Заполняем данные
+    document.getElementById('commentItemName').innerHTML = `📦 ${escapeHtml(itemName)} (ID: ${itemId})`;
+    document.getElementById('commentText').value = currentComment;
+    
+    const lastUpdated = commentsCache.has(itemId) && commentsCache.get(itemId).lastUpdated 
+        ? new Date(commentsCache.get(itemId).lastUpdated).toLocaleString('ru-RU')
+        : null;
+    const lastUpdatedEl = document.getElementById('commentLastUpdated');
+    if (lastUpdatedEl) {
+        lastUpdatedEl.innerHTML = lastUpdated ? `Последнее изменение: ${lastUpdated}` : '';
+    }
+    
+    // Сохраняем itemId в атрибут модального окна
+    modal.setAttribute('data-item-id', itemId);
+    modal.setAttribute('data-item-name', itemName);
+    
+    modal.style.display = 'block';
 }
 
 function closeCommentModal() {
@@ -438,7 +497,7 @@ async function saveCommentAndClose() {
     }
 }
 
-// Связываем функции из render.js с глобальной областью
-window.openCommentModalImpl = openCommentModal;
+// Экспортируем функции в глобальную область
+window.showCommentModal = showCommentModal;
 window.closeCommentModal = closeCommentModal;
 window.saveCommentAndClose = saveCommentAndClose;
