@@ -19,6 +19,7 @@ function initApp() {
         loadBookings().catch(e => console.warn("Bookings load error:", e));
     }
     
+    
     // Настройка кнопок
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsDropdown = document.getElementById('settingsDropdown');
@@ -27,6 +28,11 @@ function initApp() {
     const logoutBtn = document.getElementById('logoutBtn');
     const bookingsBtn = document.getElementById('bookingsButton');
     const addItemBtn = document.getElementById('addItemButton');
+    const supplyBtn = document.getElementById('supplyButton');
+    
+    if (supplyBtn) {
+        supplyBtn.addEventListener('click', openSupplyModal);
+    }
   
     if (bookingsBtn) {
         bookingsBtn.addEventListener('click', openBookingsModal);
@@ -134,6 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const addItemBtn = document.getElementById('addItemButton');
     if (addItemBtn) addItemBtn.addEventListener('click', openAddItemModal);
+
+    const supplyBtn = document.getElementById('supplyButton');
+    if (supplyBtn) supplyBtn.addEventListener('click', openSupplyModal);
 
     if (!checkExistingAuth()) {
         // ждём ручного входа
