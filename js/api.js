@@ -463,4 +463,59 @@ async function deletePhoto(itemId) {
         showToast("Ошибка удаления", false);
         return false;
     }
+
+// ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
+
+async function addSupply(itemId, quantity, comment) {
+    if (!isOnline) {
+        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity, comment: comment });
+        // Временно обновляем локальные данные
+        const card = originalCardsData.find(c => c.id === itemId);
+        if (card) {
+            card.total += quantity;
+            card.stock += quantity;
+            filterAndSort();
+            showToast(`Поставка добавлена локально (${quantity} шт)`, true);
+        }
+        return true;
+    }
+    
+    try {
+        const params = new URLSearchParams();
+        params.append('action', 'addSupply');
+        params.append('participant', CURRENT_USER.id);
+        params.append('userId', CURRENT_USER.id);
+        params.append('itemId', itemId.toString());
+        params.append('quantity', quantity.toString());
+        params.append('comment', comment);
+        
+        const response = await fetch(CENTRAL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Обновляем данные в памяти
+            const card = originalCardsData.find(c => c.id === itemId);
+            if (card) {
+                card.total = result.newTotal;
+                card.stock = result.newStock;
+                filterAndSort();
+            }
+            showToast(`Поставка добавлена: +${quantity} шт`, true);
+            return true;
+        } else {
+            showToast("Ошибка: " + (result.error || "неизвестная"), false);
+            return false;
+        }
+    } catch(e) {
+        console.error("Add supply error:", e);
+        addPendingOperation("addSupply", { itemId: itemId, quantity: quantity, comment: comment });
+        showToast("Поставка сохранена локально", true);
+        return true;
+    }
+}
 }
