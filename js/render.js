@@ -45,13 +45,13 @@ function renderCards() {
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
                 <div class="total-row">
                     <span class="total">📦 Всего: ${total} шт</span>
-                    <button class="edit-icon" onclick="openEditProductModal(${id})">✏️</button>
-                </div>
-                <div class="comment-row">
-                    <button class="comment-icon ${hasComment ? 'has-comment' : ''}" onclick="showCommentModal(${id}, '${escapeHtml(name).replace(/'/g, "\\'")}')" title="Комментарий">
-                        💬 Комментарий
-                        ${hasComment ? '<span class="comment-badge"></span>' : ''}
-                    </button>
+                    <div class="action-buttons">
+                        <button class="edit-icon" onclick="openEditProductModal(${id})" title="Редактировать">✏️</button>
+                        <button class="comment-icon ${hasComment ? 'has-comment' : ''}" onclick="showCommentModal(${id}, '${escapeHtml(name).replace(/'/g, "\\'")}')" title="Комментарий">
+                            💬
+                            ${hasComment ? '<span class="comment-badge"></span>' : ''}
+                        </button>
+                    </div>
                 </div>
                 <div class="price-row"><span class="price">💰 Цена: ${price} ₽</span></div>
             </div>
