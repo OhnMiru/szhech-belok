@@ -51,3 +51,4 @@ var currentPaymentType = 'cash';
 var photoCache = new Map();
 var currentPhotoItemId = null;
 var currentPhotoItemName = null;
+var commentsCache = new Map();
