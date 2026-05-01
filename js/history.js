@@ -66,7 +66,17 @@ function saveHistory() {
     syncFullHistoryToServer();
 }
 
+// Получение имени реального пользователя (организатора) для отметки в истории
+function getActedByText() {
+    if (typeof window.isImpersonating !== 'undefined' && window.isImpersonating && window.originalUserName) {
+        return window.originalUserName;
+    }
+    return null;
+}
+
 function addToHistory(items, total, method, isReturn = false, paymentType = 'cash') {
+    const actedBy = getActedByText();
+    
     const entry = {
         id: Date.now() + Math.random(),
         date: new Date().toISOString(),
@@ -75,7 +85,8 @@ function addToHistory(items, total, method, isReturn = false, paymentType = 'cas
         method: method,
         isReturn: isReturn,
         hidden: false,
-        paymentType: paymentType
+        paymentType: paymentType,
+        actedBy: actedBy  // Добавляем поле с именем организатора, если действие совершено от лица другого пользователя
     };
     salesHistory.unshift(entry);
     if (salesHistory.length > 200) salesHistory = salesHistory.slice(0, 200);
@@ -84,6 +95,7 @@ function addToHistory(items, total, method, isReturn = false, paymentType = 'cas
 }
 
 function addSingleSaleToHistory(item, qty, isReturn = false) {
+    const actedBy = getActedByText();
     addToHistory([{ id: item.id, name: item.name, qty: qty, price: item.price }], qty * item.price, 'single', isReturn, 'cash');
 }
 
@@ -128,7 +140,13 @@ async function cancelHistoryEntry(id) {
     }
 
     try {
-        const response = await fetch(buildApiUrl("cancelHistoryEntry", `&id=${id}`));
+        // Передаём realUser если организатор действует от лица пользователя
+        let realUserParam = "";
+        if (typeof window.getRealUserParam === 'function') {
+            realUserParam = window.getRealUserParam();
+        }
+        
+        const response = await fetch(buildApiUrl("cancelHistoryEntry", `&id=${id}${realUserParam}`));
         const result = await response.json();
         if (result.success) {
             entry.hidden = true;
@@ -287,6 +305,12 @@ function renderHistoryList() {
         const methodClass = isBasket ? 'history-badge-method-basket' : 'history-badge-method-single';
         const actionClass = isReturn ? 'history-badge-type-return' : 'history-badge-type-sale';
         
+        // Добавляем отметку об организаторе, если действие совершено от лица другого пользователя
+        let actedByHtml = '';
+        if (entry.actedBy) {
+            actedByHtml = `<div style="font-size: 10px; color: var(--text-muted); margin-top: 4px; font-style: italic;">👤 Действие выполнено организатором ${escapeHtml(entry.actedBy)}</div>`;
+        }
+        
         html += `<div class="history-item">
                     <div class="history-content">
                         <div class="history-date">
@@ -297,6 +321,7 @@ function renderHistoryList() {
                         </div>
                         <div class="history-details">${itemsHtml}</div>
                         <div class="${isReturn ? 'history-return' : 'history-sale'}">${isReturn ? '↩️' : '💰'} Итого: ${entry.total} ₽</div>
+                        ${actedByHtml}
                     </div>
                     <div class="history-buttons">
                         ${!isReturn ? `<button class="history-cancel-btn" onclick="cancelHistoryEntry('${entry.id}')" title="Отменить продажу">↩️</button>` : ''}
