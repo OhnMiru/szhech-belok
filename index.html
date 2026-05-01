@@ -31,7 +31,7 @@
     <div id="mainContent" style="display:none;">
         <div class="header-row">
             <div class="title-area">
-                <h1 id="shopTitle">Учёт мерча</h1>
+                <h1 id="shopTitle">🍌 Учёт мерча</h1>
                 <span class="beta-badge">beta</span>
             </div>
             <div class="header-buttons">
@@ -87,7 +87,7 @@
             <span>Автообновление каждую минуту</span>
         </div>
         <div class="footer">
-            <span id="namyaucano" style="cursor: pointer; text-decoration: underline; text-decoration-style: dotted;">Намяукано</span> | <a id="sheetLink" href="#" target="_blank">Синхронизация с таблицей</a>
+            <span id="namyaucano" style="cursor: pointer; text-decoration: none;">Намяукано</span> | <a id="sheetLink" href="#" target="_blank">Синхронизация с таблицей</a>
         </div>
     </div>
 
@@ -100,7 +100,7 @@
             </div>
             <div id="discount-panel" class="discount-section" style="display: none;"></div>
             <div id="cart-items-list">
-                <div class="empty-cart">Корзина пуста</div>
+                <div class="empty-cart">🍌 Корзина пуста</div>
             </div>
             <div id="cart-total" class="cart-total" style="display:none;">Итого: 0 ₽</div>
             <div class="cart-actions" id="cart-actions" style="display:none;">
@@ -505,7 +505,7 @@
     <div id="easterEggModal" class="modal">
         <div class="modal-content" style="max-width: 500px; text-align: center;">
             <button class="modal-close-btn" onclick="closeEasterEggModal()">×</button>
-            <div class="modal-header" style="justify-content: center;">
+            <div class="modal-header" style="justify-content: center; margin-bottom: 20px;">
                 <span>🎀 Создатели 🎀</span>
             </div>
             <div id="easterEggContent">
@@ -515,18 +515,18 @@
                     <div style="font-size: 14px; margin-bottom: 4px;">Ее Величество Рэира</div>
                     <div style="font-size: 14px; margin-bottom: 10px;">Ее Милашество Миел</div>
                     
-                    <div style="font-weight: bold; color: var(--btn-bg); margin-bottom: 10px;">🍌 Бета-тестеры 🍌</div>
+                    <div style="font-weight: bold; color: var(--btn-bg); margin-bottom: 10px;">🐾 Бета-тестеры 🐾</div>
                     <div style="font-size: 14px; margin-bottom: 4px;">Раб Божий Роланд</div>
                     <div style="font-size: 14px; margin-bottom: 10px;">Морально поддерживающий Банан</div>
                     
-                    <div style="font-weight: bold; color: var(--btn-bg); margin-bottom: 10px;">🐾 Создатель 🐾</div>
+                    <div style="font-weight: bold; color: var(--btn-bg); margin-bottom: 10px;">👑 Создатель 👑</div>
                     <div style="font-size: 14px; margin-bottom: 20px;">Настюша</div>
                 </div>
-                <button id="easterEggButton" class="easter-egg-btn" onclick="activateEasterEgg()">ТЫК</button>
+                <button id="easterEggButton" class="easter-egg-btn" onclick="activateEasterEgg()">🎁 ТЫК</button>
             </div>
         </div>
     </div>
-  
+    
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>
@@ -556,23 +556,19 @@
         function openEasterEggModal() {
             const modal = document.getElementById('easterEggModal');
             if (modal) modal.style.display = 'block';
-            // Возвращаем кнопку "ТЫК" при открытии модалки
             resetEasterEggButton();
         }
         
         function closeEasterEggModal() {
             const modal = document.getElementById('easterEggModal');
             if (modal) modal.style.display = 'none';
-            // Останавливаем звук
             const audio = document.getElementById('easterEggAudio');
             if (audio) {
                 audio.pause();
                 audio.currentTime = 0;
             }
-            // Убираем изображение
             const img = document.getElementById('easterEggImage');
             if (img) img.remove();
-            // Возвращаем кнопку "ТЫК"
             resetEasterEggButton();
         }
         
@@ -581,24 +577,19 @@
             if (button) {
                 button.style.display = 'inline-block';
             }
-            // Удаляем кнопку закрытия изображения, если есть
             const closeBtn = document.getElementById('easterEggImageCloseBtn');
             if (closeBtn) closeBtn.remove();
         }
         
         function activateEasterEgg() {
-            // Убираем кнопку "ТЫК"
             const button = document.getElementById('easterEggButton');
             if (button) button.style.display = 'none';
             
-            // Добавляем изображение
             const content = document.getElementById('easterEggContent');
             
-            // Удаляем старое изображение, если есть
             const oldImg = document.getElementById('easterEggImage');
             if (oldImg) oldImg.remove();
             
-            // Удаляем старую кнопку закрытия, если есть
             const oldCloseBtn = document.getElementById('easterEggImageCloseBtn');
             if (oldCloseBtn) oldCloseBtn.remove();
             
@@ -624,7 +615,6 @@
             
             content.appendChild(img);
             
-            // Воспроизводим звук
             let audio = document.getElementById('easterEggAudio');
             if (!audio) {
                 audio = document.createElement('audio');
@@ -635,7 +625,6 @@
             audio.currentTime = 0;
             audio.play().catch(e => console.log("Audio play failed:", e));
             
-            // Добавляем кнопку "Закрыть" (закрывает только белку, не модалку)
             const closeImgBtn = document.createElement('button');
             closeImgBtn.id = 'easterEggImageCloseBtn';
             closeImgBtn.textContent = '❌ Закрыть';
@@ -648,25 +637,22 @@
             closeImgBtn.style.cursor = 'pointer';
             closeImgBtn.style.marginTop = '12px';
             closeImgBtn.onclick = function() {
-                // Убираем изображение и кнопку закрытия, возвращаем кнопку "ТЫК"
                 const imgToRemove = document.getElementById('easterEggImage');
                 if (imgToRemove) imgToRemove.remove();
                 const btnToRemove = document.getElementById('easterEggImageCloseBtn');
                 if (btnToRemove) btnToRemove.remove();
-                // Останавливаем звук
                 const audio = document.getElementById('easterEggAudio');
                 if (audio) {
                     audio.pause();
                     audio.currentTime = 0;
                 }
-                // Возвращаем кнопку "ТЫК"
                 const tykButton = document.getElementById('easterEggButton');
                 if (tykButton) tykButton.style.display = 'inline-block';
             };
             content.appendChild(closeImgBtn);
         }
         
-        // Делаем "Намяукано" кликабельным (без подчёркивания)
+        // Делаем "Намяукано" кликабельным
         document.addEventListener('DOMContentLoaded', function() {
             const namyaucano = document.getElementById('namyaucano');
             if (namyaucano) {
@@ -676,20 +662,6 @@
                 });
                 console.log("✅ Намяукано стало кликабельным");
             }
-            
-            // Принудительная инициализация настроек
-            setTimeout(function() {
-                const toggle = document.getElementById('settingsToggle');
-                const dropdown = document.getElementById('settingsDropdown');
-                if (toggle && dropdown) {
-                    toggle.onclick = function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        dropdown.classList.toggle('hidden');
-                    };
-                    console.log("✅ Настройки принудительно инициализированы");
-                }
-            }, 500);
         });
     </script>
     
