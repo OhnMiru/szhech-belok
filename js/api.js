@@ -249,10 +249,10 @@ function loadCommentsFromLocal() {
 // ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
 
 async function addSupply(itemId, quantity) {
+    console.log("addSupply called:", itemId, quantity);
+    
     if (!window.isOnline) {
-        if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("addSupply", { itemId: itemId, quantity: quantity });
-        }
+        // Офлайн режим - обновляем локально
         const card = window.originalCardsData?.find(c => c.id === itemId);
         if (card) {
             card.total += quantity;
@@ -294,15 +294,10 @@ async function addSupply(itemId, quantity) {
         }
     } catch(e) {
         console.error("Add supply error:", e);
-        if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("addSupply", { itemId: itemId, quantity: quantity });
-        }
-        if (typeof window.showToast === 'function') window.showToast("Поставка сохранена локально", true);
-        return true;
+        if (typeof window.showToast === 'function') window.showToast("Ошибка при добавлении поставки", false);
+        return false;
     }
 }
-
-// ========== ФУНКЦИИ ДЛЯ ФОТО ==========
 
 async function getPhotoUrl(itemId) {
     if (!window.isOnline) {
