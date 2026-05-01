@@ -10,6 +10,13 @@ var CURRENT_USER = {
     hideStats: false
 };
 
+// ========== ПЕРЕМЕННЫЕ ДЛЯ ИМПЕРСОНАЦИИ (ВХОД ОТ ЛИЦА ОРГАНИЗАТОРА) ==========
+var isImpersonating = false;           // Флаг: находится ли организатор в режиме подмены
+var originalUserId = null;             // Оригинальный ID организатора (кого подменяют)
+var originalUserName = null;           // Оригинальное имя организатора
+var impersonatedUserId = null;         // ID пользователя, от лица которого действуют
+var impersonatedUserName = null;       // Имя пользователя, от лица которого действуют
+
 var pendingOperations = [];
 var isOnline = navigator.onLine;
 
