@@ -562,3 +562,4 @@ async function handleAddSupply() {
 window.showCommentModal = showCommentModal;
 window.closeCommentModal = closeCommentModal;
 window.saveCommentAndClose = saveCommentAndClose;
+window.handleAddSupply = handleAddSupply;
