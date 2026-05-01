@@ -229,25 +229,27 @@ function logout() {
 
 // ========== ФУНКЦИИ ДЛЯ ИМПЕРСОНАЦИИ (ВХОД ОТ ЛИЦА ОРГАНИЗАТОРА) ==========
 
-// Показывает UI для выбора пользователя (только для организатора)
 function showImpersonateUI() {
     let impersonateBtn = document.getElementById('impersonateBtn');
     if (!impersonateBtn) {
         const buttonPanel = document.querySelector('#mainContent > div:first-of-type + div');
         if (buttonPanel) {
+            // Создаём кнопку
             impersonateBtn = document.createElement('button');
             impersonateBtn.id = 'impersonateBtn';
             impersonateBtn.className = 'refresh-btn';
             impersonateBtn.textContent = '👥 Другие пользователи';
             impersonateBtn.style.position = 'relative';
             
+            // Находим кнопку "Добавить товар" и вставляем перед ней
             const addItemBtn = document.getElementById('addItemButton');
-            if (addItemBtn) {
+            if (addItemBtn && buttonPanel.contains(addItemBtn)) {
                 buttonPanel.insertBefore(impersonateBtn, addItemBtn);
             } else {
                 buttonPanel.appendChild(impersonateBtn);
             }
             
+            // Создаём выпадающий список
             const dropdown = document.createElement('div');
             dropdown.id = 'impersonateDropdown';
             dropdown.className = 'impersonate-dropdown hidden';
@@ -279,6 +281,7 @@ function showImpersonateUI() {
             
             impersonateBtn.appendChild(dropdown);
             
+            // Обработчик клика по кнопке
             impersonateBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const isVisible = dropdown.classList.contains('show');
@@ -291,6 +294,7 @@ function showImpersonateUI() {
                 }
             });
             
+            // Закрытие при клике вне
             document.addEventListener('click', (e) => {
                 if (!impersonateBtn.contains(e.target) && !dropdown.contains(e.target)) {
                     dropdown.classList.remove('show');
