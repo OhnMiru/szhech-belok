@@ -47,6 +47,16 @@ function initApp() {
         loadBookings().catch(e => console.warn("Bookings load error:", e));
     }
     
+    // Инициализация фильтров статистики (по времени)
+    if (typeof initStatsDateTimeSelects === 'function') {
+        initStatsDateTimeSelects();
+        console.log("✅ initStatsDateTimeSelects вызван");
+    }
+    if (typeof initGlobalStatsDateTimeSelects === 'function') {
+        initGlobalStatsDateTimeSelects();
+        console.log("✅ initGlobalStatsDateTimeSelects вызван");
+    }
+    
     // Настраиваем кнопки
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsDropdown = document.getElementById('settingsDropdown');
