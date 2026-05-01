@@ -44,6 +44,12 @@ async function processPendingOperations(silent = false) {
             let isFormData = false;
             let formData = null;
             
+            // Добавляем realUser параметр если организатор действует от лица другого пользователя
+            let realUserParam = "";
+            if (typeof window.getRealUserParam === 'function') {
+                realUserParam = window.getRealUserParam();
+            }
+            
             switch (op.action) {
                 case "addItem":
                     url = buildApiUrl("addItem", buildParamsFromObject(op.params));
@@ -56,40 +62,40 @@ async function processPendingOperations(silent = false) {
                     break;
                 case "syncFullHistory":
                     const historyData = encodeURIComponent(JSON.stringify(op.params));
-                    url = buildApiUrl("syncFullHistory", `&data=${historyData}`);
+                    url = buildApiUrl("syncFullHistory", `&data=${historyData}${realUserParam}`);
                     break;
                 case "syncFullBookings":
                     const bookingsData = encodeURIComponent(JSON.stringify(op.params));
-                    url = buildApiUrl("syncFullBookings", `&data=${bookingsData}`);
+                    url = buildApiUrl("syncFullBookings", `&data=${bookingsData}${realUserParam}`);
                     break;
                 case "syncCustomOrder":
                     const orderData = encodeURIComponent(JSON.stringify(op.params));
-                    url = buildApiUrl("syncCustomOrder", `&data=${orderData}`);
+                    url = buildApiUrl("syncCustomOrder", `&data=${orderData}${realUserParam}`);
                     break;
                 case "syncExtraCosts":
                     const costsData = encodeURIComponent(JSON.stringify(op.params));
-                    url = buildApiUrl("syncExtraCosts", `&data=${costsData}`);
+                    url = buildApiUrl("syncExtraCosts", `&data=${costsData}${realUserParam}`);
                     break;
                 case "syncExtraIncomes":
                     const incomesData = encodeURIComponent(JSON.stringify(op.params));
-                    url = buildApiUrl("syncExtraIncomes", `&data=${incomesData}`);
+                    url = buildApiUrl("syncExtraIncomes", `&data=${incomesData}${realUserParam}`);
                     break;
                 case "syncFullRules":
                     const rulesData = encodeURIComponent(JSON.stringify(op.params));
-                    url = buildApiUrl("syncFullRules", `&data=${rulesData}`);
+                    url = buildApiUrl("syncFullRules", `&data=${rulesData}${realUserParam}`);
                     break;
                 case "hideHistoryEntry":
-                    url = buildApiUrl("hideHistoryEntry", buildParamsFromObject(op.params));
+                    url = buildApiUrl("hideHistoryEntry", `${buildParamsFromObject(op.params)}${realUserParam}`);
                     break;
                 case "cancelHistoryEntry":
-                    url = buildApiUrl("cancelHistoryEntry", buildParamsFromObject(op.params));
+                    url = buildApiUrl("cancelHistoryEntry", `${buildParamsFromObject(op.params)}${realUserParam}`);
                     break;
                 case "savePrivacy":
                     const privacyData = encodeURIComponent(JSON.stringify(op.params));
-                    url = buildApiUrl("savePrivacy", `&data=${privacyData}`);
+                    url = buildApiUrl("savePrivacy", `&data=${privacyData}${realUserParam}`);
                     break;
                 case "cancelBooking":
-                    url = buildApiUrl("cancelBooking", buildParamsFromObject(op.params));
+                    url = buildApiUrl("cancelBooking", `${buildParamsFromObject(op.params)}${realUserParam}`);
                     break;
                 case "uploadPhoto":
                     isFormData = true;
@@ -100,6 +106,10 @@ async function processPendingOperations(silent = false) {
                     formData.append('userId', CURRENT_USER.id);
                     formData.append('base64Data', op.params.base64Data);
                     formData.append('fileName', op.params.fileName);
+                    if (realUserParam) {
+                        const realUserValue = realUserParam.replace('&realUser=', '');
+                        formData.append('realUser', realUserValue);
+                    }
                     break;
                 case "saveComment":
                     const commentParams = new URLSearchParams();
@@ -108,22 +118,10 @@ async function processPendingOperations(silent = false) {
                     commentParams.append('itemId', op.params.itemId.toString());
                     commentParams.append('userId', CURRENT_USER.id);
                     commentParams.append('comment', op.params.comment);
-                case "addSupply":
-                    const supplyParams = new URLSearchParams();
-                    supplyParams.append('action', 'addSupply');
-                    supplyParams.append('participant', CURRENT_USER.id);
-                    supplyParams.append('userId', CURRENT_USER.id);
-                    supplyParams.append('itemId', op.params.itemId.toString());
-                    supplyParams.append('quantity', op.params.quantity.toString());
-    
-                    fetchOptions = {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: supplyParams.toString()
-                    };
-                    url = CENTRAL_API_URL;
-                    break;
-                    
+                    if (realUserParam) {
+                        const realUserValue = realUserParam.replace('&realUser=', '');
+                        commentParams.append('realUser', realUserValue);
+                    }
                     fetchOptions = {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -131,12 +129,30 @@ async function processPendingOperations(silent = false) {
                     };
                     url = CENTRAL_API_URL;
                     break;
+                case "addSupply":
+                    const supplyParams = new URLSearchParams();
+                    supplyParams.append('action', 'addSupply');
+                    supplyParams.append('participant', CURRENT_USER.id);
+                    supplyParams.append('userId', CURRENT_USER.id);
+                    supplyParams.append('itemId', op.params.itemId.toString());
+                    supplyParams.append('quantity', op.params.quantity.toString());
+                    if (realUserParam) {
+                        const realUserValue = realUserParam.replace('&realUser=', '');
+                        supplyParams.append('realUser', realUserValue);
+                    }
+                    fetchOptions = {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: supplyParams.toString()
+                    };
+                    url = CENTRAL_API_URL;
+                    break;
                 case "syncFullComments":
                     const commentsData = encodeURIComponent(JSON.stringify(op.params));
-                    url = buildApiUrl("syncFullComments", `&data=${commentsData}`);
+                    url = buildApiUrl("syncFullComments", `&data=${commentsData}${realUserParam}`);
                     break;
                 default:
-                    url = buildApiUrl(op.action, buildParamsFromObject(op.params));
+                    url = buildApiUrl(op.action, `${buildParamsFromObject(op.params)}${realUserParam}`);
             }
             
             let response;
