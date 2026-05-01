@@ -227,85 +227,109 @@ function logout() {
     if (historySyncInterval) clearInterval(historySyncInterval);
 }
 
-// ========== ФУНКЦИИ ДЛЯ ИМПЕРСОНАЦИИ (ВХОД ОТ ЛИЦА ОРГАНИЗАТОРА) ==========
-
 function showImpersonateUI() {
     let impersonateBtn = document.getElementById('impersonateBtn');
-    if (!impersonateBtn) {
-        const buttonPanel = document.querySelector('#mainContent > div:first-of-type + div');
-        if (buttonPanel) {
-            // Создаём кнопку
-            impersonateBtn = document.createElement('button');
-            impersonateBtn.id = 'impersonateBtn';
-            impersonateBtn.className = 'refresh-btn';
-            impersonateBtn.textContent = '👥 Другие пользователи';
-            impersonateBtn.style.position = 'relative';
-            
-            // Находим кнопку "Добавить товар" и вставляем ПОСЛЕ неё
-            const addItemBtn = document.getElementById('addItemButton');
-            if (addItemBtn && buttonPanel.contains(addItemBtn)) {
-                // Вставляем после addItemBtn
-                if (addItemBtn.nextSibling) {
-                    buttonPanel.insertBefore(impersonateBtn, addItemBtn.nextSibling);
-                } else {
-                    buttonPanel.appendChild(impersonateBtn);
-                }
-            } else {
-                buttonPanel.appendChild(impersonateBtn);
+    if (!impersonateBtn) return;
+    
+    // Проверяем, есть ли уже дропдаун
+    let dropdown = document.getElementById('impersonateDropdown');
+    if (dropdown) return;
+    
+    // Создаём выпадающий список
+    dropdown = document.createElement('div');
+    dropdown.id = 'impersonateDropdown';
+    dropdown.className = 'impersonate-dropdown hidden';
+    dropdown.style.position = 'absolute';
+    dropdown.style.top = '100%';
+    dropdown.style.left = '0';
+    dropdown.style.background = 'var(--card-bg)';
+    dropdown.style.border = '1px solid var(--border-color)';
+    dropdown.style.borderRadius = '16px';
+    dropdown.style.padding = '8px';
+    dropdown.style.minWidth = '220px';
+    dropdown.style.zIndex = '1000';
+    dropdown.style.marginTop = '8px';
+    dropdown.style.boxShadow = '0 4px 12px var(--shadow)';
+    dropdown.style.maxHeight = '300px';
+    dropdown.style.overflowY = 'auto';
+    
+    const title = document.createElement('div');
+    title.style.padding = '8px 12px';
+    title.style.fontSize = '12px';
+    title.style.color = 'var(--text-muted)';
+    title.style.borderBottom = '1px solid var(--border-color)';
+    title.textContent = 'Выберите пользователя';
+    dropdown.appendChild(title);
+    
+    const userList = document.createElement('div');
+    userList.id = 'impersonateUserList';
+    dropdown.appendChild(userList);
+    
+    impersonateBtn.appendChild(dropdown);
+    
+    // Обработчик клика по кнопке
+    impersonateBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isVisible = dropdown.classList.contains('show');
+        document.querySelectorAll('.impersonate-dropdown.show').forEach(d => d.classList.remove('show'));
+        if (!isVisible) {
+            dropdown.classList.add('show');
+            loadImpersonateUserList();
+        } else {
+            dropdown.classList.remove('show');
+        }
+    });
+    
+    // Закрытие при клике вне
+    document.addEventListener('click', (e) => {
+        if (!impersonateBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+}
+
+// Загрузка списка пользователей для имперсонации
+async function loadImpersonateUserList() {
+    const userListContainer = document.getElementById('impersonateUserList');
+    if (!userListContainer) return;
+    
+    try {
+        const response = await fetch(`${CENTRAL_API_URL}?action=getAvailableUsers`);
+        const data = await response.json();
+        if (data && data.users) {
+            const users = data.users.filter(u => u.id !== CURRENT_USER.id);
+            if (users.length === 0) {
+                userListContainer.innerHTML = '<div style="padding: 12px; color: var(--text-muted); text-align: center;">Нет других пользователей</div>';
+                return;
             }
             
-            // Создаём выпадающий список
-            const dropdown = document.createElement('div');
-            dropdown.id = 'impersonateDropdown';
-            dropdown.className = 'impersonate-dropdown hidden';
-            dropdown.style.position = 'absolute';
-            dropdown.style.top = '100%';
-            dropdown.style.left = '0';
-            dropdown.style.background = 'var(--card-bg)';
-            dropdown.style.border = '1px solid var(--border-color)';
-            dropdown.style.borderRadius = '16px';
-            dropdown.style.padding = '8px';
-            dropdown.style.minWidth = '220px';
-            dropdown.style.zIndex = '1000';
-            dropdown.style.marginTop = '8px';
-            dropdown.style.boxShadow = '0 4px 12px var(--shadow)';
-            dropdown.style.maxHeight = '300px';
-            dropdown.style.overflowY = 'auto';
+            userListContainer.innerHTML = users.map(user => `
+                <div class="impersonate-user-item" data-user-id="${user.id}" data-user-name="${user.name}" data-user-role="${user.role}" style="padding: 10px 12px; cursor: pointer; border-radius: 8px; transition: background 0.2s; border-bottom: 1px solid var(--border-color);">
+                    <div style="font-weight: bold;">${escapeHtml(user.name)}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">${user.role === 'organizer' ? 'Организатор' : 'Художник'}</div>
+                </div>
+            `).join('');
             
-            const title = document.createElement('div');
-            title.style.padding = '8px 12px';
-            title.style.fontSize = '12px';
-            title.style.color = 'var(--text-muted)';
-            title.style.borderBottom = '1px solid var(--border-color)';
-            title.textContent = 'Выберите пользователя';
-            dropdown.appendChild(title);
-            
-            const userList = document.createElement('div');
-            userList.id = 'impersonateUserList';
-            dropdown.appendChild(userList);
-            
-            impersonateBtn.appendChild(dropdown);
-            
-            // Обработчик клика по кнопке
-            impersonateBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isVisible = dropdown.classList.contains('show');
-                document.querySelectorAll('.impersonate-dropdown.show').forEach(d => d.classList.remove('show'));
-                if (!isVisible) {
-                    dropdown.classList.add('show');
-                    loadImpersonateUserList();
-                } else {
-                    dropdown.classList.remove('show');
-                }
-            });
-            
-            // Закрытие при клике вне
-            document.addEventListener('click', (e) => {
-                if (!impersonateBtn.contains(e.target) && !dropdown.contains(e.target)) {
-                    dropdown.classList.remove('show');
-                }
+            document.querySelectorAll('.impersonate-user-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const userId = item.dataset.userId;
+                    const userName = item.dataset.userName;
+                    const userRole = item.dataset.userRole;
+                    impersonateUser(userId, userName, userRole);
+                    const dropdown = document.getElementById('impersonateDropdown');
+                    if (dropdown) dropdown.classList.remove('show');
+                });
+                item.addEventListener('mouseenter', (e) => {
+                    e.currentTarget.style.background = 'var(--badge-bg)';
+                });
+                item.addEventListener('mouseleave', (e) => {
+                    e.currentTarget.style.background = '';
+                });
             });
         }
+    } catch(e) {
+        console.error("Error loading users:", e);
+        userListContainer.innerHTML = '<div style="padding: 12px; color: var(--minus-color); text-align: center;">Ошибка загрузки</div>';
     }
 }
 
