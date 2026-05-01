@@ -150,6 +150,13 @@ h1 {
     justify-content: center;
     box-shadow: 0 2px 8px var(--shadow);
     flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+    background: var(--btn-bg);
+    color: white;
+    transform: scale(1.05);
 }
 
 .theme-toggle:active {
@@ -628,7 +635,6 @@ h1 {
     border: 1px solid var(--card-bg);
 }
 
-/* Кнопки продажи */
 .buttons {
     display: flex;
     gap: 8px;
@@ -2262,11 +2268,47 @@ body.dark .extra-cost-amount {
     justify-content: center;
     box-shadow: 0 2px 8px var(--shadow);
     flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.settings-toggle:hover {
+    background: var(--btn-bg);
+    color: white;
+    transform: scale(1.05);
+}
+
+.settings-toggle:active {
+    transform: scale(0.95);
+}
+
+.support-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px var(--shadow);
+    flex-shrink: 0;
+    transition: none;
+}
+
+.support-btn:hover {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    transform: none;
+}
+
+.support-btn:active {
+    transform: scale(0.95);
 }
 
 /* ========== СТИЛИ ДЛЯ ФОТО ========== */
 
-/* Кликабельное название товара */
 .name.clickable {
     cursor: pointer;
     transition: opacity 0.2s;
@@ -2348,7 +2390,6 @@ body.dark .extra-cost-amount {
     color: white;
 }
 
-/* Модальное окно для фото */
 #photoViewModal .modal-content {
     max-width: 600px;
     background: var(--bg-color);
@@ -2370,7 +2411,6 @@ body.dark .extra-cost-amount {
     object-fit: contain;
 }
 
-/* Стили для модального окна комментария */
 .comment-item-name {
     padding: 4px 0;
 }
@@ -2385,7 +2425,6 @@ body.dark .extra-cost-amount {
     font-style: italic;
 }
 
-/* Плашка рентабельности на ноутбуке/планшете */
 .profit-card-single {
     background: var(--btn-bg);
     border-radius: 16px;
@@ -2409,7 +2448,6 @@ body.dark .extra-cost-amount {
     font-weight: 500;
 }
 
-/* Мобильные плашки */
 .profit-mobile-row {
     display: none;
 }
@@ -2524,7 +2562,6 @@ body.dark .extra-cost-amount {
     accent-color: #f39c12;
 }
 
-/* Анимация загрузки для фото */
 .loading-photo {
     display: inline-block;
     width: 40px;
@@ -2538,8 +2575,6 @@ body.dark .extra-cost-amount {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-
-/* ========== СТИЛИ ДЛЯ ФИЛЬТРА СТАТИСТИКИ ========== */
 
 .filter-toggle-btn {
     background: var(--badge-bg);
@@ -2585,8 +2620,6 @@ body.dark .extra-cost-amount {
     transform: scale(1.02);
 }
 
-/* ========== СТИЛИ ДЛЯ ПАСХАЛКИ ========== */
-
 #easterEggModal .modal-content {
     text-align: center;
     position: relative;
@@ -2605,7 +2638,6 @@ body.dark .extra-cost-amount {
     float: none;
 }
 
-/* Убираем подчёркивание у Намяукано */
 #namyaucano {
     text-decoration: none;
     cursor: pointer;
@@ -2694,7 +2726,6 @@ body.dark .extra-cost-amount {
     color: var(--text-muted) !important;
 }
 
-/* Стиль для баннера */
 #impersonateBanner {
     position: fixed;
     top: 0;
@@ -2747,28 +2778,6 @@ body.dark .extra-cost-amount {
 #easterEggImageCloseBtn:hover {
     opacity: 0.8;
     transform: scale(1.02);
-}
-
-.support-btn {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px var(--shadow);
-    flex-shrink: 0;
-    transition: all 0.2s;
-}
-
-.support-btn:hover {
-    background: var(--btn-bg);
-    transform: scale(1.05);
-    color: white;
 }
 
 @media (max-width: 500px) {
@@ -2916,7 +2925,6 @@ body.dark .extra-cost-amount {
         margin-left: 4px;
     }
     
-    /* Селектор товаров в бронировании */
     .discount-custom-select-dropdown {
         position: fixed;
         top: 50%;
@@ -3099,7 +3107,6 @@ body.dark .extra-cost-amount {
         margin-right: 4px;
     }
     
-    /* Мобильные стили для фильтра статистики */
     .stats-filter-block {
         padding: 12px;
     }
@@ -3123,7 +3130,6 @@ body.dark .extra-cost-amount {
     }
 }
 
-/* Для планшетов */
 @media (min-width: 768px) and (max-width: 1024px) {
     .stats-grid {
         grid-template-columns: repeat(5, 1fr);
@@ -3139,14 +3145,12 @@ body.dark .extra-cost-amount {
     }
 }
 
-/* Для десктопов */
 @media (min-width: 1025px) {
     .detail-table-small {
         min-width: 300px;
     }
 }
 
-/* Тёмная тема дополнительные */
 body.dark .stats-card-value,
 body.dark .detail-table td,
 body.dark .detail-table th,
