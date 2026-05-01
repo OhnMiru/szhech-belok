@@ -556,32 +556,52 @@
         function openEasterEggModal() {
             const modal = document.getElementById('easterEggModal');
             if (modal) modal.style.display = 'block';
+            // Возвращаем кнопку "ТЫК" при открытии модалки
+            resetEasterEggButton();
         }
         
         function closeEasterEggModal() {
             const modal = document.getElementById('easterEggModal');
             if (modal) modal.style.display = 'none';
-            // Останавливаем звук при закрытии модалки, если он играет
+            // Останавливаем звук
             const audio = document.getElementById('easterEggAudio');
             if (audio) {
                 audio.pause();
                 audio.currentTime = 0;
             }
-            // Убираем изображение, если оно есть
-            const content = document.getElementById('easterEggContent');
-            const existingImg = document.getElementById('easterEggImage');
-            if (existingImg) existingImg.remove();
-            const existingCloseBtn = document.getElementById('easterEggCloseBtn');
-            if (existingCloseBtn) existingCloseBtn.remove();
+            // Убираем изображение
+            const img = document.getElementById('easterEggImage');
+            if (img) img.remove();
+            // Возвращаем кнопку "ТЫК"
+            resetEasterEggButton();
+        }
+        
+        function resetEasterEggButton() {
+            const button = document.getElementById('easterEggButton');
+            if (button) {
+                button.style.display = 'inline-block';
+            }
+            // Удаляем кнопку закрытия изображения, если есть
+            const closeBtn = document.getElementById('easterEggImageCloseBtn');
+            if (closeBtn) closeBtn.remove();
         }
         
         function activateEasterEgg() {
-            // Убираем кнопку
+            // Убираем кнопку "ТЫК"
             const button = document.getElementById('easterEggButton');
             if (button) button.style.display = 'none';
             
             // Добавляем изображение
             const content = document.getElementById('easterEggContent');
+            
+            // Удаляем старое изображение, если есть
+            const oldImg = document.getElementById('easterEggImage');
+            if (oldImg) oldImg.remove();
+            
+            // Удаляем старую кнопку закрытия, если есть
+            const oldCloseBtn = document.getElementById('easterEggImageCloseBtn');
+            if (oldCloseBtn) oldCloseBtn.remove();
+            
             const img = document.createElement('img');
             img.id = 'easterEggImage';
             img.src = 'assets/images/belka.jpg';
@@ -591,6 +611,17 @@
             img.style.marginTop = '16px';
             img.style.marginBottom = '16px';
             img.style.boxShadow = '0 4px 12px var(--shadow)';
+            
+            img.onerror = function() {
+                console.error("❌ Не удалось загрузить изображение");
+                this.alt = '🐿️ Белочка';
+                this.style.fontSize = '40px';
+                this.style.minHeight = '100px';
+                this.style.display = 'flex';
+                this.style.alignItems = 'center';
+                this.style.justifyContent = 'center';
+            };
+            
             content.appendChild(img);
             
             // Воспроизводим звук
@@ -604,28 +635,42 @@
             audio.currentTime = 0;
             audio.play().catch(e => console.log("Audio play failed:", e));
             
-            // Добавляем кнопку закрытия
-            const closeBtn = document.createElement('button');
-            closeBtn.id = 'easterEggCloseBtn';
-            closeBtn.textContent = '❌ Закрыть';
-            closeBtn.style.background = 'var(--minus-bg)';
-            closeBtn.style.color = 'var(--minus-color)';
-            closeBtn.style.border = 'none';
-            closeBtn.style.borderRadius = '30px';
-            closeBtn.style.padding = '10px 20px';
-            closeBtn.style.fontSize = '14px';
-            closeBtn.style.cursor = 'pointer';
-            closeBtn.style.marginTop = '12px';
-            closeBtn.onclick = function() {
-                closeEasterEggModal();
+            // Добавляем кнопку "Закрыть" (закрывает только белку, не модалку)
+            const closeImgBtn = document.createElement('button');
+            closeImgBtn.id = 'easterEggImageCloseBtn';
+            closeImgBtn.textContent = '❌ Закрыть';
+            closeImgBtn.style.background = 'var(--minus-bg)';
+            closeImgBtn.style.color = 'var(--minus-color)';
+            closeImgBtn.style.border = 'none';
+            closeImgBtn.style.borderRadius = '30px';
+            closeImgBtn.style.padding = '10px 20px';
+            closeImgBtn.style.fontSize = '14px';
+            closeImgBtn.style.cursor = 'pointer';
+            closeImgBtn.style.marginTop = '12px';
+            closeImgBtn.onclick = function() {
+                // Убираем изображение и кнопку закрытия, возвращаем кнопку "ТЫК"
+                const imgToRemove = document.getElementById('easterEggImage');
+                if (imgToRemove) imgToRemove.remove();
+                const btnToRemove = document.getElementById('easterEggImageCloseBtn');
+                if (btnToRemove) btnToRemove.remove();
+                // Останавливаем звук
+                const audio = document.getElementById('easterEggAudio');
+                if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+                // Возвращаем кнопку "ТЫК"
+                const tykButton = document.getElementById('easterEggButton');
+                if (tykButton) tykButton.style.display = 'inline-block';
             };
-            content.appendChild(closeBtn);
+            content.appendChild(closeImgBtn);
         }
         
-        // Делаем "Намяукано" кликабельным
+        // Делаем "Намяукано" кликабельным (без подчёркивания)
         document.addEventListener('DOMContentLoaded', function() {
             const namyaucano = document.getElementById('namyaucano');
             if (namyaucano) {
+                namyaucano.style.textDecoration = 'none';
                 namyaucano.addEventListener('click', function() {
                     openEasterEggModal();
                 });
