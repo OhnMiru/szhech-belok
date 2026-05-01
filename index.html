@@ -37,8 +37,8 @@
             <div class="header-buttons">
                 <button class="theme-toggle" id="themeToggle">🌙</button>
                 <button class="support-btn" id="supportBtn" title="Техподдержка">🆘</button>
-            <div class="settings-menu">
-                <button class="settings-toggle" id="settingsToggle">⚙️</button>
+                <div class="settings-menu">
+                    <button class="settings-toggle" id="settingsToggle">⚙️</button>
                     <div id="settingsDropdown" class="settings-dropdown hidden">
                         <button id="shareStatsBtn" class="settings-btn">🔗 Делиться статистикой анонимно</button>
                         <button id="hideStatsBtn" class="settings-btn">🚫 Не учитывать мою статистику</button>
@@ -532,9 +532,9 @@
 
     <!-- Easter Egg Modal (Создатели) -->
     <div id="easterEggModal" class="modal">
-        <div class="modal-content" style="max-width: 500px; text-align: center;">
-            <button class="modal-close-btn" onclick="closeEasterEggModal()">×</button>
-            <div class="modal-header" style="justify-content: center; margin-bottom: 20px;">
+        <div class="modal-content" style="max-width: 500px; text-align: center; position: relative;">
+            <button class="modal-close-btn" onclick="closeEasterEggModal()" style="position: absolute; top: 12px; right: 16px;">×</button>
+            <div class="modal-header" style="justify-content: center; margin-bottom: 20px; width: 100%;">
                 <span>🎀 Создатели 🎀</span>
             </div>
             <div id="easterEggContent">
@@ -685,7 +685,6 @@
         function openSupportModal() {
             const modal = document.getElementById('supportModal');
             if (modal) {
-                // Очищаем поля
                 document.getElementById('supportContact').value = '';
                 document.getElementById('supportMessage').value = '';
                 modal.style.display = 'block';
@@ -702,20 +701,22 @@
             const message = document.getElementById('supportMessage').value.trim();
             
             if (!message) {
-                showToast("Напишите сообщение", false);
+                if (typeof showToast === 'function') {
+                    showToast("Напишите сообщение", false);
+                }
                 return;
             }
             
             try {
                 const params = new URLSearchParams();
                 params.append('action', 'sendSupport');
-                params.append('participant', CURRENT_USER.id);
-                params.append('userId', CURRENT_USER.id);
-                params.append('userName', CURRENT_USER.name);
+                params.append('participant', window.CURRENT_USER?.id || '');
+                params.append('userId', window.CURRENT_USER?.id || '');
+                params.append('userName', window.CURRENT_USER?.name || 'Пользователь');
                 params.append('message', message);
                 params.append('contact', contact);
                 
-                const response = await fetch(CENTRAL_API_URL, {
+                const response = await fetch(window.CENTRAL_API_URL || 'https://szhech-belochek.pages.dev/api', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: params.toString()
@@ -724,14 +725,20 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showToast("Сообщение отправлено! Спасибо.", true);
+                    if (typeof showToast === 'function') {
+                        showToast("Сообщение отправлено! Спасибо.", true);
+                    }
                     closeSupportModal();
                 } else {
-                    showToast("Ошибка: " + (result.error || "неизвестная"), false);
+                    if (typeof showToast === 'function') {
+                        showToast("Ошибка: " + (result.error || "неизвестная"), false);
+                    }
                 }
             } catch(e) {
                 console.error("Support error:", e);
-                showToast("Ошибка отправки. Попробуйте позже.", false);
+                if (typeof showToast === 'function') {
+                    showToast("Ошибка отправки. Попробуйте позже.", false);
+                }
             }
         }
         
@@ -746,7 +753,6 @@
                 console.log("✅ Намяукано стало кликабельным");
             }
             
-            // Кнопка техподдержки
             const supportBtn = document.getElementById('supportBtn');
             if (supportBtn) {
                 supportBtn.addEventListener('click', function() {
@@ -755,6 +761,11 @@
                 console.log("✅ Кнопка техподдержки активирована");
             }
         });
+        
+        // Делаем функции глобальными
+        window.openSupportModal = openSupportModal;
+        window.closeSupportModal = closeSupportModal;
+        window.sendSupportRequest = sendSupportRequest;
     </script>
     
 </body>
