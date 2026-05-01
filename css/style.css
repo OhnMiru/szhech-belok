@@ -163,6 +163,32 @@ h1 {
     transform: scale(0.95);
 }
 
+.support-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px var(--shadow);
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.support-btn:hover {
+    background: var(--btn-bg);
+    color: white;
+    transform: scale(1.05);
+}
+
+.support-btn:active {
+    transform: scale(0.95);
+}
+
 .toast-notification {
     position: fixed;
     top: 70px;
@@ -532,6 +558,16 @@ h1 {
     font-size: 22px;
     color: var(--text-primary);
     line-height: 1.2;
+    text-decoration: none !important;
+}
+
+.name.clickable {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.name.clickable:hover {
+    opacity: 0.7;
 }
 
 .stock-row {
@@ -646,7 +682,7 @@ h1 {
     flex: 1;
     padding: 8px;
     border: none;
-    border-radius: 30px;
+    border-radius: 40px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -656,6 +692,7 @@ h1 {
 .minus {
     background: var(--minus-bg);
     color: var(--minus-color);
+    border-radius: 40px;
 }
 
 .minus:hover {
@@ -666,6 +703,7 @@ h1 {
 .plus {
     background: var(--plus-bg);
     color: var(--plus-color);
+    border-radius: 40px;
 }
 
 .plus:hover {
@@ -2281,40 +2319,11 @@ body.dark .extra-cost-amount {
     transform: scale(0.95);
 }
 
-.support-btn {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px var(--shadow);
-    flex-shrink: 0;
-    transition: none;
-}
-
-.support-btn:hover {
-    background: var(--card-bg);
-    color: var(--text-primary);
-    transform: none;
-}
-
-.support-btn:active {
-    transform: scale(0.95);
-}
-
 /* ========== СТИЛИ ДЛЯ ФОТО ========== */
 
 .name.clickable {
     cursor: pointer;
     transition: opacity 0.2s;
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-underline-offset: 3px;
 }
 
 .name.clickable:hover {
