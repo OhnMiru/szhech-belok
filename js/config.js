@@ -16,6 +16,7 @@ var originalUserId = null;             // Оригинальный ID орган
 var originalUserName = null;           // Оригинальное имя организатора
 var impersonatedUserId = null;         // ID пользователя, от лица которого действуют
 var impersonatedUserName = null;       // Имя пользователя, от лица которого действуют
+var impersonatedUserRole = null;       // Роль пользователя, от лица которого действуют
 
 var pendingOperations = [];
 var isOnline = navigator.onLine;
