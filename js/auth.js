@@ -150,6 +150,8 @@ async function login() {
             if (CURRENT_USER.role === 'organizer') {
                 const globalStatsBtn = document.getElementById('globalStatsBtn');
                 if (globalStatsBtn) globalStatsBtn.style.display = 'inline-flex';
+                // Показываем кнопку/модуль "Другие пользователи" для организатора
+                showImpersonateUI();
             }
             
             initApp();
@@ -190,6 +192,7 @@ function checkExistingAuth() {
             if (CURRENT_USER.role === 'organizer') {
                 const globalStatsBtn = document.getElementById('globalStatsBtn');
                 if (globalStatsBtn) globalStatsBtn.style.display = 'inline-flex';
+                showImpersonateUI();
             }
             
             loadPrivacySettings().then(() => {
@@ -207,6 +210,10 @@ function checkExistingAuth() {
 }
 
 function logout() {
+    // Выход из режима подмены, если он был активен
+    if (isImpersonating) {
+        stopImpersonating();
+    }
     sessionStorage.removeItem('currentUser');
     localStorage.removeItem('auth_user');
     localStorage.removeItem('auth_time');
@@ -220,4 +227,245 @@ function logout() {
     if (dropdown) dropdown.classList.add('hidden');
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     if (historySyncInterval) clearInterval(historySyncInterval);
+}
+
+// ========== ФУНКЦИИ ДЛЯ ИМПЕРСОНАЦИИ (ВХОД ОТ ЛИЦА ОРГАНИЗАТОРА) ==========
+
+// Показывает UI для выбора пользователя (только для организатора)
+function showImpersonateUI() {
+    // Проверяем, есть ли уже модуль
+    let impersonateContainer = document.getElementById('impersonateContainer');
+    if (!impersonateContainer) {
+        // Создаём контейнер в панели управления (рядом с другими кнопками)
+        const buttonPanel = document.querySelector('#mainContent > div:first-of-type + div');
+        if (buttonPanel) {
+            impersonateContainer = document.createElement('div');
+            impersonateContainer.id = 'impersonateContainer';
+            impersonateContainer.style.display = 'inline-block';
+            impersonateContainer.style.marginLeft = 'auto';
+            buttonPanel.appendChild(impersonateContainer);
+        }
+    }
+    
+    if (impersonateContainer) {
+        impersonateContainer.innerHTML = `
+            <div class="impersonate-wrapper" style="position: relative; display: inline-block;">
+                <button id="impersonateBtn" class="impersonate-btn" style="background: var(--badge-bg); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--text-primary);">
+                    👥 Другие пользователи
+                </button>
+                <div id="impersonateDropdown" class="impersonate-dropdown hidden" style="position: absolute; top: 100%; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 8px; min-width: 200px; z-index: 1000; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow);">
+                    <div style="padding: 8px 12px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border-color);">Выберите пользователя</div>
+                    <div id="impersonateUserList" style="max-height: 200px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        `;
+        
+        const btn = document.getElementById('impersonateBtn');
+        const dropdown = document.getElementById('impersonateDropdown');
+        
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+                loadImpersonateUserList();
+            });
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (dropdown && !btn?.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    }
+}
+
+// Загрузка списка пользователей для имперсонации
+async function loadImpersonateUserList() {
+    const userListContainer = document.getElementById('impersonateUserList');
+    if (!userListContainer) return;
+    
+    try {
+        const response = await fetch(`${CENTRAL_API_URL}?action=getAvailableUsers`);
+        const data = await response.json();
+        if (data && data.users) {
+            // Фильтруем: показываем всех пользователей, кроме текущего
+            // Организаторы тоже доступны
+            const users = data.users.filter(u => u.id !== CURRENT_USER.id);
+            if (users.length === 0) {
+                userListContainer.innerHTML = '<div style="padding: 12px; color: var(--text-muted); text-align: center;">Нет других пользователей</div>';
+                return;
+            }
+            
+            userListContainer.innerHTML = users.map(user => `
+                <div class="impersonate-user-item" data-user-id="${user.id}" data-user-name="${user.name}" data-user-role="${user.role}" style="padding: 10px 12px; cursor: pointer; border-radius: 8px; transition: background 0.2s;">
+                    <div style="font-weight: bold;">${escapeHtml(user.name)}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">${user.role === 'organizer' ? 'Организатор' : 'Художник'}</div>
+                </div>
+            `).join('');
+            
+            // Добавляем обработчики
+            document.querySelectorAll('.impersonate-user-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const userId = item.dataset.userId;
+                    const userName = item.dataset.userName;
+                    const userRole = item.dataset.userRole;
+                    impersonateUser(userId, userName, userRole);
+                    const dropdown = document.getElementById('impersonateDropdown');
+                    if (dropdown) dropdown.classList.add('hidden');
+                });
+                item.addEventListener('mouseenter', (e) => {
+                    e.currentTarget.style.background = 'var(--badge-bg)';
+                });
+                item.addEventListener('mouseleave', (e) => {
+                    e.currentTarget.style.background = '';
+                });
+            });
+        }
+    } catch(e) {
+        console.error("Error loading users:", e);
+        userListContainer.innerHTML = '<div style="padding: 12px; color: var(--minus-color); text-align: center;">Ошибка загрузки</div>';
+    }
+}
+
+// Вход от лица пользователя
+async function impersonateUser(userId, userName, userRole) {
+    if (isImpersonating) {
+        showToast("Сначала выйдите из текущего режима", false);
+        return;
+    }
+    
+    // Сохраняем оригинальные данные
+    originalUserId = CURRENT_USER.id;
+    originalUserName = CURRENT_USER.name;
+    impersonatedUserId = userId;
+    impersonatedUserName = userName;
+    isImpersonating = true;
+    
+    // Меняем текущего пользователя
+    CURRENT_USER.id = userId;
+    CURRENT_USER.name = userName;
+    CURRENT_USER.role = userRole;
+    CURRENT_USER.sheetUrl = null; // Будет загружено заново
+    
+    // Обновляем информацию о пользователе
+    try {
+        const response = await fetch(`${CENTRAL_API_URL}?action=getUserInfo&user=${encodeURIComponent(userId)}`);
+        const userInfo = await response.json();
+        if (userInfo && userInfo.sheetUrl) {
+            CURRENT_USER.sheetUrl = userInfo.sheetUrl;
+        }
+    } catch(e) {
+        console.error("Error getting user info:", e);
+    }
+    
+    // Показываем баннер
+    showImpersonateBanner();
+    
+    // Обновляем интерфейс
+    const roleIcon = CURRENT_USER.role === 'organizer' ? '📊' : '🍌';
+    document.getElementById('shopTitle').innerHTML = `${roleIcon} ${CURRENT_USER.name} — учёт мерча`;
+    
+    const sheetLink = document.getElementById('sheetLink');
+    if (sheetLink && CURRENT_USER.sheetUrl && CURRENT_USER.sheetUrl !== '#') {
+        sheetLink.href = CURRENT_USER.sheetUrl;
+    }
+    
+    // Перезагружаем данные
+    if (typeof loadData === 'function') {
+        loadData(true, true);
+    }
+    
+    // Обновляем статистику и другие данные
+    if (typeof loadHistory === 'function') loadHistory();
+    if (typeof loadExtraCosts === 'function') loadExtraCosts();
+    if (typeof loadExtraIncomes === 'function') loadExtraIncomes();
+    if (typeof loadAllComments === 'function') loadAllComments();
+    
+    showToast(`Вы вошли как ${userName}`, true);
+}
+
+// Показ баннера режима подмены
+function showImpersonateBanner() {
+    let banner = document.getElementById('impersonateBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'impersonateBanner';
+        banner.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #f39c12; color: #333; text-align: center; padding: 8px; font-size: 13px; z-index: 9999; display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;';
+        document.body.appendChild(banner);
+    }
+    
+    banner.innerHTML = `
+        <span>⚠️ Вы действуете от лица <strong>${escapeHtml(impersonatedUserName)}</strong> (режим организатора)</span>
+        <button id="stopImpersonateBtn" style="background: #e74c3c; color: white; border: none; border-radius: 30px; padding: 4px 16px; font-size: 12px; cursor: pointer;">Выйти</button>
+    `;
+    
+    const stopBtn = document.getElementById('stopImpersonateBtn');
+    if (stopBtn) {
+        stopBtn.addEventListener('click', () => {
+            stopImpersonating();
+        });
+    }
+    
+    banner.style.display = 'flex';
+}
+
+// Выход из режима подмены
+function stopImpersonating() {
+    if (!isImpersonating) return;
+    
+    // Восстанавливаем оригинальные данные
+    CURRENT_USER.id = originalUserId;
+    CURRENT_USER.name = originalUserName;
+    
+    // Получаем роль организатора из оригинальных данных
+    // (организатор всегда имеет роль organizer)
+    CURRENT_USER.role = 'organizer';
+    
+    // Восстанавливаем sheetUrl
+    const savedUser = sessionStorage.getItem('currentUser');
+    if (savedUser) {
+        try {
+            const user = JSON.parse(savedUser);
+            CURRENT_USER.sheetUrl = user.sheetUrl;
+        } catch(e) {}
+    }
+    
+    // Сбрасываем флаги
+    isImpersonating = false;
+    originalUserId = null;
+    originalUserName = null;
+    impersonatedUserId = null;
+    impersonatedUserName = null;
+    
+    // Убираем баннер
+    const banner = document.getElementById('impersonateBanner');
+    if (banner) banner.remove();
+    
+    // Обновляем интерфейс
+    const roleIcon = '📊';
+    document.getElementById('shopTitle').innerHTML = `${roleIcon} ${CURRENT_USER.name} — учёт мерча`;
+    
+    const sheetLink = document.getElementById('sheetLink');
+    if (sheetLink && CURRENT_USER.sheetUrl && CURRENT_USER.sheetUrl !== '#') {
+        sheetLink.href = CURRENT_USER.sheetUrl;
+    }
+    
+    // Перезагружаем данные
+    if (typeof loadData === 'function') {
+        loadData(true, true);
+    }
+    if (typeof loadHistory === 'function') loadHistory();
+    if (typeof loadExtraCosts === 'function') loadExtraCosts();
+    if (typeof loadExtraIncomes === 'function') loadExtraIncomes();
+    if (typeof loadAllComments === 'function') loadAllComments();
+    
+    showToast(`Вы вернулись в свой аккаунт (${CURRENT_USER.name})`, true);
+}
+
+// Проверка, нужно ли передавать realUser параметр в API
+function getRealUserParam() {
+    if (isImpersonating && originalUserId) {
+        return `&realUser=${encodeURIComponent(originalUserId)}`;
+    }
+    return "";
 }
