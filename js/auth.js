@@ -136,6 +136,40 @@ async function login() {
             await loadPrivacySettings();
             loadPendingOperations();
             
+            // ========== ОЧИСТКА СТАРЫХ ОПЕРАЦИЙ ==========
+            // Удаляем операции старше 7 дней (старые записи)
+            if (pendingOperations && pendingOperations.length > 0) {
+                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                const oldOps = pendingOperations.filter(op => op.timestamp && op.timestamp < sevenDaysAgo);
+                if (oldOps.length > 0) {
+                    console.log(`🧹 Очищено ${oldOps.length} старых операций (старше 7 дней)`);
+                    pendingOperations = pendingOperations.filter(op => !oldOps.includes(op));
+                    savePendingOperations();
+                }
+            }
+            
+            // Также очищаем старые записи истории из localStorage, если им больше 30 дней
+            const savedHistory = localStorage.getItem('merch_sales_history');
+            if (savedHistory) {
+                try {
+                    const history = JSON.parse(savedHistory);
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 3);
+                    const filteredHistory = history.filter(entry => {
+                        const entryDate = new Date(entry.date);
+                        return entryDate >= thirtyDaysAgo;
+                    });
+                    if (filteredHistory.length !== history.length) {
+                        console.log(`🧹 Очищено ${history.length - filteredHistory.length} старых записей истории`);
+                        localStorage.setItem('merch_sales_history', JSON.stringify(filteredHistory));
+                        if (typeof salesHistory !== 'undefined') {
+                            salesHistory = filteredHistory;
+                        }
+                    }
+                } catch(e) {}
+            }
+            // ========== КОНЕЦ ОЧИСТКИ ==========
+            
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
             
@@ -256,18 +290,15 @@ function showImpersonateUI() {
     let impersonateBtn = document.getElementById('impersonateBtn');
     if (!impersonateBtn) return;
     
-    // Скрываем кнопку если пользователь не организатор или уже в режиме подмены
     if (CURRENT_USER.role !== 'organizer' || isImpersonating) {
         impersonateBtn.style.display = 'none';
     } else {
         impersonateBtn.style.display = 'inline-flex';
     }
     
-    // Проверяем, есть ли уже дропдаун
     let dropdown = document.getElementById('impersonateDropdown');
     if (dropdown) return;
     
-    // Создаём выпадающий список
     dropdown = document.createElement('div');
     dropdown.id = 'impersonateDropdown';
     dropdown.className = 'impersonate-dropdown hidden';
@@ -299,7 +330,6 @@ function showImpersonateUI() {
     
     impersonateBtn.appendChild(dropdown);
     
-    // Обработчик клика по кнопке
     impersonateBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const isVisible = dropdown.classList.contains('show');
@@ -312,7 +342,6 @@ function showImpersonateUI() {
         }
     });
     
-    // Закрытие при клике вне
     document.addEventListener('click', (e) => {
         if (!impersonateBtn.contains(e.target) && !dropdown.contains(e.target)) {
             dropdown.classList.remove('show');
@@ -394,9 +423,7 @@ async function impersonateUser(userId, userName, userRole) {
         console.error("Error getting user info:", e);
     }
     
-    // Скрываем кнопки организатора
     hideOrganizerButtons();
-    
     showImpersonateBanner();
     
     const roleIcon = CURRENT_USER.role === 'organizer' ? '📊' : '🍌';
@@ -407,7 +434,6 @@ async function impersonateUser(userId, userName, userRole) {
         sheetLink.href = CURRENT_USER.sheetUrl;
     }
     
-    // Перезагружаем ВСЕ данные пользователя
     if (typeof loadData === 'function') {
         loadData(true, true);
     }
@@ -476,7 +502,6 @@ function stopImpersonating() {
     impersonatedUserName = null;
     impersonatedUserRole = null;
     
-    // Показываем кнопки организатора
     showOrganizerButtons();
     
     const banner = document.getElementById('impersonateBanner');
@@ -490,7 +515,6 @@ function stopImpersonating() {
         sheetLink.href = CURRENT_USER.sheetUrl;
     }
     
-    // Перезагружаем ВСЕ данные организатора
     if (typeof loadData === 'function') {
         loadData(true, true);
     }
