@@ -559,7 +559,14 @@ async function handleAddSupply() {
     }
 }
 
+// ========== ЭКСПОРТ ФУНКЦИЙ В ГЛОБАЛЬНУЮ ОБЛАСТЬ ==========
 window.showCommentModal = showCommentModal;
 window.closeCommentModal = closeCommentModal;
 window.saveCommentAndClose = saveCommentAndClose;
 window.handleAddSupply = handleAddSupply;
+
+// Экспортируем функции имперсонации в глобальную область (если они есть в auth.js)
+window.impersonateUser = typeof impersonateUser !== 'undefined' ? impersonateUser : null;
+window.stopImpersonating = typeof stopImpersonating !== 'undefined' ? stopImpersonating : null;
+window.getRealUserParam = typeof getRealUserParam !== 'undefined' ? getRealUserParam : () => "";
+window.showImpersonateUI = typeof showImpersonateUI !== 'undefined' ? showImpersonateUI : null;
