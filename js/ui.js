@@ -510,12 +510,10 @@ function openSupplyModal() {
             return aStr.localeCompare(bStr, 'ru');
         });
         for (const product of sortedProducts) {
-            if (product.stock >= 0) {
-                const option = document.createElement('option');
-                option.value = product.id;
-                option.textContent = `${product.type} ${product.name} (остаток: ${product.stock} шт)`;
-                select.appendChild(option);
-            }
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.textContent = `${product.type} ${product.name} (остаток: ${product.stock} шт)`;
+            select.appendChild(option);
         }
     }
     
@@ -532,7 +530,8 @@ function closeSupplyModal() {
     if (modal) modal.style.display = 'none';
 }
 
-async function addSupply() {
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ (без рекурсии)
+async function handleAddSupply() {
     const select = document.getElementById('supplyProductId');
     const itemId = parseInt(select?.value);
     const quantity = parseInt(document.getElementById('supplyQuantity')?.value) || 0;
@@ -553,17 +552,13 @@ async function addSupply() {
         return;
     }
     
-    const success = await addSupply(itemId, quantity);
+    // Вызываем API функцию addSupply (из api.js)
+    const success = await window.addSupply(itemId, quantity);
     if (success) {
         closeSupplyModal();
     }
 }
 
-// Добавляем обработчик кнопки в initApp (в app.js)
-// В функции initApp добавьте:
-// const supplyBtn = document.getElementById('supplyButton');
-// if (supplyBtn) supplyBtn.addEventListener('click', openSupplyModal);
-// Экспортируем функции в глобальную область
 window.showCommentModal = showCommentModal;
 window.closeCommentModal = closeCommentModal;
 window.saveCommentAndClose = saveCommentAndClose;
