@@ -559,11 +559,68 @@ async function handleAddSupply() {
     }
 }
 
+// ========== ФУНКЦИИ ДЛЯ ТЕХПОДДЕРЖКИ ==========
+
+function openSupportModal() {
+    const modal = document.getElementById('supportModal');
+    if (modal) {
+        document.getElementById('supportContact').value = '';
+        document.getElementById('supportMessage').value = '';
+        modal.style.display = 'block';
+    }
+}
+
+function closeSupportModal() {
+    const modal = document.getElementById('supportModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function sendSupportRequest() {
+    const contact = document.getElementById('supportContact').value.trim();
+    const message = document.getElementById('supportMessage').value.trim();
+    
+    if (!message) {
+        showToast("Напишите сообщение", false);
+        return;
+    }
+    
+    try {
+        const params = new URLSearchParams();
+        params.append('action', 'sendSupport');
+        params.append('participant', CURRENT_USER.id);
+        params.append('userId', CURRENT_USER.id);
+        params.append('userName', CURRENT_USER.name);
+        params.append('message', message);
+        params.append('contact', contact);
+        
+        const response = await fetch(CENTRAL_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast("Сообщение отправлено! Спасибо.", true);
+            closeSupportModal();
+        } else {
+            showToast("Ошибка: " + (result.error || "неизвестная"), false);
+        }
+    } catch(e) {
+        console.error("Support error:", e);
+        showToast("Ошибка отправки. Попробуйте позже.", false);
+    }
+}
+
 // ========== ЭКСПОРТ ФУНКЦИЙ В ГЛОБАЛЬНУЮ ОБЛАСТЬ ==========
 window.showCommentModal = showCommentModal;
 window.closeCommentModal = closeCommentModal;
 window.saveCommentAndClose = saveCommentAndClose;
 window.handleAddSupply = handleAddSupply;
+window.openSupportModal = openSupportModal;
+window.closeSupportModal = closeSupportModal;
+window.sendSupportRequest = sendSupportRequest;
 
 // Экспортируем функции имперсонации в глобальную область (если они есть в auth.js)
 window.impersonateUser = typeof impersonateUser !== 'undefined' ? impersonateUser : null;
