@@ -240,7 +240,13 @@ function showImpersonateUI() {
             impersonateBtn.className = 'refresh-btn';
             impersonateBtn.textContent = '👥 Другие пользователи';
             impersonateBtn.style.position = 'relative';
-            buttonPanel.appendChild(impersonateBtn);
+            
+            const addItemBtn = document.getElementById('addItemButton');
+            if (addItemBtn) {
+                buttonPanel.insertBefore(impersonateBtn, addItemBtn);
+            } else {
+                buttonPanel.appendChild(impersonateBtn);
+            }
             
             const dropdown = document.createElement('div');
             dropdown.id = 'impersonateDropdown';
@@ -254,7 +260,7 @@ function showImpersonateUI() {
             dropdown.style.padding = '8px';
             dropdown.style.minWidth = '220px';
             dropdown.style.zIndex = '1000';
-            dropdown.style.marginTop = '4px';
+            dropdown.style.marginTop = '8px';
             dropdown.style.boxShadow = '0 4px 12px var(--shadow)';
             dropdown.style.maxHeight = '300px';
             dropdown.style.overflowY = 'auto';
@@ -271,8 +277,7 @@ function showImpersonateUI() {
             userList.id = 'impersonateUserList';
             dropdown.appendChild(userList);
             
-            impersonateBtn.parentNode.style.position = 'relative';
-            impersonateBtn.parentNode.appendChild(dropdown);
+            impersonateBtn.appendChild(dropdown);
             
             impersonateBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
