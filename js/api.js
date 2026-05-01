@@ -4,10 +4,17 @@ console.log("🔧 api.js начал загрузку");
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function buildApiUrl(action, extraParams = "") {
     if (!window.CURRENT_USER?.id) return "#";
-    if (action === "getPhotoUrl" || action === "getComment") {
-        return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}&_=${Date.now()}`;
+    
+    // Добавляем параметр realUser если организатор действует от лица другого пользователя
+    let realUserParam = "";
+    if (typeof window.getRealUserParam === 'function') {
+        realUserParam = window.getRealUserParam();
     }
-    return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}&t=${Date.now()}`;
+    
+    if (action === "getPhotoUrl" || action === "getComment") {
+        return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}${realUserParam}&_=${Date.now()}`;
+    }
+    return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}${realUserParam}&t=${Date.now()}`;
 }
 
 // ========== ОСНОВНЫЕ ФУНКЦИИ ==========
@@ -165,6 +172,15 @@ async function saveComment(itemId, comment) {
         params.append('userId', window.CURRENT_USER.id);
         params.append('comment', comment);
         
+        // Добавляем realUser если есть
+        if (typeof window.getRealUserParam === 'function') {
+            const realUserParam = window.getRealUserParam();
+            if (realUserParam) {
+                const realUserValue = realUserParam.replace('&realUser=', '');
+                params.append('realUser', realUserValue);
+            }
+        }
+        
         const response = await fetch(window.CENTRAL_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -271,6 +287,15 @@ async function addSupply(itemId, quantity) {
         params.append('itemId', itemId.toString());
         params.append('quantity', quantity.toString());
         
+        // Добавляем realUser если есть
+        if (typeof window.getRealUserParam === 'function') {
+            const realUserParam = window.getRealUserParam();
+            if (realUserParam) {
+                const realUserValue = realUserParam.replace('&realUser=', '');
+                params.append('realUser', realUserValue);
+            }
+        }
+        
         const response = await fetch(window.CENTRAL_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -299,6 +324,8 @@ async function addSupply(itemId, quantity) {
     }
 }
 
+// ========== ФУНКЦИИ ДЛЯ ФОТО ==========
+
 async function getPhotoUrl(itemId) {
     if (!window.isOnline) {
         return null;
@@ -312,9 +339,22 @@ async function getPhotoUrl(itemId) {
     try {
         const url = `${window.CENTRAL_API_URL}?action=getPhotoUrl&participant=${window.CURRENT_USER.id}&itemId=${itemId}&userId=${window.CURRENT_USER.id}&_=${Date.now()}`;
         
-        console.log("🔍 Fetching photo URL:", url);
+        // Добавляем realUser если есть
+        if (typeof window.getRealUserParam === 'function') {
+            const realUserParam = window.getRealUserParam();
+            if (realUserParam) {
+                // Параметр уже включает &, поэтому просто добавляем
+                window.tempPhotoUrl = url + realUserParam;
+                // Используем временную переменную, так как дальше код может быть сложным
+            }
+        }
         
-        const response = await fetch(url);
+        const finalUrl = window.tempPhotoUrl || url;
+        delete window.tempPhotoUrl;
+        
+        console.log("🔍 Fetching photo URL:", finalUrl);
+        
+        const response = await fetch(finalUrl);
         const result = await response.json();
         
         console.log("📸 Photo API response:", result);
@@ -372,6 +412,15 @@ async function uploadPhoto(itemId, file) {
                 params.append('base64Data', base64Data);
                 params.append('fileName', file.name);
                 
+                // Добавляем realUser если есть
+                if (typeof window.getRealUserParam === 'function') {
+                    const realUserParam = window.getRealUserParam();
+                    if (realUserParam) {
+                        const realUserValue = realUserParam.replace('&realUser=', '');
+                        params.append('realUser', realUserValue);
+                    }
+                }
+                
                 console.log("📤 Загрузка фото:");
                 console.log("  - itemId:", itemId);
                 console.log("  - userId:", window.CURRENT_USER.id);
@@ -398,7 +447,13 @@ async function uploadPhoto(itemId, file) {
                         
                         if (window.photoCache) window.photoCache.delete(itemId);
                         
-                        const checkUrl = `${window.CENTRAL_API_URL}?action=getPhotoUrl&participant=${window.CURRENT_USER.id}&itemId=${itemId}&userId=${window.CURRENT_USER.id}&_=${Date.now()}`;
+                        let checkUrl = `${window.CENTRAL_API_URL}?action=getPhotoUrl&participant=${window.CURRENT_USER.id}&itemId=${itemId}&userId=${window.CURRENT_USER.id}&_=${Date.now()}`;
+                        if (typeof window.getRealUserParam === 'function') {
+                            const realUserParam = window.getRealUserParam();
+                            if (realUserParam) {
+                                checkUrl += realUserParam;
+                            }
+                        }
                         const checkResponse = await fetch(checkUrl);
                         const checkResult = await checkResponse.json();
                         
@@ -458,6 +513,15 @@ async function deletePhoto(itemId) {
         params.append('participant', window.CURRENT_USER.id);
         params.append('itemId', itemId.toString());
         params.append('userId', window.CURRENT_USER.id);
+        
+        // Добавляем realUser если есть
+        if (typeof window.getRealUserParam === 'function') {
+            const realUserParam = window.getRealUserParam();
+            if (realUserParam) {
+                const realUserValue = realUserParam.replace('&realUser=', '');
+                params.append('realUser', realUserValue);
+            }
+        }
         
         const response = await fetch(window.CENTRAL_API_URL, {
             method: 'POST',
