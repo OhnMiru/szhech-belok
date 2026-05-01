@@ -139,10 +139,10 @@ async function login() {
             // ========== ОЧИСТКА СТАРЫХ ОПЕРАЦИЙ ==========
             // Удаляем операции старше 7 дней (старые записи)
             if (pendingOperations && pendingOperations.length > 0) {
-                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                const sevenDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
                 const oldOps = pendingOperations.filter(op => op.timestamp && op.timestamp < sevenDaysAgo);
                 if (oldOps.length > 0) {
-                    console.log(`🧹 Очищено ${oldOps.length} старых операций (старше 7 дней)`);
+                    console.log(`🧹 Очищено ${oldOps.length} старых операций (старше 3 дней)`);
                     pendingOperations = pendingOperations.filter(op => !oldOps.includes(op));
                     savePendingOperations();
                 }
