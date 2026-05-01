@@ -2749,6 +2749,28 @@ body.dark .extra-cost-amount {
     transform: scale(1.02);
 }
 
+.support-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px var(--shadow);
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.support-btn:hover {
+    background: var(--btn-bg);
+    transform: scale(1.05);
+    color: white;
+}
+
 @media (max-width: 500px) {
     .impersonate-dropdown {
         position: fixed;
