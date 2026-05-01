@@ -241,10 +241,15 @@ function showImpersonateUI() {
             impersonateBtn.textContent = '👥 Другие пользователи';
             impersonateBtn.style.position = 'relative';
             
-            // Находим кнопку "Добавить товар" и вставляем перед ней
+            // Находим кнопку "Добавить товар" и вставляем ПОСЛЕ неё
             const addItemBtn = document.getElementById('addItemButton');
             if (addItemBtn && buttonPanel.contains(addItemBtn)) {
-                buttonPanel.insertBefore(impersonateBtn, addItemBtn);
+                // Вставляем после addItemBtn
+                if (addItemBtn.nextSibling) {
+                    buttonPanel.insertBefore(impersonateBtn, addItemBtn.nextSibling);
+                } else {
+                    buttonPanel.appendChild(impersonateBtn);
+                }
             } else {
                 buttonPanel.appendChild(impersonateBtn);
             }
