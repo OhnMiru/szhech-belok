@@ -69,6 +69,7 @@ function initApp() {
     const rulesBtn = document.getElementById('rulesButton');
     const statsBtn = document.getElementById('statsButton');
     const globalStatsBtn = document.getElementById('globalStatsBtn');
+    const supportBtn = document.getElementById('supportBtn');
   
     if (bookingsBtn) {
         bookingsBtn.addEventListener('click', () => {
@@ -100,6 +101,12 @@ function initApp() {
         });
     }
     
+    if (supportBtn) {
+        supportBtn.addEventListener('click', () => {
+            if (typeof openSupportModal === 'function') openSupportModal();
+        });
+    }
+    
     if (globalStatsBtn && CURRENT_USER.role === 'organizer') {
         globalStatsBtn.style.display = 'inline-flex';
         globalStatsBtn.addEventListener('click', () => {
@@ -108,9 +115,25 @@ function initApp() {
     }
 
     if (settingsToggle) {
-        settingsToggle.addEventListener('click', (e) => {
+        // Убираем все старые обработчики
+        const newToggle = settingsToggle.cloneNode(true);
+        settingsToggle.parentNode.replaceChild(newToggle, settingsToggle);
+        
+        newToggle.addEventListener('click', (e) => {
+            e.preventDefault();
             e.stopPropagation();
-            if (settingsDropdown) settingsDropdown.classList.toggle('hidden');
+            console.log("⚙️ Кнопка настроек нажата");
+            if (settingsDropdown) {
+                settingsDropdown.classList.toggle('hidden');
+                console.log("  - Новый класс:", settingsDropdown.className);
+            }
+        });
+        
+        // Закрытие при клике вне
+        document.addEventListener('click', (e) => {
+            if (!newToggle.contains(e.target) && !settingsDropdown?.contains(e.target)) {
+                if (settingsDropdown) settingsDropdown.classList.add('hidden');
+            }
         });
     }
     
@@ -135,11 +158,6 @@ function initApp() {
         });
     }
 
-    document.addEventListener('click', (e) => {
-        if (settingsDropdown && !settingsToggle?.contains(e.target) && !settingsDropdown.contains(e.target))
-            settingsDropdown.classList.add('hidden');
-    });
-    
     // Загружаем комментарии
     if (typeof loadAllComments === 'function') {
         loadAllComments();
@@ -168,6 +186,8 @@ window.onclick = function(event) {
     const bookingsModal = document.getElementById('bookingsModal');
     const supplyModal = document.getElementById('supplyModal');
     const commentModal = document.getElementById('commentModal');
+    const supportModal = document.getElementById('supportModal');
+    const easterEggModal = document.getElementById('easterEggModal');
     
     if (event.target === historyModal && typeof closeHistory === 'function') closeHistory();
     if (event.target === cartModal && typeof closeCartModal === 'function') closeCartModal();
@@ -180,6 +200,8 @@ window.onclick = function(event) {
     if (event.target === bookingsModal && typeof closeBookingsModal === 'function') closeBookingsModal();
     if (event.target === supplyModal && typeof closeSupplyModal === 'function') closeSupplyModal();
     if (event.target === commentModal && typeof closeCommentModal === 'function') closeCommentModal();
+    if (event.target === supportModal && typeof closeSupportModal === 'function') closeSupportModal();
+    if (event.target === easterEggModal && typeof closeEasterEggModal === 'function') closeEasterEggModal();
 };
 
 // Инициализация после полной загрузки DOM
