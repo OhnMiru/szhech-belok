@@ -1,4 +1,166 @@
 // ========== ГЛОБАЛЬНАЯ СТАТИСТИКА ==========
+
+// Переменные для фильтра глобальной статистики
+let globalStatsFilterFromDate = null;
+let globalStatsFilterToDate = null;
+let globalStatsFilterActive = false;
+
+// Инициализация селектов даты и времени для глобальной статистики
+function initGlobalStatsDateTimeSelects() {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = currentYear - 2; i <= currentYear + 2; i++) years.push(i);
+    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    
+    // Дни
+    ['globalStatsDateFromDay', 'globalStatsDateToDay'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 1; i <= 31; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                select.appendChild(option);
+            }
+        }
+    });
+    
+    // Месяцы
+    ['globalStatsDateFromMonth', 'globalStatsDateToMonth'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 0; i < 12; i++) {
+                const option = document.createElement('option');
+                option.value = i + 1;
+                option.textContent = monthNames[i];
+                select.appendChild(option);
+            }
+        }
+    });
+    
+    // Годы
+    ['globalStatsDateFromYear', 'globalStatsDateToYear'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (const year of years) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                select.appendChild(option);
+            }
+            if (select.id.includes('To')) {
+                select.value = currentYear;
+            } else {
+                select.value = currentYear - 1;
+            }
+        }
+    });
+    
+    // Часы
+    ['globalStatsTimeFromHour', 'globalStatsTimeToHour'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 0; i <= 23; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                select.appendChild(option);
+            }
+            if (select.id.includes('From')) {
+                select.value = 0;
+            } else {
+                select.value = 23;
+            }
+        }
+    });
+    
+    // Минуты
+    ['globalStatsTimeFromMinute', 'globalStatsTimeToMinute'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 0; i <= 59; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                select.appendChild(option);
+            }
+            if (select.id.includes('From')) {
+                select.value = 0;
+            } else {
+                select.value = 59;
+            }
+        }
+    });
+}
+
+// Получение даты из селектов глобальной статистики
+function getGlobalStatsDateTimeFromSelects(prefix) {
+    const day = document.getElementById(`${prefix}Day`)?.value;
+    const month = document.getElementById(`${prefix}Month`)?.value;
+    const year = document.getElementById(`${prefix}Year`)?.value;
+    const hour = document.getElementById(`globalStatsTime${prefix === 'globalStatsDateFrom' ? 'From' : 'To'}Hour`)?.value;
+    const minute = document.getElementById(`globalStatsTime${prefix === 'globalStatsDateFrom' ? 'From' : 'To'}Minute`)?.value;
+    
+    if (day && month && year && hour && minute) {
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+    }
+    return null;
+}
+
+// Установка значений селектов
+function setGlobalStatsDateTimeValues(prefix, date) {
+    if (!date) return;
+    const day = document.getElementById(`${prefix}Day`);
+    const month = document.getElementById(`${prefix}Month`);
+    const year = document.getElementById(`${prefix}Year`);
+    const hour = document.getElementById(`globalStatsTime${prefix === 'globalStatsDateFrom' ? 'From' : 'To'}Hour`);
+    const minute = document.getElementById(`globalStatsTime${prefix === 'globalStatsDateFrom' ? 'From' : 'To'}Minute`);
+    
+    if (day) day.value = date.getDate();
+    if (month) month.value = date.getMonth() + 1;
+    if (year) year.value = date.getFullYear();
+    if (hour) hour.value = date.getHours();
+    if (minute) minute.value = date.getMinutes();
+}
+
+// Переключение видимости фильтра
+function toggleGlobalStatsFilter() {
+    const block = document.getElementById('globalStatsFilterBlock');
+    if (block) {
+        const isVisible = block.style.display !== 'none';
+        block.style.display = isVisible ? 'none' : 'block';
+    }
+}
+
+// Сброс фильтра
+function resetGlobalStatsFilter() {
+    const now = new Date();
+    const fromDate = new Date(now);
+    fromDate.setDate(now.getDate() - 30);
+    
+    setGlobalStatsDateTimeValues('globalStatsDateFrom', fromDate);
+    setGlobalStatsDateTimeValues('globalStatsDateTo', now);
+    
+    globalStatsFilterFromDate = null;
+    globalStatsFilterToDate = null;
+    globalStatsFilterActive = false;
+    
+    showGlobalStats();
+}
+
+// Применение фильтра
+function applyGlobalStatsFilter() {
+    globalStatsFilterFromDate = getGlobalStatsDateTimeFromSelects('globalStatsDateFrom');
+    globalStatsFilterToDate = getGlobalStatsDateTimeFromSelects('globalStatsDateTo');
+    globalStatsFilterActive = true;
+    showGlobalStats();
+}
+
 async function loadGlobalExtraCosts() {
     if (!isOnline) {
         const saved = localStorage.getItem('merch_global_costs');
@@ -250,6 +412,14 @@ function renderGlobalStatsContent(data) {
     const container = document.getElementById('participantStatsContainer');
     if (!container) return;
     
+    // Добавляем информацию о фильтре
+    let filterInfo = '';
+    if (globalStatsFilterActive && (globalStatsFilterFromDate || globalStatsFilterToDate)) {
+        const fromStr = globalStatsFilterFromDate ? globalStatsFilterFromDate.toLocaleDateString('ru-RU') : 'все время';
+        const toStr = globalStatsFilterToDate ? globalStatsFilterToDate.toLocaleDateString('ru-RU') : 'настоящее';
+        filterInfo = `<div style="text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">📅 Период: ${fromStr} — ${toStr}</div>`;
+    }
+    
     let visibleStats = (data.stats || []).filter(s => s.hideStats !== true);
     
     const artistsStats = visibleStats.filter(s => s.role === 'artist' && !s.isAnonymous).sort((a, b) => a.name.localeCompare(b.name));
@@ -265,7 +435,9 @@ function renderGlobalStatsContent(data) {
     const avgCheck = data.avgCheck ? Math.ceil(data.avgCheck) : 0;
     const profitMargin = totalRevenue > 0 ? (totalNetProfit / totalRevenue * 100) : 0;
     
-    let html = `<div class="stats-grid">
+    let html = filterInfo;
+    
+    html += `<div class="stats-grid">
         <div class="stats-card"><div class="stats-card-value">${totalRevenue.toLocaleString()} ₽</div><div class="stats-card-label">💰 Общая выручка</div></div>
         <div class="stats-card"><div class="stats-card-value">${totalCost.toLocaleString()} ₽</div><div class="stats-card-label">📦 Общая себестоимость</div></div>
         <div class="stats-card"><div class="stats-card-value">${(data.totalExtraCosts || 0).toLocaleString()} ₽</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
@@ -351,7 +523,7 @@ function renderGlobalStatsContent(data) {
                     </tr>`;
         }
         html += `</tbody>
-                </table>
+                <tr>
             </div>
         </div>`;
     }
@@ -365,7 +537,7 @@ function renderGlobalStatsContent(data) {
                 <table class="detail-table">
                     <thead>
                         <tr><th>#</th><th>Товар</th><th>Тип</th><th>Участник</th><th class="text-right">Цена</th><th class="text-right">Выручка</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th><th class="text-right">Продано, шт</th>
-                    </tr>
+                    <tr>
                     </thead>
                     <tbody>`;
         for (let i = 0; i < sortedTopProducts.length; i++) {
@@ -579,7 +751,7 @@ function renderUserFullStats(stats, participantName) {
         </tr>`;
     }
     html += `</tbody>
-                </table>
+                <tr>
             </div>
         </div>
         <div class="detail-section">
