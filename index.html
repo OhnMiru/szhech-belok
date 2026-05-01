@@ -58,7 +58,7 @@
             <button class="refresh-btn" id="bookingsButton">📦 Бронирование</button>
             <button class="refresh-btn" id="supplyButton">📦 Поставка</button>
             <button class="refresh-btn" id="addItemButton">➕ Добавить товар</button>
-            <button class="refresh-btn" id="impersonateBtn" style="position: relative;">👥 Другие пользователи</button>
+            <button class="refresh-btn" id="impersonateBtn" style="position: relative; display: none;">👥 Другие пользователи</button>
         </div>
 
         <div id="progressContainer" class="progress-container">
@@ -503,6 +503,33 @@
         </div>
     </div>
 
+    <!-- Support Modal -->
+    <div id="supportModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close-btn" onclick="closeSupportModal()">×</button>
+            <div class="modal-header">
+                <span>🆘 Техподдержка</span>
+            </div>
+            <div id="support-content">
+                <div style="margin-bottom: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                    Напишите ваш вопрос, жалобу или предложение
+                </div>
+                <div class="edit-row" style="margin-bottom: 16px;">
+                    <span class="edit-label">Контакт</span>
+                    <input type="text" id="supportContact" class="edit-input" placeholder="Telegram / почта (опционально)" style="flex: 2;">
+                </div>
+                <div class="edit-row" style="margin-bottom: 16px;">
+                    <span class="edit-label">Сообщение</span>
+                    <textarea id="supportMessage" rows="5" class="edit-input" placeholder="Подробно опишите проблему..." style="flex: 2; resize: vertical;"></textarea>
+                </div>
+                <div class="edit-buttons" style="margin-top: 20px;">
+                    <button class="edit-cancel-btn" onclick="closeSupportModal()">❌ Отмена</button>
+                    <button class="edit-save-btn" onclick="sendSupportRequest()">✉️ Отправить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Easter Egg Modal (Создатели) -->
     <div id="easterEggModal" class="modal">
         <div class="modal-content" style="max-width: 500px; text-align: center;">
@@ -514,8 +541,8 @@
                 <div style="margin-bottom: 20px;">
                     <div style="font-weight: bold; color: var(--btn-bg); margin-bottom: 10px;">✨ Вдохновители ✨</div>
                     <div style="font-size: 14px; margin-bottom: 4px;">Ненадежный пользователь Интернета Олиенн</div>
-                    <div style="font-size: 14px; margin-bottom: 4px;">Босс подвала Рэира</div>
-                    <div style="font-size: 14px; margin-bottom: 10px;">Миел-ненавижу-понедельники</div>
+                    <div style="font-size: 14px; margin-bottom: 4px;">Ее Величество Рэира</div>
+                    <div style="font-size: 14px; margin-bottom: 10px;">Ее Милашество Миел</div>
                     
                     <div style="font-weight: bold; color: var(--btn-bg); margin-bottom: 10px;">🐾 Бета-тестеры 🐾</div>
                     <div style="font-size: 14px; margin-bottom: 4px;">Раб Божий Роланд</div>
@@ -552,7 +579,7 @@
     <script src="js/bookings.js"></script>  
     <script src="js/app.js"></script>
 
-    <!-- Easter Egg Script -->
+    <!-- Easter Egg & Support Script -->
     <script>
         // Функции для пасхалки
         function openEasterEggModal() {
@@ -654,6 +681,60 @@
             content.appendChild(closeImgBtn);
         }
         
+        // Функции для техподдержки
+        function openSupportModal() {
+            const modal = document.getElementById('supportModal');
+            if (modal) {
+                // Очищаем поля
+                document.getElementById('supportContact').value = '';
+                document.getElementById('supportMessage').value = '';
+                modal.style.display = 'block';
+            }
+        }
+        
+        function closeSupportModal() {
+            const modal = document.getElementById('supportModal');
+            if (modal) modal.style.display = 'none';
+        }
+        
+        async function sendSupportRequest() {
+            const contact = document.getElementById('supportContact').value.trim();
+            const message = document.getElementById('supportMessage').value.trim();
+            
+            if (!message) {
+                showToast("Напишите сообщение", false);
+                return;
+            }
+            
+            try {
+                const params = new URLSearchParams();
+                params.append('action', 'sendSupport');
+                params.append('participant', CURRENT_USER.id);
+                params.append('userId', CURRENT_USER.id);
+                params.append('userName', CURRENT_USER.name);
+                params.append('message', message);
+                params.append('contact', contact);
+                
+                const response = await fetch(CENTRAL_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString()
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast("Сообщение отправлено! Спасибо.", true);
+                    closeSupportModal();
+                } else {
+                    showToast("Ошибка: " + (result.error || "неизвестная"), false);
+                }
+            } catch(e) {
+                console.error("Support error:", e);
+                showToast("Ошибка отправки. Попробуйте позже.", false);
+            }
+        }
+        
         // Делаем "Намяукано" кликабельным
         document.addEventListener('DOMContentLoaded', function() {
             const namyaucano = document.getElementById('namyaucano');
@@ -663,6 +744,15 @@
                     openEasterEggModal();
                 });
                 console.log("✅ Намяукано стало кликабельным");
+            }
+            
+            // Кнопка техподдержки
+            const supportBtn = document.getElementById('supportBtn');
+            if (supportBtn) {
+                supportBtn.addEventListener('click', function() {
+                    openSupportModal();
+                });
+                console.log("✅ Кнопка техподдержки активирована");
             }
         });
     </script>
