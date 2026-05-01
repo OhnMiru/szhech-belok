@@ -2685,6 +2685,15 @@ body.dark .extra-cost-amount {
     background: var(--badge-bg);
 }
 
+.impersonate-user-item div:first-child {
+    color: var(--text-primary) !important;
+    font-weight: bold;
+}
+
+.impersonate-user-item div:last-child {
+    color: var(--text-muted) !important;
+}
+
 /* Стиль для баннера */
 #impersonateBanner {
     position: fixed;
@@ -2741,7 +2750,6 @@ body.dark .extra-cost-amount {
 }
 
 @media (max-width: 500px) {
-
     .impersonate-dropdown {
         position: fixed;
         top: 50%;
@@ -2763,7 +2771,7 @@ body.dark .extra-cost-amount {
         padding: 3px 12px;
         font-size: 11px;
     }
-    
+
     .edit-icon, .comment-icon {
         font-size: 12px;
         padding: 2px 4px;
@@ -3043,7 +3051,7 @@ body.dark .extra-cost-amount {
     .detail-table {
         min-width: 520px;
     }
-    
+
     .detail-table-compact {
         min-width: 450px;
     }
