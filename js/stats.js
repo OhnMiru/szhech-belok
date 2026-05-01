@@ -1,16 +1,206 @@
 // ========== СТАТИСТИКА ==========
+
+// Переменные для фильтра
+let statsFilterFromDate = null;
+let statsFilterToDate = null;
+let statsFilterActive = false;
+
 function openStatsModal() {
     const modal = document.getElementById('statsModal');
-    if (modal) { renderStats(); modal.style.display = 'block'; }
+    if (modal) {
+        // Инициализируем селекты дат при открытии
+        if (typeof initStatsDateTimeSelects === 'function') {
+            initStatsDateTimeSelects();
+        }
+        renderStats();
+        modal.style.display = 'block';
+    }
 }
 
-function closeStatsModal() { const modal = document.getElementById('statsModal'); if (modal) modal.style.display = 'none'; }
+function closeStatsModal() { 
+    const modal = document.getElementById('statsModal'); 
+    if (modal) modal.style.display = 'none'; 
+}
+
+// Инициализация селектов даты и времени для статистики
+function initStatsDateTimeSelects() {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = currentYear - 2; i <= currentYear + 2; i++) years.push(i);
+    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    
+    // Дни
+    ['statsDateFromDay', 'statsDateToDay'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 1; i <= 31; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                select.appendChild(option);
+            }
+        }
+    });
+    
+    // Месяцы
+    ['statsDateFromMonth', 'statsDateToMonth'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 0; i < 12; i++) {
+                const option = document.createElement('option');
+                option.value = i + 1;
+                option.textContent = monthNames[i];
+                select.appendChild(option);
+            }
+        }
+    });
+    
+    // Годы
+    ['statsDateFromYear', 'statsDateToYear'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (const year of years) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                select.appendChild(option);
+            }
+            // Устанавливаем текущий год по умолчанию
+            if (select.id.includes('To')) {
+                select.value = currentYear;
+            } else {
+                select.value = currentYear - 1;
+            }
+        }
+    });
+    
+    // Часы
+    ['statsTimeFromHour', 'statsTimeToHour'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 0; i <= 23; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                select.appendChild(option);
+            }
+            if (select.id.includes('From')) {
+                select.value = 0;
+            } else {
+                select.value = 23;
+            }
+        }
+    });
+    
+    // Минуты
+    ['statsTimeFromMinute', 'statsTimeToMinute'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 0; i <= 59; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                select.appendChild(option);
+            }
+            if (select.id.includes('From')) {
+                select.value = 0;
+            } else {
+                select.value = 59;
+            }
+        }
+    });
+}
+
+// Получение даты из селектов
+function getStatsDateTimeFromSelects(prefix) {
+    const day = document.getElementById(`${prefix}Day`)?.value;
+    const month = document.getElementById(`${prefix}Month`)?.value;
+    const year = document.getElementById(`${prefix}Year`)?.value;
+    const hour = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`)?.value;
+    const minute = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`)?.value;
+    
+    if (day && month && year && hour && minute) {
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+    }
+    return null;
+}
+
+// Переключение видимости фильтра
+function toggleStatsFilter() {
+    const block = document.getElementById('statsFilterBlock');
+    if (block) {
+        const isVisible = block.style.display !== 'none';
+        block.style.display = isVisible ? 'none' : 'block';
+    }
+}
+
+// Сброс фильтра
+function resetStatsFilter() {
+    // Сбрасываем селекты на значения по умолчанию
+    const now = new Date();
+    const fromDate = new Date(now);
+    fromDate.setDate(now.getDate() - 30);
+    
+    setStatsDateTimeValues('statsDateFrom', fromDate);
+    setStatsDateTimeValues('statsDateTo', now);
+    
+    statsFilterFromDate = null;
+    statsFilterToDate = null;
+    statsFilterActive = false;
+    
+    renderStats();
+}
+
+// Установка значений селектов
+function setStatsDateTimeValues(prefix, date) {
+    if (!date) return;
+    const day = document.getElementById(`${prefix}Day`);
+    const month = document.getElementById(`${prefix}Month`);
+    const year = document.getElementById(`${prefix}Year`);
+    const hour = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`);
+    const minute = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`);
+    
+    if (day) day.value = date.getDate();
+    if (month) month.value = date.getMonth() + 1;
+    if (year) year.value = date.getFullYear();
+    if (hour) hour.value = date.getHours();
+    if (minute) minute.value = date.getMinutes();
+}
+
+// Применение фильтра
+function applyStatsFilter() {
+    statsFilterFromDate = getStatsDateTimeFromSelects('statsDateFrom');
+    statsFilterToDate = getStatsDateTimeFromSelects('statsDateTo');
+    statsFilterActive = true;
+    renderStats();
+}
+
+// Получение отфильтрованной истории
+function getFilteredSalesHistory() {
+    let filteredSales = salesHistory.filter(entry => !entry.isReturn && !entry.hidden);
+    
+    if (statsFilterActive && statsFilterFromDate) {
+        filteredSales = filteredSales.filter(entry => new Date(entry.date) >= statsFilterFromDate);
+    }
+    if (statsFilterActive && statsFilterToDate) {
+        filteredSales = filteredSales.filter(entry => new Date(entry.date) <= statsFilterToDate);
+    }
+    
+    return filteredSales;
+}
 
 function renderStats() {
     const container = document.getElementById('stats-content');
     if (!container) return;
     
-    const sales = salesHistory.filter(entry => !entry.isReturn && !entry.hidden);
+    // Используем отфильтрованную историю
+    const sales = getFilteredSalesHistory();
+    
     let totalRevenue = 0, totalItemsSold = 0, orderCount = sales.length;
     let cashRevenue = 0, transferRevenue = 0, cashOrders = 0, transferOrders = 0;
     
@@ -25,19 +215,16 @@ function renderStats() {
         } 
         totalItemsSold += saleItems;
         
-        // Подсчёт по типам оплаты
         if (sale.paymentType === 'transfer') {
             transferRevenue += saleTotal;
             transferOrders++;
         } else {
-            // cash, undefined или другое — считаем как наличные
             cashRevenue += saleTotal;
             cashOrders++;
         }
     }
     const averageCheck = orderCount > 0 ? Math.ceil(totalRevenue / orderCount) : 0;
     
-    // Себестоимость всего товара на складе (полная себестоимость партии)
     let totalCostAllGoods = 0;
     let totalStock = 0;
     
@@ -138,18 +325,27 @@ function renderStats() {
     const formatNumber = (value) => value.toLocaleString('ru-RU');
     const formatPercent = (value) => value.toFixed(1) + '%';
     
-    let html = `<div class="stats-grid">
+    // Добавляем информацию о фильтре
+    let filterInfo = '';
+    if (statsFilterActive && (statsFilterFromDate || statsFilterToDate)) {
+        const fromStr = statsFilterFromDate ? statsFilterFromDate.toLocaleDateString('ru-RU') : 'все время';
+        const toStr = statsFilterToDate ? statsFilterToDate.toLocaleDateString('ru-RU') : 'настоящее';
+        filterInfo = `<div style="text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">📅 Период: ${fromStr} — ${toStr}</div>`;
+    }
+    
+    let html = filterInfo;
+    
+    html += `<div class="stats-grid">
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalRevenue)}</div><div class="stats-card-label">💰 Выручка</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCostAllGoods)}</div><div class="stats-card-label">📦 Себестоимость всего товара</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraCosts)}</div><div class="stats-card-label">➕ Дополнительные расходы</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExtraIncomes)}</div><div class="stats-card-label">💵 Дополнительные доходы</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalExpenses)}</div><div class="stats-card-label">📉 Общие затраты</div></div>
-        <div class="stats-card desktop-only"><div class="stats-card-value">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
+        <div class="stats-card desktop-only"><div class="stats-card-value ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(netProfit)}</div><div class="stats-card-label">📈 Чистая прибыль</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalItemsSold)}</div><div class="stats-card-label">📊 Продано товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(totalStock)}</div><div class="stats-card-label">📦 Осталось товаров</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatNumber(orderCount)}</div><div class="stats-card-label">🛒 Количество заказов</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(averageCheck)}</div><div class="stats-card-label">💳 Средний чек</div></div>
-        <!-- НОВЫЕ КАРТОЧКИ ДЛЯ НАЛИЧНЫХ И ПЕРЕВОДОВ -->
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(cashRevenue)}</div><div class="stats-card-label">💰 Наличные</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(transferRevenue)}</div><div class="stats-card-label">💳 Перевод</div></div>
         <div class="stats-card"><div class="stats-card-value">${cashOrders}</div><div class="stats-card-label">📊 Заказов (нал)</div></div>
@@ -158,7 +354,7 @@ function renderStats() {
     
     html += `<div class="profit-mobile-row">
         <div class="profit-mobile-card">
-            <div class="profit-mobile-value">${formatCurrency(netProfit)}</div>
+            <div class="profit-mobile-value ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(netProfit)}</div>
             <div class="profit-mobile-label">📈 Чистая прибыль</div>
         </div>
         <div class="profit-mobile-card">
@@ -168,7 +364,7 @@ function renderStats() {
     </div>`;
     
     html += `<div class="profit-card-single">
-        <div class="profit-card-value">${formatPercent(profitMargin)}</div>
+        <div class="profit-card-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${formatPercent(profitMargin)}</div>
         <div class="profit-card-label">📊 Рентабельность</div>
     </div>`;
     
@@ -196,7 +392,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-        </table>
+            </table>
         </div>
     </div>
     <div class="detail-section">
@@ -316,7 +512,7 @@ function addExtraCostFromModal() {
     const name = nameInput?.value.trim();
     const amount = parseFloat(amountInput?.value);
     if (!name || isNaN(amount) || amount <= 0) { 
-        showToast("Введите название и сумму расхода", false); 
+        if (typeof showToast === 'function') showToast("Введите название и сумму расхода", false); 
         return; 
     }
     addExtraCost(name, amount);
@@ -331,7 +527,7 @@ function addExtraIncomeFromModal() {
     const name = nameInput?.value.trim();
     const amount = parseFloat(amountInput?.value);
     if (!name || isNaN(amount) || amount <= 0) { 
-        showToast("Введите название и сумму дохода", false); 
+        if (typeof showToast === 'function') showToast("Введите название и сумму дохода", false); 
         return; 
     }
     addExtraIncome(name, amount);
