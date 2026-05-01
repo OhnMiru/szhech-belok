@@ -229,10 +229,39 @@ function logout() {
 
 // ========== ФУНКЦИИ ДЛЯ ИМПЕРСОНАЦИИ (ВХОД ОТ ЛИЦА ОРГАНИЗАТОРА) ==========
 
+// Скрытие кнопок организатора при имперсонации
+function hideOrganizerButtons() {
+    const globalStatsBtn = document.getElementById('globalStatsBtn');
+    const impersonateBtn = document.getElementById('impersonateBtn');
+    
+    if (globalStatsBtn) globalStatsBtn.style.display = 'none';
+    if (impersonateBtn) impersonateBtn.style.display = 'none';
+}
+
+// Показ кнопок организатора после выхода из имперсонации
+function showOrganizerButtons() {
+    const globalStatsBtn = document.getElementById('globalStatsBtn');
+    const impersonateBtn = document.getElementById('impersonateBtn');
+    
+    if (globalStatsBtn && window.CURRENT_USER && CURRENT_USER.role === 'organizer') {
+        globalStatsBtn.style.display = 'inline-flex';
+    }
+    if (impersonateBtn && window.CURRENT_USER && CURRENT_USER.role === 'organizer') {
+        impersonateBtn.style.display = 'inline-flex';
+    }
+}
+
 // Показывает UI для выбора пользователя (только для организатора)
 function showImpersonateUI() {
     let impersonateBtn = document.getElementById('impersonateBtn');
     if (!impersonateBtn) return;
+    
+    // Скрываем кнопку если пользователь не организатор или уже в режиме подмены
+    if (CURRENT_USER.role !== 'organizer' || isImpersonating) {
+        impersonateBtn.style.display = 'none';
+    } else {
+        impersonateBtn.style.display = 'inline-flex';
+    }
     
     // Проверяем, есть ли уже дропдаун
     let dropdown = document.getElementById('impersonateDropdown');
@@ -308,7 +337,7 @@ async function loadImpersonateUserList() {
             
             userListContainer.innerHTML = users.map(user => `
                 <div class="impersonate-user-item" data-user-id="${user.id}" data-user-name="${user.name}" data-user-role="${user.role}" style="padding: 10px 12px; cursor: pointer; border-radius: 8px; transition: background 0.2s; border-bottom: 1px solid var(--border-color);">
-                    <div style="font-weight: bold;">${escapeHtml(user.name)}</div>
+                    <div style="font-weight: bold; color: var(--text-primary);">${escapeHtml(user.name)}</div>
                     <div style="font-size: 11px; color: var(--text-muted);">${user.role === 'organizer' ? 'Организатор' : 'Художник'}</div>
                 </div>
             `).join('');
@@ -365,6 +394,9 @@ async function impersonateUser(userId, userName, userRole) {
         console.error("Error getting user info:", e);
     }
     
+    // Скрываем кнопки организатора
+    hideOrganizerButtons();
+    
     showImpersonateBanner();
     
     const roleIcon = CURRENT_USER.role === 'organizer' ? '📊' : '🍌';
@@ -375,13 +407,22 @@ async function impersonateUser(userId, userName, userRole) {
         sheetLink.href = CURRENT_USER.sheetUrl;
     }
     
+    // Перезагружаем ВСЕ данные пользователя
     if (typeof loadData === 'function') {
         loadData(true, true);
     }
-    if (typeof loadHistory === 'function') loadHistory();
+    if (typeof loadHistory === 'function') {
+        loadHistory();
+    }
+    if (typeof loadRules === 'function') {
+        loadRules();
+    }
     if (typeof loadExtraCosts === 'function') loadExtraCosts();
     if (typeof loadExtraIncomes === 'function') loadExtraIncomes();
     if (typeof loadAllComments === 'function') loadAllComments();
+    if (typeof loadBookings === 'function') {
+        loadBookings().catch(e => console.warn("Bookings load error:", e));
+    }
     
     showToast(`Вы вошли как ${userName}`, true);
 }
@@ -435,6 +476,9 @@ function stopImpersonating() {
     impersonatedUserName = null;
     impersonatedUserRole = null;
     
+    // Показываем кнопки организатора
+    showOrganizerButtons();
+    
     const banner = document.getElementById('impersonateBanner');
     if (banner) banner.remove();
     
@@ -446,13 +490,22 @@ function stopImpersonating() {
         sheetLink.href = CURRENT_USER.sheetUrl;
     }
     
+    // Перезагружаем ВСЕ данные организатора
     if (typeof loadData === 'function') {
         loadData(true, true);
     }
-    if (typeof loadHistory === 'function') loadHistory();
+    if (typeof loadHistory === 'function') {
+        loadHistory();
+    }
+    if (typeof loadRules === 'function') {
+        loadRules();
+    }
     if (typeof loadExtraCosts === 'function') loadExtraCosts();
     if (typeof loadExtraIncomes === 'function') loadExtraIncomes();
     if (typeof loadAllComments === 'function') loadAllComments();
+    if (typeof loadBookings === 'function') {
+        loadBookings().catch(e => console.warn("Bookings load error:", e));
+    }
     
     showToast(`Вы вернулись в свой аккаунт (${CURRENT_USER.name})`, true);
 }
