@@ -1,7 +1,7 @@
 // ========== НАСТРОЙКА ==========
-const CENTRAL_API_URL = "https://szhech-belochek.pages.dev/api";
+var CENTRAL_API_URL = "https://szhech-belochek.pages.dev/api";
 
-let CURRENT_USER = {
+var CURRENT_USER = {
     id: null,
     name: null,
     role: null,
@@ -10,50 +10,44 @@ let CURRENT_USER = {
     hideStats: false
 };
 
-let pendingOperations = [];
-let isOnline = navigator.onLine;
+var pendingOperations = [];
+var isOnline = navigator.onLine;
 
 // ========== ОСНОВНЫЕ ПЕРЕМЕННЫЕ ==========
-let originalCardsData = [];
-let currentFilteredData = [];
-let isLoading = false;
-let autoRefreshInterval = null;
-let historySyncInterval = null;
-let currentEditId = null;
-let selectedTypes = new Set();
-let currentSortBy = "none";
-let typeOptions = [];
-let customOrder = [];
-let dragStartIndex = null;
-let selectedDiscountProducts = new Set();
-let discountProductListVisible = false;
-let itemDiscounts = {};
-let discountPanelOpen = false;
-let typeColors = new Map();
-const colorPalette = ['#e67e22', '#f39c12', '#2ecc71', '#3498db', '#9b59b6', '#e74c3c', '#1abc9c', '#f1c40f', '#e67e22', '#95a5a6'];
+var originalCardsData = [];
+var currentFilteredData = [];
+var isLoading = false;
+var autoRefreshInterval = null;
+var historySyncInterval = null;
+var currentEditId = null;
+var selectedTypes = new Set();
+var currentSortBy = "none";
+var typeOptions = [];
+var customOrder = [];
+var dragStartIndex = null;
+var selectedDiscountProducts = new Set();
+var discountProductListVisible = false;
+var itemDiscounts = {};
+var discountPanelOpen = false;
+var typeColors = new Map();
+var colorPalette = ['#e67e22', '#f39c12', '#2ecc71', '#3498db', '#9b59b6', '#e74c3c', '#1abc9c', '#f1c40f', '#e67e22', '#95a5a6'];
 
-let cart = {};
-let extraCosts = [];
-let salesHistory = [];
-let historyMethodFilter = "all";
-let historyTypeFilter = "all";
-let historyPaymentFilter = "all";
-let bookingsList = [];
-let selectedBookingNickname = null;
-let selectedBookingItems = [];
-let bookings = [];
-let currentBookingProducts = new Map();
-let currentViewingBookingId = null;
-let cartBookingMap = {};
-let currentPaymentType = 'cash';
+var cart = {};
+var extraCosts = [];
+var salesHistory = [];
+var historyMethodFilter = "all";
+var historyTypeFilter = "all";
+var historyPaymentFilter = "all";
+var bookingsList = [];
+var selectedBookingNickname = null;
+var selectedBookingItems = [];
+var bookings = [];
+var currentBookingProducts = new Map();
+var currentViewingBookingId = null;
+var cartBookingMap = {};
+var currentPaymentType = 'cash';
 
 // ========== ПЕРЕМЕННЫЕ ДЛЯ ФОТО ==========
-let photoCache = new Map(); // Кэш URL фото: { itemId: url }
-let currentPhotoItemId = null;
-let currentPhotoItemName = null;
-
-// ========== НАСТРОЙКИ ДЛЯ ФОТО ==========
-const MAX_PHOTO_SIZE_MB = 5; // Максимальный размер фото в МБ
-const PHOTO_QUALITY = 0.7; // Качество сжатия (0-1)
-const MAX_PHOTO_WIDTH = 1024; // Максимальная ширина фото
-const MAX_PHOTO_HEIGHT = 1024; // Максимальная высота фото
+var photoCache = new Map();
+var currentPhotoItemId = null;
+var currentPhotoItemName = null;
