@@ -2589,14 +2589,20 @@ body.dark .extra-cost-amount {
 
 #easterEggModal .modal-content {
     text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    position: relative;
 }
 
 #easterEggModal .modal-header {
     justify-content: center;
     width: 100%;
+    margin-bottom: 20px;
+}
+
+#easterEggModal .modal-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    float: none;
 }
 
 /* Убираем подчёркивание у Намяукано */
@@ -2658,7 +2664,6 @@ body.dark .extra-cost-amount {
     transform: scale(1.02);
 }
 
-/* ========== АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ========== */
 @media (max-width: 500px) {
     .edit-icon, .comment-icon {
         font-size: 12px;
