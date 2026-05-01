@@ -87,7 +87,7 @@
             <span>Автообновление каждую минуту</span>
         </div>
         <div class="footer">
-            Намяукано | <a id="sheetLink" href="#" target="_blank">Синхронизация с таблицей</a>
+            <span id="namyaucano" style="cursor: pointer; text-decoration: underline; text-decoration-style: dotted;">Намяукано</span> | <a id="sheetLink" href="#" target="_blank">Синхронизация с таблицей</a>
         </div>
     </div>
 
@@ -220,6 +220,49 @@
             <button class="modal-close-btn" onclick="closeStatsModal()">×</button>
             <div class="modal-header">
                 <span>📊 Статистика продаж</span>
+                <button id="statsFilterToggle" class="filter-toggle-btn" onclick="toggleStatsFilter()" title="Фильтр по времени">📅</button>
+            </div>
+            <div id="statsFilterBlock" class="stats-filter-block" style="display: none;">
+                <div class="history-filter-bottom" style="margin-bottom: 0;">
+                    <div class="history-filter-left">
+                        <div class="custom-datetime" id="statsDatetimeFromContainer">
+                            <span class="datetime-label">с</span>
+                            <div class="datetime-group">
+                                <select id="statsDateFromDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="statsDateFromMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="statsDateFromYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="statsTimeFromHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="statsTimeFromMinute" class="datetime-select"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-filter-left" style="margin-top: 8px;">
+                        <div class="custom-datetime" id="statsDatetimeToContainer">
+                            <span class="datetime-label">по</span>
+                            <div class="datetime-group">
+                                <select id="statsDateToDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="statsDateToMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="statsDateToYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="statsTimeToHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="statsTimeToMinute" class="datetime-select"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-filter-reset-row" style="justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                        <button class="history-filter-reset" onclick="resetStatsFilter()">Сбросить</button>
+                        <button class="filter-apply-btn" onclick="applyStatsFilter()" style="width: auto; padding: 0 16px;">Применить</button>
+                    </div>
+                </div>
             </div>
             <div id="stats-content">
                 <div class="loading">Загрузка статистики...</div>
@@ -233,6 +276,49 @@
             <button class="modal-close-btn" onclick="closeGlobalStatsModal()">×</button>
             <div class="modal-header">
                 <span>📊 Статистика всех участников</span>
+                <button id="globalStatsFilterToggle" class="filter-toggle-btn" onclick="toggleGlobalStatsFilter()" title="Фильтр по времени">📅</button>
+            </div>
+            <div id="globalStatsFilterBlock" class="stats-filter-block" style="display: none;">
+                <div class="history-filter-bottom" style="margin-bottom: 0;">
+                    <div class="history-filter-left">
+                        <div class="custom-datetime" id="globalStatsDatetimeFromContainer">
+                            <span class="datetime-label">с</span>
+                            <div class="datetime-group">
+                                <select id="globalStatsDateFromDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="globalStatsDateFromMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="globalStatsDateFromYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="globalStatsTimeFromHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="globalStatsTimeFromMinute" class="datetime-select"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-filter-left" style="margin-top: 8px;">
+                        <div class="custom-datetime" id="globalStatsDatetimeToContainer">
+                            <span class="datetime-label">по</span>
+                            <div class="datetime-group">
+                                <select id="globalStatsDateToDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="globalStatsDateToMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="globalStatsDateToYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="globalStatsTimeToHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="globalStatsTimeToMinute" class="datetime-select"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-filter-reset-row" style="justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                        <button class="history-filter-reset" onclick="resetGlobalStatsFilter()">Сбросить</button>
+                        <button class="filter-apply-btn" onclick="applyGlobalStatsFilter()" style="width: auto; padding: 0 16px;">Применить</button>
+                    </div>
+                </div>
             </div>
             <div id="globalStats-content">
                 <div class="loading">Загрузка статистики...</div>
@@ -414,6 +500,32 @@
             </div>
         </div>
     </div>
+
+    <!-- Easter Egg Modal (Создатели) -->
+    <div id="easterEggModal" class="modal">
+        <div class="modal-content" style="max-width: 500px; text-align: center;">
+            <button class="modal-close-btn" onclick="closeEasterEggModal()">×</button>
+            <div class="modal-header" style="justify-content: center;">
+                <span>🎀 Создатели 🎀</span>
+            </div>
+            <div id="easterEggContent">
+                <div style="margin-bottom: 20px;">
+                    <div style="font-weight: bold; color: var(--btn-bg); margin-bottom: 10px;">✨ Вдохновители ✨</div>
+                    <div style="font-size: 14px; margin-bottom: 4px;">Ненадежный пользователь Интернета Олиенн</div>
+                    <div style="font-size: 14px; margin-bottom: 4px;">Ее Величество Рэира</div>
+                    <div style="font-size: 14px; margin-bottom: 10px;">Ее Милашество Миел</div>
+                    
+                    <div style="font-weight: bold; color: var(--btn-bg); margin-bottom: 10px;">🐾 Бета-тестеры 🐾</div>
+                    <div style="font-size: 14px; margin-bottom: 4px;">Раб Божий Роланд</div>
+                    <div style="font-size: 14px; margin-bottom: 10px;">Морально поддерживающий Банан</div>
+                    
+                    <div style="font-weight: bold; color: var(--btn-bg); margin-bottom: 10px;">👑 Создатель 👑</div>
+                    <div style="font-size: 14px; margin-bottom: 20px;">Настюша</div>
+                </div>
+                <button id="easterEggButton" class="easter-egg-btn" onclick="activateEasterEgg()">🎁 ТЫК</button>
+            </div>
+        </div>
+    </div>
   
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
@@ -438,23 +550,103 @@
     <script src="js/bookings.js"></script>  
     <script src="js/app.js"></script>
 
-<script>
-    // Принудительная инициализация настроек после загрузки всех скриптов
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            const toggle = document.getElementById('settingsToggle');
-            const dropdown = document.getElementById('settingsDropdown');
-            if (toggle && dropdown) {
-                toggle.onclick = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    dropdown.classList.toggle('hidden');
-                };
-                console.log("✅ Настройки принудительно инициализированы");
+    <!-- Easter Egg Script -->
+    <script>
+        // Функции для пасхалки
+        function openEasterEggModal() {
+            const modal = document.getElementById('easterEggModal');
+            if (modal) modal.style.display = 'block';
+        }
+        
+        function closeEasterEggModal() {
+            const modal = document.getElementById('easterEggModal');
+            if (modal) modal.style.display = 'none';
+            // Останавливаем звук при закрытии модалки, если он играет
+            const audio = document.getElementById('easterEggAudio');
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
             }
-        }, 500);
-    });
-</script>
+            // Убираем изображение, если оно есть
+            const content = document.getElementById('easterEggContent');
+            const existingImg = document.getElementById('easterEggImage');
+            if (existingImg) existingImg.remove();
+            const existingCloseBtn = document.getElementById('easterEggCloseBtn');
+            if (existingCloseBtn) existingCloseBtn.remove();
+        }
+        
+        function activateEasterEgg() {
+            // Убираем кнопку
+            const button = document.getElementById('easterEggButton');
+            if (button) button.style.display = 'none';
+            
+            // Добавляем изображение
+            const content = document.getElementById('easterEggContent');
+            const img = document.createElement('img');
+            img.id = 'easterEggImage';
+            img.src = 'assets/images/belka.png';
+            img.alt = 'Белочка';
+            img.style.maxWidth = '100%';
+            img.style.borderRadius = '16px';
+            img.style.marginTop = '16px';
+            img.style.marginBottom = '16px';
+            img.style.boxShadow = '0 4px 12px var(--shadow)';
+            content.appendChild(img);
+            
+            // Воспроизводим звук
+            let audio = document.getElementById('easterEggAudio');
+            if (!audio) {
+                audio = document.createElement('audio');
+                audio.id = 'easterEggAudio';
+                audio.src = 'assets/sounds/belka.mp3';
+                document.body.appendChild(audio);
+            }
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Audio play failed:", e));
+            
+            // Добавляем кнопку закрытия
+            const closeBtn = document.createElement('button');
+            closeBtn.id = 'easterEggCloseBtn';
+            closeBtn.textContent = '❌ Закрыть';
+            closeBtn.style.background = 'var(--minus-bg)';
+            closeBtn.style.color = 'var(--minus-color)';
+            closeBtn.style.border = 'none';
+            closeBtn.style.borderRadius = '30px';
+            closeBtn.style.padding = '10px 20px';
+            closeBtn.style.fontSize = '14px';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.style.marginTop = '12px';
+            closeBtn.onclick = function() {
+                closeEasterEggModal();
+            };
+            content.appendChild(closeBtn);
+        }
+        
+        // Делаем "Намяукано" кликабельным
+        document.addEventListener('DOMContentLoaded', function() {
+            const namyaucano = document.getElementById('namyaucano');
+            if (namyaucano) {
+                namyaucano.addEventListener('click', function() {
+                    openEasterEggModal();
+                });
+                console.log("✅ Намяукано стало кликабельным");
+            }
+            
+            // Принудительная инициализация настроек
+            setTimeout(function() {
+                const toggle = document.getElementById('settingsToggle');
+                const dropdown = document.getElementById('settingsDropdown');
+                if (toggle && dropdown) {
+                    toggle.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropdown.classList.toggle('hidden');
+                    };
+                    console.log("✅ Настройки принудительно инициализированы");
+                }
+            }, 500);
+        });
+    </script>
     
 </body>
 </html>
