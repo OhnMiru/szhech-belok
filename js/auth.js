@@ -227,6 +227,9 @@ function logout() {
     if (historySyncInterval) clearInterval(historySyncInterval);
 }
 
+// ========== ФУНКЦИИ ДЛЯ ИМПЕРСОНАЦИИ (ВХОД ОТ ЛИЦА ОРГАНИЗАТОРА) ==========
+
+// Показывает UI для выбора пользователя (только для организатора)
 function showImpersonateUI() {
     let impersonateBtn = document.getElementById('impersonateBtn');
     if (!impersonateBtn) return;
@@ -286,51 +289,6 @@ function showImpersonateUI() {
             dropdown.classList.remove('show');
         }
     });
-}
-
-// Загрузка списка пользователей для имперсонации
-async function loadImpersonateUserList() {
-    const userListContainer = document.getElementById('impersonateUserList');
-    if (!userListContainer) return;
-    
-    try {
-        const response = await fetch(`${CENTRAL_API_URL}?action=getAvailableUsers`);
-        const data = await response.json();
-        if (data && data.users) {
-            const users = data.users.filter(u => u.id !== CURRENT_USER.id);
-            if (users.length === 0) {
-                userListContainer.innerHTML = '<div style="padding: 12px; color: var(--text-muted); text-align: center;">Нет других пользователей</div>';
-                return;
-            }
-            
-            userListContainer.innerHTML = users.map(user => `
-                <div class="impersonate-user-item" data-user-id="${user.id}" data-user-name="${user.name}" data-user-role="${user.role}" style="padding: 10px 12px; cursor: pointer; border-radius: 8px; transition: background 0.2s; border-bottom: 1px solid var(--border-color);">
-                    <div style="font-weight: bold;">${escapeHtml(user.name)}</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">${user.role === 'organizer' ? 'Организатор' : 'Художник'}</div>
-                </div>
-            `).join('');
-            
-            document.querySelectorAll('.impersonate-user-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const userId = item.dataset.userId;
-                    const userName = item.dataset.userName;
-                    const userRole = item.dataset.userRole;
-                    impersonateUser(userId, userName, userRole);
-                    const dropdown = document.getElementById('impersonateDropdown');
-                    if (dropdown) dropdown.classList.remove('show');
-                });
-                item.addEventListener('mouseenter', (e) => {
-                    e.currentTarget.style.background = 'var(--badge-bg)';
-                });
-                item.addEventListener('mouseleave', (e) => {
-                    e.currentTarget.style.background = '';
-                });
-            });
-        }
-    } catch(e) {
-        console.error("Error loading users:", e);
-        userListContainer.innerHTML = '<div style="padding: 12px; color: var(--minus-color); text-align: center;">Ошибка загрузки</div>';
-    }
 }
 
 // Загрузка списка пользователей для имперсонации
