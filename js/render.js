@@ -64,16 +64,16 @@ function renderCards() {
                     ${actionButtonsHtml}
                     ${sortHandleHtml}
                 </div>
-                <div class="name-row" style="margin-bottom: 8px;">
-                    <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}" style="font-weight: bold; font-size: 15px; cursor: pointer;">${escapeHtml(name)}</span>
+                <div class="name-row" style="margin-bottom: 6px;">
+                    <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}" style="font-weight: bold; font-size: 18px; cursor: pointer;">${escapeHtml(name)}</span>
                 </div>
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
                 <div class="total-row"><span class="total">📦 Всего: ${total} шт</span></div>
-                <div class="price-actions-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div class="price-actions-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
                     <span class="price">💰 Цена: ${price} ₽</span>
                 </div>
             </div>
-            <div class="buttons" style="display: flex; gap: 8px; margin-top: 12px;">
+            <div class="buttons" style="display: flex; gap: 8px; margin-top: 10px;">
                 <button class="minus" data-id="${id}" data-delta="-1">−1</button>
                 <button class="plus" data-id="${id}" data-delta="+1">+1</button>
                 <button class="add-to-cart" data-id="${id}">➕</button>
