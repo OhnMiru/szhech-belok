@@ -1,17 +1,179 @@
 // ========== РЕДАКТИРОВАНИЕ ==========
 
-function openEditProductModal(id) {
+// Загрузить список типов в селектор
+async function loadTypesToSelector(selectorId, selectedType = "") {
+    const selector = document.getElementById(selectorId);
+    if (!selector) return;
+    
+    // Загружаем конфигурацию типов, если ещё не загружена
+    if (!window.merchTypesLoaded) {
+        await loadMerchTypesConfig();
+    }
+    
+    const types = getAllMerchTypes();
+    selector.innerHTML = '<option value="">Выберите тип</option>';
+    
+    for (const type of types) {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        if (selectedType === type) {
+            option.selected = true;
+        }
+        selector.appendChild(option);
+    }
+}
+
+// Динамическое обновление полей атрибутов при выборе типа (добавление)
+function onAddTypeChange() {
+    const typeSelect = document.getElementById('addItemType');
+    if (!typeSelect) return;
+    
+    const selectedType = typeSelect.value;
+    renderAttributesFields('add', selectedType);
+}
+
+// Динамическое обновление полей атрибутов при выборе типа (редактирование)
+function onEditTypeChange() {
+    const typeSelect = document.getElementById('editType');
+    if (!typeSelect) return;
+    
+    const selectedType = typeSelect.value;
+    renderAttributesFields('edit', selectedType);
+}
+
+// Отрисовка полей атрибутов
+function renderAttributesFields(mode, selectedType) {
+    const containerId = mode === 'add' ? 'addAttributesContainer' : 'editAttributesContainer';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Очищаем контейнер
+    container.innerHTML = '';
+    
+    if (!selectedType) return;
+    
+    // Получаем конфигурацию типа
+    const typeConfig = getTypeConfigFromCache(selectedType);
+    if (!typeConfig) return;
+    
+    const attr1Name = typeConfig.attribute1?.name || '';
+    const attr1Values = typeConfig.attribute1?.values || [];
+    const attr2Name = typeConfig.attribute2?.name || '';
+    const attr2Values = typeConfig.attribute2?.values || [];
+    
+    // Получаем текущие значения атрибутов (для режима редактирования)
+    let currentAttr1 = '';
+    let currentAttr2 = '';
+    if (mode === 'edit' && currentEditId) {
+        const card = originalCardsData.find(c => c.id === currentEditId);
+        if (card) {
+            currentAttr1 = card.attribute1 || '';
+            currentAttr2 = card.attribute2 || '';
+        }
+    }
+    
+    let html = '';
+    
+    // Атрибут 1
+    if (attr1Name && attr1Values.length > 0) {
+        html += `
+            <div class="edit-row">
+                <span class="edit-label">${escapeHtml(attr1Name)}</span>
+                <select id="${mode}_attr1" class="edit-input" ${mode === 'add' ? 'onchange="onAttributeChange()"' : ''}>
+                    <option value="">Не выбран</option>
+        `;
+        for (const value of attr1Values) {
+            const selected = (currentAttr1 === value) ? 'selected' : '';
+            html += `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
+        }
+        html += `
+                </select>
+            </div>
+        `;
+    }
+    
+    // Атрибут 2
+    if (attr2Name && attr2Values.length > 0) {
+        html += `
+            <div class="edit-row">
+                <span class="edit-label">${escapeHtml(attr2Name)}</span>
+                <select id="${mode}_attr2" class="edit-input">
+                    <option value="">Не выбран</option>
+        `;
+        for (const value of attr2Values) {
+            const selected = (currentAttr2 === value) ? 'selected' : '';
+            html += `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
+        }
+        html += `
+                </select>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+}
+
+// Получить значения атрибутов из формы (добавление)
+function getAddAttributes() {
+    const attr1 = document.getElementById('add_attr1')?.value || '';
+    const attr2 = document.getElementById('add_attr2')?.value || '';
+    return { attribute1: attr1, attribute2: attr2 };
+}
+
+// Получить значения атрибутов из формы (редактирование)
+function getEditAttributes() {
+    const attr1 = document.getElementById('edit_attr1')?.value || '';
+    const attr2 = document.getElementById('edit_attr2')?.value || '';
+    return { attribute1: attr1, attribute2: attr2 };
+}
+
+// Отрисовка атрибутов на карточке товара
+function renderAttributesOnCard(card, container) {
+    if (!card) return;
+    
+    const attr1 = card.attribute1 || '';
+    const attr2 = card.attribute2 || '';
+    const type = card.type || '';
+    
+    if (!attr1 && !attr2) return;
+    
+    let attributesHtml = '<div class="card-attributes" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">';
+    const parts = [];
+    if (attr1) parts.push(escapeHtml(attr1));
+    if (attr2) parts.push(escapeHtml(attr2));
+    attributesHtml += parts.join(' | ');
+    attributesHtml += '</div>';
+    
+    // Вставляем после строки с типом или в конец info
+    const infoDiv = container.querySelector('.info');
+    if (infoDiv) {
+        // Удаляем старые атрибуты, если есть
+        const oldAttributes = infoDiv.querySelector('.card-attributes');
+        if (oldAttributes) oldAttributes.remove();
+        infoDiv.insertAdjacentHTML('beforeend', attributesHtml);
+    }
+}
+
+// ОТКРЫТИЕ МОДАЛЬНОГО ОКНА РЕДАКТИРОВАНИЯ (ОБНОВЛЕНО)
+async function openEditProductModal(id) {
     currentEditId = id;
     const card = originalCardsData.find(c => c.id === id);
     
     if (card) {
         document.getElementById('editTitle').textContent = `✏️ Редактирование товара №${card.id}`;
-        document.getElementById('editType').value = card.type || "";
+        
+        // Загружаем типы в селектор
+        await loadTypesToSelector('editType', card.type || "");
+        
         document.getElementById('editName').value = card.name || "";
         document.getElementById('editStock').value = card.stock;
         document.getElementById('editTotal').value = card.total;
         document.getElementById('editPrice').value = card.price;
         document.getElementById('editCost').value = card.cost || 0;
+        
+        // Отрисовываем поля атрибутов
+        renderAttributesFields('edit', card.type || "");
         
         // Загружаем фото в превью
         loadPhotoPreview(id);
@@ -28,6 +190,7 @@ function closeEditProductModal() {
     currentEditId = null;
 }
 
+// СОХРАНЕНИЕ ИЗМЕНЕНИЙ (ОБНОВЛЕНО)
 async function saveProductChanges() {
     if (currentEditId === null) return;
     
@@ -37,9 +200,14 @@ async function saveProductChanges() {
     const newTotal = parseInt(document.getElementById('editTotal').value);
     const newPrice = parseFloat(document.getElementById('editPrice').value);
     const newCost = parseFloat(document.getElementById('editCost').value);
+    const { attribute1, attribute2 } = getEditAttributes();
     
     if (!newName) {
         showToast("Название товара обязательно", false);
+        return;
+    }
+    if (!newType) {
+        showToast("Выберите тип товара", false);
         return;
     }
     if (isNaN(newStock) || isNaN(newTotal) || newStock < 0 || newTotal < 0 || newStock > newTotal) {
@@ -64,6 +232,8 @@ async function saveProductChanges() {
         card.total = newTotal;
         card.price = newPrice;
         card.cost = newCost;
+        card.attribute1 = attribute1;
+        card.attribute2 = attribute2;
         filterAndSort();
     }
     
@@ -82,19 +252,43 @@ async function saveProductChanges() {
         if (totalSpan) totalSpan.textContent = `📦 Всего: ${newTotal} шт`;
         if (priceSpan) priceSpan.textContent = `💰 Цена: ${newPrice} ₽`;
         
+        // Обновляем атрибуты на карточке
+        const oldAttributes = cardElement.querySelector('.card-attributes');
+        if (oldAttributes) oldAttributes.remove();
+        
+        if (attribute1 || attribute2) {
+            const parts = [];
+            if (attribute1) parts.push(escapeHtml(attribute1));
+            if (attribute2) parts.push(escapeHtml(attribute2));
+            const attributesHtml = `<div class="card-attributes" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${parts.join(' | ')}</div>`;
+            const infoDiv = cardElement.querySelector('.info');
+            if (infoDiv) infoDiv.insertAdjacentHTML('beforeend', attributesHtml);
+        }
+        
         if (newStock === 0) cardElement.classList.add('out-of-stock');
         else cardElement.classList.remove('out-of-stock');
     }
     
     if (!isOnline) {
-        addPendingOperation("updateFullItem", { id: currentEditId, type: newType, name: newName, stock: newStock, total: newTotal, price: newPrice, cost: newCost });
+        addPendingOperation("updateFullItem", { 
+            id: currentEditId, 
+            type: newType, 
+            name: newName, 
+            stock: newStock, 
+            total: newTotal, 
+            price: newPrice, 
+            cost: newCost,
+            attribute1: attribute1,
+            attribute2: attribute2
+        });
         showToast(`Товар "${newName}" обновлён (будет синхронизировано при восстановлении соединения)`, true);
         closeEditProductModal();
         return;
     }
     
     try {
-        const response = await fetch(buildApiUrl("updateFullItem", `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}`));
+        const params = `&id=${currentEditId}&type=${encodeURIComponent(newType)}&name=${encodeURIComponent(newName)}&stock=${newStock}&total=${newTotal}&price=${newPrice}&cost=${newCost}&attribute1=${encodeURIComponent(attribute1)}&attribute2=${encodeURIComponent(attribute2)}`;
+        const response = await fetch(buildApiUrl("updateFullItem", params));
         const result = await response.json();
         if (!result.success) {
             showToast("Ошибка: " + (result.error || "неизвестная"), false);
@@ -104,8 +298,116 @@ async function saveProductChanges() {
         }
     } catch (e) {
         console.error(e);
-        addPendingOperation("updateFullItem", { id: currentEditId, type: newType, name: newName, stock: newStock, total: newTotal, price: newPrice, cost: newCost });
+        addPendingOperation("updateFullItem", { 
+            id: currentEditId, 
+            type: newType, 
+            name: newName, 
+            stock: newStock, 
+            total: newTotal, 
+            price: newPrice, 
+            cost: newCost,
+            attribute1: attribute1,
+            attribute2: attribute2
+        });
         showToast(`Товар "${newName}" обновлён (будет синхронизировано при восстановлении соединения)`, true);
         closeEditProductModal();
     }
 }
+
+// ДОБАВЛЕНИЕ НОВОГО ТОВАРА (ОБНОВЛЕНО)
+async function addNewItem() {
+    let type = '';
+    const typeSelect = document.getElementById('addItemType');
+    const newTypeInput = document.getElementById('addItemNewType');
+    const isNewTypeVisible = newTypeInput && newTypeInput.style.display !== 'none';
+    
+    if (isNewTypeVisible) {
+        type = newTypeInput.value.trim();
+        if (type === "") {
+            showToast("Введите тип товара", false);
+            return;
+        }
+    } else {
+        type = typeSelect.value;
+        if (type === "") {
+            showToast("Выберите тип товара", false);
+            return;
+        }
+    }
+    
+    const name = document.getElementById('addItemName').value.trim();
+    if (name === "") {
+        showToast("Введите название товара", false);
+        return;
+    }
+    
+    const total = parseInt(document.getElementById('addItemTotal').value) || 0;
+    const stock = parseInt(document.getElementById('addItemStock').value) || 0;
+    
+    if (total < 0) {
+        showToast("Количество не может быть отрицательным", false);
+        return;
+    }
+    if (stock < 0 || stock > total) {
+        showToast("Остаток не может быть отрицательным или больше общего количества", false);
+        return;
+    }
+    
+    const price = parseFloat(document.getElementById('addItemPrice').value) || 0;
+    if (price < 0) {
+        showToast("Цена не может быть отрицательной", false);
+        return;
+    }
+    
+    const cost = parseFloat(document.getElementById('addItemCost').value) || 0;
+    if (cost < 0) {
+        showToast("Себестоимость не может быть отрицательной", false);
+        return;
+    }
+    
+    const { attribute1, attribute2 } = getAddAttributes();
+    
+    await sendAddItemRequest(type, name, total, stock, price, cost, attribute1, attribute2);
+    
+    closeAddItemModal();
+}
+
+// ИНИЦИАЛИЗАЦИЯ СЕЛЕКТОРА ТИПОВ В МОДАЛКЕ ДОБАВЛЕНИЯ
+async function initAddItemTypeSelector() {
+    const typeSelect = document.getElementById('addItemType');
+    if (!typeSelect) return;
+    
+    if (!window.merchTypesLoaded) {
+        await loadMerchTypesConfig();
+    }
+    
+    const types = getAllMerchTypes();
+    typeSelect.innerHTML = '<option value="">Выберите тип</option>';
+    
+    for (const type of types) {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        typeSelect.appendChild(option);
+    }
+    
+    // Очищаем поля атрибутов
+    const container = document.getElementById('addAttributesContainer');
+    if (container) container.innerHTML = '';
+}
+
+// Обновляем openAddItemModal для загрузки типов
+const originalOpenAddItemModal = window.openAddItemModal;
+window.openAddItemModal = async function() {
+    await initAddItemTypeSelector();
+    if (originalOpenAddItemModal) originalOpenAddItemModal();
+};
+
+// Экспортируем функции в глобальную область
+window.openEditProductModal = openEditProductModal;
+window.closeEditProductModal = closeEditProductModal;
+window.saveProductChanges = saveProductChanges;
+window.onAddTypeChange = onAddTypeChange;
+window.onEditTypeChange = onEditTypeChange;
+window.renderAttributesOnCard = renderAttributesOnCard;
+window.loadTypesToSelector = loadTypesToSelector;
