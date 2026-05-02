@@ -59,7 +59,7 @@ function renderCards() {
         
         cardDiv.innerHTML = `
             <div class="info">
-                <div class="title-row" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                <div class="title-row" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 4px;">
                     ${type ? `<span class="type-badge" style="background: ${typeColor}20; color: ${typeColor}; border: 1px solid ${typeColor}40; padding: 2px 8px; border-radius: 20px; font-size: 11px; display: inline-block;">${escapeHtml(typeDisplayText)}</span>` : ''}
                     ${actionButtonsHtml}
                     ${sortHandleHtml}
