@@ -6,8 +6,8 @@ function initDateTimeSelects() {
     for (let i = currentYear - 2; i <= currentYear + 2; i++) years.push(i);
     const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
     
-    // Заполняем скрытые select днём (для хранения значений)
-    ['dateFromDay', 'dateToDay'].forEach(id => {
+    // Заполняем скрытые select (для хранения значений)
+    ['dateFromDay', 'dateToDay', 'statsDateFromDay', 'statsDateToDay', 'globalStatsDateFromDay', 'globalStatsDateToDay'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
             select.innerHTML = '';
@@ -20,7 +20,7 @@ function initDateTimeSelects() {
         }
     });
     
-    ['dateFromMonth', 'dateToMonth'].forEach(id => {
+    ['dateFromMonth', 'dateToMonth', 'statsDateFromMonth', 'statsDateToMonth', 'globalStatsDateFromMonth', 'globalStatsDateToMonth'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
             select.innerHTML = '';
@@ -33,7 +33,7 @@ function initDateTimeSelects() {
         }
     });
     
-    ['dateFromYear', 'dateToYear'].forEach(id => {
+    ['dateFromYear', 'dateToYear', 'statsDateFromYear', 'statsDateToYear', 'globalStatsDateFromYear', 'globalStatsDateToYear'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
             select.innerHTML = '';
@@ -43,10 +43,15 @@ function initDateTimeSelects() {
                 option.textContent = year;
                 select.appendChild(option);
             }
+            if (select.id.includes('To')) {
+                select.value = currentYear;
+            } else {
+                select.value = currentYear - 1;
+            }
         }
     });
     
-    ['timeFromHour', 'timeToHour'].forEach(id => {
+    ['timeFromHour', 'timeToHour', 'statsTimeFromHour', 'statsTimeToHour', 'globalStatsTimeFromHour', 'globalStatsTimeToHour'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
             select.innerHTML = '';
@@ -56,10 +61,15 @@ function initDateTimeSelects() {
                 option.textContent = i.toString().padStart(2, '0');
                 select.appendChild(option);
             }
+            if (select.id.includes('From')) {
+                select.value = 0;
+            } else {
+                select.value = 23;
+            }
         }
     });
     
-    ['timeFromMinute', 'timeToMinute'].forEach(id => {
+    ['timeFromMinute', 'timeToMinute', 'statsTimeFromMinute', 'statsTimeToMinute', 'globalStatsTimeFromMinute', 'globalStatsTimeToMinute'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
             select.innerHTML = '';
@@ -69,12 +79,23 @@ function initDateTimeSelects() {
                 option.textContent = i.toString().padStart(2, '0');
                 select.appendChild(option);
             }
+            if (select.id.includes('From')) {
+                select.value = 0;
+            } else {
+                select.value = 59;
+            }
         }
     });
     
     // Инициализируем кастомные селекторы
     if (typeof initCustomDateTimeSelects === 'function') {
         initCustomDateTimeSelects();
+    }
+    if (typeof initCustomStatsDateTimeSelects === 'function') {
+        initCustomStatsDateTimeSelects();
+    }
+    if (typeof initCustomGlobalStatsDateTimeSelects === 'function') {
+        initCustomGlobalStatsDateTimeSelects();
     }
 }
 
