@@ -79,7 +79,7 @@ export async function onRequest(context) {
     }
     
     // Прокси для Google Apps Script (все остальные запросы к /api)
-    const GS_API_URL = "https://script.google.com/macros/s/AKfycbyg_fS5_u2dJ9NZTPhpCtsJE4qImsY_zG4F4l_l0P0VQdmeKN5_GJM5gtYIt3NBSlcO/exec";
+    const GS_API_URL = "https://script.google.com/macros/s/AKfycbwsne4M7ysXYg3GyXv5KDvhQJtqDepOZGWBusrfLCHIfgOpr9aAtqfs3X44gQLle0ln/exec";
     
     const gsUrl = new URL(GS_API_URL);
     for (const [key, value] of url.searchParams.entries()) {
