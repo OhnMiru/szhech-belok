@@ -1,4 +1,29 @@
 // ========== ИСТОРИЯ ==========
+
+// Вспомогательная функция для получения полного названия товара с атрибутами
+function getItemFullName(item, card) {
+    // Если уже есть fullName в item, используем его
+    if (item.fullName) return item.fullName;
+    
+    // Если передан card, используем его
+    if (card) {
+        const attr1 = card.attribute1 || "";
+        const attr2 = card.attribute2 || "";
+        return getFullNameForHistory(card.name, card.type, attr1, attr2);
+    }
+    
+    // Пытаемся найти карточку в originalCardsData
+    const foundCard = originalCardsData.find(c => c.id === item.id);
+    if (foundCard) {
+        const attr1 = foundCard.attribute1 || "";
+        const attr2 = foundCard.attribute2 || "";
+        return getFullNameForHistory(foundCard.name, foundCard.type, attr1, attr2);
+    }
+    
+    // Если ничего не нашли, возвращаем просто название
+    return item.name;
+}
+
 function saveHistoryToLocal() {
     localStorage.setItem('merch_sales_history', JSON.stringify(salesHistory));
 }
@@ -80,13 +105,27 @@ function getActedByText() {
     return null;
 }
 
+// ОБНОВЛЕНА: добавляет полное название товара с атрибутами
 function addToHistory(items, total, method, isReturn = false, paymentType = 'cash') {
     const actedBy = getActedByText();
+    
+    // Обогащаем items полными названиями
+    const enrichedItems = items.map(item => {
+        const card = originalCardsData.find(c => c.id === item.id);
+        const fullName = getItemFullName(item, card);
+        return { 
+            id: item.id, 
+            name: item.name, 
+            qty: item.qty, 
+            price: item.price,
+            fullName: fullName
+        };
+    });
     
     const entry = {
         id: Date.now() + Math.random(),
         date: new Date().toISOString(),
-        items: items.map(item => ({ id: item.id, name: item.name, qty: item.qty, price: item.price })),
+        items: enrichedItems,
         total: total,
         method: method,
         isReturn: isReturn,
@@ -100,8 +139,18 @@ function addToHistory(items, total, method, isReturn = false, paymentType = 'cas
     if (document.getElementById('historyModal')?.style.display === 'block') renderHistoryList();
 }
 
+// ОБНОВЛЕНА: добавляет полное название товара с атрибутами
 function addSingleSaleToHistory(item, qty, isReturn = false) {
-    addToHistory([{ id: item.id, name: item.name, qty: qty, price: item.price }], qty * item.price, 'single', isReturn, 'cash');
+    const card = originalCardsData.find(c => c.id === item.id);
+    const fullName = getItemFullName(item, card);
+    
+    addToHistory(
+        [{ id: item.id, name: item.name, qty: qty, price: item.price, fullName: fullName }], 
+        qty * item.price, 
+        'single', 
+        isReturn, 
+        'cash'
+    );
 }
 
 async function hideHistoryEntry(id) {
@@ -256,6 +305,7 @@ function resetHistoryFilters() {
     renderHistoryList();
 }
 
+// ОБНОВЛЕНА: отображает полное название товара с атрибутами
 function renderHistoryList() {
     const container = document.getElementById('history-list');
     if (!container) return;
@@ -297,12 +347,23 @@ function renderHistoryList() {
         
         let itemsHtml = '';
         for (const item of entry.items) {
-            const card = originalCardsData.find(c => c.id === item.id);
-            const displayName = card ? `${card.type} ${card.name}` : item.name;
+            // Используем fullName если есть, иначе формируем сами
+            let displayName = item.fullName;
+            if (!displayName) {
+                const card = originalCardsData.find(c => c.id === item.id);
+                if (card) {
+                    const attr1 = card.attribute1 || "";
+                    const attr2 = card.attribute2 || "";
+                    displayName = getFullNameForHistory(card.name, card.type, attr1, attr2);
+                } else {
+                    displayName = item.name;
+                }
+            }
+            
             if (isMobile) {
                 itemsHtml += `<div>${escapeHtml(displayName)}:<br>${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
             } else {
-                itemsHtml += `<div>• ${displayName}: ${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
+                itemsHtml += `<div>• ${escapeHtml(displayName)}: ${item.qty} шт × ${item.price} ₽ = ${item.qty * item.price} ₽</div>`;
             }
         }
         
@@ -334,3 +395,6 @@ function renderHistoryList() {
     }
     container.innerHTML = html;
 }
+
+// Экспортируем функцию в глобальную область
+window.getItemFullName = getItemFullName;
