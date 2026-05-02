@@ -1,6 +1,15 @@
 // ========== КОРЗИНА ==========
 // Переменные cart, itemDiscounts, selectedDiscountProducts, discountProductListVisible, discountPanelOpen, cartBookingMap, bookings уже объявлены в config.js
 
+// Вспомогательная функция для получения отображаемого имени товара с атрибутами
+function getCartItemDisplayName(card) {
+    if (!card) return "";
+    const parts = [card.type];
+    if (card.attribute1 && card.attribute1.trim()) parts.push(card.attribute1.trim());
+    if (card.attribute2 && card.attribute2.trim()) parts.push(card.attribute2.trim());
+    return parts.join(" | ");
+}
+
 function updateCardBadges() {
     document.querySelectorAll('.card').forEach(card => {
         const idAttr = card.getAttribute('data-id');
@@ -52,6 +61,7 @@ function getActiveRulesFiltered() {
     return allActiveRules;
 }
 
+// ОБНОВЛЕНА: отображает атрибуты товаров в корзине
 function updateCartUI() {
     const totalPositiveCount = Object.values(cart).reduce((a, b) => a + (b > 0 ? b : 0), 0);
     const cartCountSpan = document.getElementById('cartCount');
@@ -101,7 +111,6 @@ function updateCartUI() {
                 </div>
                 <div id="discount-content" class="discount-content" style="display: ${discountPanelOpenLocal ? 'block' : 'none'};">
                     <div class="discount-group">
-                        <!-- Строка 1: селекторы и кнопки +/- -->
                         <div class="discount-row discount-row-1" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
                             <div class="discount-custom-select">
                                 <div class="discount-custom-select-trigger" id="itemDiscountSelectTrigger" onclick="event.stopPropagation(); toggleItemDiscountSelect()">%</div>
@@ -117,7 +126,6 @@ function updateCartUI() {
                                 <button class="discount-step-btn" onclick="changeItemDiscountValue(1)">+</button>
                             </div>
                         </div>
-                        <!-- Строка 2: кнопки Товары, Все, Ничего (на мобильных по левому краю) -->
                         <div class="discount-row discount-row-2" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; justify-content: flex-start;">
                             <button class="discount-products-btn" onclick="toggleDiscountProductsList()">Товары</button>
                             <button class="discount-all-btn" onclick="selectAllProductsForDiscount()">Всё</button>
@@ -125,7 +133,6 @@ function updateCartUI() {
                         </div>
                         <div id="productDiscountList" style="display: none; margin-top: 8px;"></div>
                     </div>
-                    <!-- Строка 3: кнопки Отмена, Сбросить скидки, Применить -->
                     <div class="discount-buttons-row" style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
                         <button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()" style="flex: 1; min-width: 70px;">Отмена</button>
                         <button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()" style="flex: 2; min-width: 100px;">Сбросить скидки</button>
@@ -146,7 +153,7 @@ function updateCartUI() {
                 </div>
             </div>`;
     
-    // === 4. Товары в корзине ===
+    // === 4. Товары в корзине (ОБНОВЛЕНО: с отображением атрибутов) ===
     let subtotal = 0;
     for (const [idStr, qty] of Object.entries(cart)) { 
         const id = parseInt(idStr); 
@@ -176,7 +183,8 @@ function updateCartUI() {
                 discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${roundedDiscount} ₽</div>`;
             }
         }
-        const displayName = `${card.type} ${card.name}`;
+        // Используем новую функцию для отображения имени с атрибутами
+        const displayName = getCartItemDisplayName(card);
         html += `<div class="cart-item ${isZero ? 'disabled' : ''}">
                     <div class="cart-item-info">
                         <div class="cart-item-name">${escapeHtml(displayName)}</div>
@@ -229,12 +237,19 @@ function updateCartUI() {
 function addToCart(id) {
     const card = originalCardsData.find(c => c.id === id);
     if (!card) return;
-    if (card.stock <= 0) { showToast(`${card.name} закончился!`, false); return; }
+    if (card.stock <= 0) { 
+        const displayName = getCartItemDisplayName(card);
+        showToast(`${displayName} закончился!`, false); 
+        return; 
+    }
     const currentQty = cart[id] || 0;
-    if (currentQty + 1 > card.stock) { showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); return; }
+    if (currentQty + 1 > card.stock) { 
+        showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); 
+        return; 
+    }
     cart[id] = currentQty + 1;
     updateCartUI();
-    const displayName = `${card.type} ${card.name}`;
+    const displayName = getCartItemDisplayName(card);
     showToast(`${displayName} +1`, true);
 }
 
@@ -244,7 +259,10 @@ function changeCartQty(id, delta) {
     const currentQty = cart[id] || 0;
     const newQty = currentQty + delta;
     if (newQty < 0) return;
-    if (newQty > card.stock) { showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); return; }
+    if (newQty > card.stock) { 
+        showToast(`Нельзя добавить больше, чем есть (${card.stock} шт)`, false); 
+        return; 
+    }
     if (newQty === 0) {
         delete cart[id];
         if (cartBookingMap && cartBookingMap[id] && cartBookingMap[id].length > 0) {
@@ -286,7 +304,7 @@ function removeFromCart(id) {
     updateCartUI();
     const card = originalCardsData.find(c => c.id === id);
     if (card) {
-        const displayName = `${card.type} ${card.name}`;
+        const displayName = getCartItemDisplayName(card);
         showToast(`${displayName} удалён из корзины`, true);
     }
 }
@@ -325,9 +343,20 @@ function giftCart() {
     for (const [idStr, qty] of items) {
         const id = parseInt(idStr);
         const card = originalCardsData.find(c => c.id === id);
-        if (qty > card.stock) { showToast(`Не хватает "${card.name}" (нужно ${qty}, есть ${card.stock})`, false); return; }
+        if (qty > card.stock) { 
+            const displayName = getCartItemDisplayName(card);
+            showToast(`Не хватает "${displayName}" (нужно ${qty}, есть ${card.stock})`, false); 
+            return; 
+        }
     }
-    const historyItems = items.map(([idStr, qty]) => { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); return { id: card.id, name: card.name, qty: qty, price: 0 }; });
+    
+    // Обогащаем элементы истории полными названиями
+    const historyItems = items.map(([idStr, qty]) => { 
+        const id = parseInt(idStr); 
+        const card = originalCardsData.find(c => c.id === id);
+        const fullName = getFullNameForHistory(card.name, card.type, card.attribute1 || "", card.attribute2 || "");
+        return { id: card.id, name: card.name, qty: qty, price: 0, fullName: fullName }; 
+    });
     addToHistory(historyItems, 0, 'gift', false, 'cash');
     const cartCopy = { ...cart };
     closeCartModal();
@@ -382,7 +411,10 @@ function openCartModal() {
     updateCartUI();
 }
 
-function closeCartModal() { const modal = document.getElementById('cartModal'); if (modal) modal.style.display = 'none'; }
+function closeCartModal() { 
+    const modal = document.getElementById('cartModal'); 
+    if (modal) modal.style.display = 'none'; 
+}
 
 async function updateStock(id, delta, silent = false) {
     const card = originalCardsData.find(c => c.id === id);
@@ -392,12 +424,21 @@ async function updateStock(id, delta, silent = false) {
     card.stock = newStock;
     filterAndSort();
     
+    // Получаем полное название для истории
+    const fullName = getFullNameForHistory(card.name, card.type, card.attribute1 || "", card.attribute2 || "");
+    
     if (!isOnline) {
         addPendingOperation("update", `&id=${id}&delta=${delta}`);
         updateCardBadges();
         if (!silent) {
-            if (delta === -1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, false); showToast(`Продажа: ${card.name} -1 шт (будет синхронизировано)`, true); }
-            else if (delta === 1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, true); showToast(`Возврат: ${card.name} +1 шт (будет синхронизировано)`, true); }
+            if (delta === -1) { 
+                addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price, fullName: fullName }, 1, false); 
+                showToast(`Продажа: ${fullName} -1 шт (будет синхронизировано)`, true); 
+            }
+            else if (delta === 1) { 
+                addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price, fullName: fullName }, 1, true); 
+                showToast(`Возврат: ${fullName} +1 шт (будет синхронизировано)`, true); 
+            }
         }
         return;
     }
@@ -413,187 +454,18 @@ async function updateStock(id, delta, silent = false) {
     }
     updateCardBadges();
     if (!silent) {
-        if (delta === -1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, false); showToast(`Продажа: ${card.name} -1 шт`, true); }
-        else if (delta === 1) { addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price }, 1, true); showToast(`Возврат: ${card.name} +1 шт`, true); }
+        if (delta === -1) { 
+            addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price, fullName: fullName }, 1, false); 
+            showToast(`Продажа: ${fullName} -1 шт`, true); 
+        }
+        else if (delta === 1) { 
+            addSingleSaleToHistory({ id: card.id, name: card.name, price: card.price, fullName: fullName }, 1, true); 
+            showToast(`Возврат: ${fullName} +1 шт`, true); 
+        }
     }
 }
 
-function applyItemDiscount() {
-    const typeSelect = document.getElementById('itemDiscountTypeSelect');
-    const type = typeSelect ? typeSelect.getAttribute('data-value') || 'percent' : 'percent';
-    const value = parseFloat(document.getElementById('itemDiscountValue').value) || 0;
-    
-    if (selectedDiscountProducts.size === 0) {
-        showToast("Выберите товары для скидки", false);
-        return;
-    }
-    if (value <= 0) {
-        showToast("Введите корректную сумму скидки", false);
-        return;
-    }
-    
-    const cartProductIds = new Set();
-    for (const [idStr, qty] of Object.entries(cart)) {
-        if (qty > 0) {
-            const id = parseInt(idStr);
-            cartProductIds.add(id);
-        }
-    }
-    
-    const isAllProductsSelected = selectedDiscountProducts.size === cartProductIds.size && 
-                                   [...selectedDiscountProducts].every(id => cartProductIds.has(id));
-    
-    if (isAllProductsSelected) {
-        applyCartDiscountToAll(type, value);
-    } else {
-        for (const productId of selectedDiscountProducts) {
-            if (!itemDiscounts[productId]) itemDiscounts[productId] = {};
-            itemDiscounts[productId] = { type: type, value: value };
-        }
-        selectedDiscountProducts.clear();
-        discountProductListVisible = false;
-        const container = document.getElementById('productDiscountList');
-        if (container) container.style.display = 'none';
-        updateCartUI();
-        showToast("Скидка применена к выбранным товарам", true);
-    }
-}
-
-function applyCartDiscountToAll(type, totalDiscountValue) {
-    if (type === 'percent') {
-        const percent = totalDiscountValue;
-        for (const [idStr, qty] of Object.entries(cart)) {
-            if (qty > 0) {
-                const id = parseInt(idStr);
-                if (!itemDiscounts[id]) itemDiscounts[id] = {};
-                itemDiscounts[id] = {
-                    type: 'percent',
-                    value: percent
-                };
-            }
-        }
-    } else {
-        const items = [];
-        for (const [idStr, qty] of Object.entries(cart)) {
-            if (qty > 0) {
-                const id = parseInt(idStr);
-                const card = originalCardsData.find(c => c.id === id);
-                if (card) {
-                    items.push({
-                        id: id,
-                        price: card.price,
-                        qty: qty,
-                        totalPrice: card.price * qty
-                    });
-                }
-            }
-        }
-        
-        if (items.length === 0) {
-            showToast("Корзина пуста", false);
-            return;
-        }
-        
-        items.sort((a, b) => a.price - b.price);
-        
-        let remainingDiscount = totalDiscountValue;
-        const discountsByItem = {};
-        let discountApplied = 0;
-        
-        for (const item of items) {
-            const maxDiscountForItem = item.totalPrice;
-            if (remainingDiscount >= maxDiscountForItem) {
-                discountsByItem[item.id] = maxDiscountForItem;
-                discountApplied += maxDiscountForItem;
-                remainingDiscount -= maxDiscountForItem;
-            } else {
-                const discountForItem = Math.floor(remainingDiscount);
-                discountsByItem[item.id] = discountForItem;
-                discountApplied += discountForItem;
-                remainingDiscount = totalDiscountValue - discountApplied;
-                break;
-            }
-        }
-        
-        let leftover = Math.round(remainingDiscount);
-        
-        if (leftover > 0) {
-            for (const item of items) {
-                if (leftover <= 0) break;
-                const currentDiscount = discountsByItem[item.id] || 0;
-                const maxDiscountForItem = item.totalPrice;
-                if (currentDiscount < maxDiscountForItem) {
-                    discountsByItem[item.id] = currentDiscount + 1;
-                    leftover--;
-                }
-            }
-        }
-        
-        if (leftover > 0) {
-            const mostExpensiveItem = items.reduce((max, item) => item.price > max.price ? item : max, items[0]);
-            discountsByItem[mostExpensiveItem.id] = (discountsByItem[mostExpensiveItem.id] || 0) + leftover;
-        }
-        
-        for (const [id, totalDiscount] of Object.entries(discountsByItem)) {
-            const numericId = parseInt(id);
-            const item = items.find(i => i.id === numericId);
-            if (item && totalDiscount > 0) {
-                const discountPerUnit = totalDiscount / item.qty;
-                if (!itemDiscounts[numericId]) itemDiscounts[numericId] = {};
-                itemDiscounts[numericId] = {
-                    type: 'fixed',
-                    value: discountPerUnit,
-                    valuePerItem: discountPerUnit
-                };
-            }
-        }
-        
-        let actualDiscount = 0;
-        for (const [id, disc] of Object.entries(itemDiscounts)) {
-            const numericId = parseInt(id);
-            const qty = cart[numericId] || 1;
-            actualDiscount += disc.value * qty;
-        }
-        
-        const diff = Math.round(totalDiscountValue - actualDiscount);
-        if (Math.abs(diff) >= 1) {
-            let mostExpensiveId = null;
-            let mostExpensivePrice = -1;
-            for (const item of items) {
-                if (item.price > mostExpensivePrice) {
-                    mostExpensivePrice = item.price;
-                    mostExpensiveId = item.id;
-                }
-            }
-            
-            if (mostExpensiveId !== null) {
-                const qty = cart[mostExpensiveId];
-                const currentDiscount = itemDiscounts[mostExpensiveId]?.value || 0;
-                const newDiscountPerUnit = currentDiscount + (diff / qty);
-                itemDiscounts[mostExpensiveId] = {
-                    type: 'fixed',
-                    value: newDiscountPerUnit,
-                    valuePerItem: newDiscountPerUnit
-                };
-            }
-        }
-    }
-    
-    selectedDiscountProducts.clear();
-    discountProductListVisible = false;
-    const container = document.getElementById('productDiscountList');
-    if (container) container.style.display = 'none';
-    
-    updateCartUI();
-    showToast(`Скидка ${type === 'percent' ? totalDiscountValue + '%' : totalDiscountValue + ' ₽'} применена на всю корзину`, true);
-}
-
-function resetItemDiscounts() {
-    itemDiscounts = {};
-    updateCartUI();
-    showToast("Скидки на товары сброшены", true);
-}
-
+// ОБНОВЛЕНА: checkout с поддержкой атрибутов в истории
 async function checkout() {
     const items = Object.entries(cart).filter(([_, qty]) => qty > 0);
     if (items.length === 0) { showToast("Нет товаров для продажи", false); return; }
@@ -601,7 +473,11 @@ async function checkout() {
     for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); subtotal += qty * card.price; }
     let total = 0;
     for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); const best = getBestDiscountForItem(id, card.price, qty, subtotal); total += best.price * qty; }
-    for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (qty > card.stock) { showToast(`Не хватает "${card.name}" (нужно ${qty}, есть ${card.stock})`, false); return; } }
+    for (const [idStr, qty] of items) { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); if (qty > card.stock) { 
+        const displayName = getCartItemDisplayName(card);
+        showToast(`Не хватает "${displayName}" (нужно ${qty}, есть ${card.stock})`, false); 
+        return; 
+    } }
     
     let activeRules = getActiveRulesFiltered();
     if (activeRules.length > 0) { 
@@ -610,7 +486,13 @@ async function checkout() {
         showToast(rulesMessage, true); 
     }
     
-    const historyItems = items.map(([idStr, qty]) => { const id = parseInt(idStr); const card = originalCardsData.find(c => c.id === id); return { id: card.id, name: card.name, qty: qty, price: card.price }; });
+    // Обогащаем элементы истории полными названиями с атрибутами
+    const historyItems = items.map(([idStr, qty]) => { 
+        const id = parseInt(idStr); 
+        const card = originalCardsData.find(c => c.id === id);
+        const fullName = getFullNameForHistory(card.name, card.type, card.attribute1 || "", card.attribute2 || "");
+        return { id: card.id, name: card.name, qty: qty, price: card.price, fullName: fullName }; 
+    });
     const roundedTotal = Math.floor(total);
     addToHistory(historyItems, roundedTotal, 'basket', false, currentPaymentType);
     const cartCopy = { ...cart };
@@ -671,3 +553,6 @@ async function checkout() {
     })();
     showToast(`Продажа на ${roundedTotal} ₽ завершена!`, true);
 }
+
+// Экспортируем новую функцию в глобальную область
+window.getCartItemDisplayName = getCartItemDisplayName;
