@@ -138,7 +138,7 @@
         </div>
     </div>
 
-    <!-- History Modal -->
+    <!-- History Modal (обновлен: добавлены контейнеры для кастомных селекторов) -->
     <div id="historyModal" class="modal">
         <div class="modal-content" style="max-width: 550px;">
             <button class="modal-close-btn" onclick="closeHistory()">×</button>
@@ -170,16 +170,16 @@
                         <div class="custom-datetime" id="datetimeFromContainer">
                             <span class="datetime-label">с</span>
                             <div class="datetime-group">
-                                <select id="dateFromDay" class="datetime-select"></select>
+                                <div id="dateFromDayContainer" style="min-width: 70px;"></div>
                                 <span class="datetime-sep"> </span>
-                                <select id="dateFromMonth" class="datetime-select"></select>
+                                <div id="dateFromMonthContainer" style="min-width: 100px;"></div>
                                 <span class="datetime-sep"> </span>
-                                <select id="dateFromYear" class="datetime-select"></select>
+                                <div id="dateFromYearContainer" style="min-width: 80px;"></div>
                             </div>
                             <div class="datetime-group">
-                                <select id="timeFromHour" class="datetime-select"></select>
+                                <div id="timeFromHourContainer" style="min-width: 60px;"></div>
                                 <span class="datetime-sep">:</span>
-                                <select id="timeFromMinute" class="datetime-select"></select>
+                                <div id="timeFromMinuteContainer" style="min-width: 60px;"></div>
                             </div>
                         </div>
                     </div>
@@ -187,16 +187,16 @@
                         <div class="custom-datetime" id="datetimeToContainer">
                             <span class="datetime-label">по</span>
                             <div class="datetime-group">
-                                <select id="dateToDay" class="datetime-select"></select>
+                                <div id="dateToDayContainer" style="min-width: 70px;"></div>
                                 <span class="datetime-sep"> </span>
-                                <select id="dateToMonth" class="datetime-select"></select>
+                                <div id="dateToMonthContainer" style="min-width: 100px;"></div>
                                 <span class="datetime-sep"> </span>
-                                <select id="dateToYear" class="datetime-select"></select>
+                                <div id="dateToYearContainer" style="min-width: 80px;"></div>
                             </div>
                             <div class="datetime-group">
-                                <select id="timeToHour" class="datetime-select"></select>
+                                <div id="timeToHourContainer" style="min-width: 60px;"></div>
                                 <span class="datetime-sep">:</span>
-                                <select id="timeToMinute" class="datetime-select"></select>
+                                <div id="timeToMinuteContainer" style="min-width: 60px;"></div>
                             </div>
                         </div>
                         <div class="history-price-filter">
@@ -340,9 +340,7 @@
             <div id="edit-product-content">
                 <div class="edit-row">
                     <span class="edit-label">Тип</span>
-                    <select id="editType" class="edit-input" onchange="onEditTypeChange()">
-                        <option value="">Выберите тип</option>
-                    </select>
+                    <div id="editTypeContainer" style="flex: 1;"></div>
                 </div>
                 
                 <!-- Динамические поля атрибутов (редактирование) -->
@@ -416,9 +414,7 @@
                 <div class="edit-row">
                     <span class="edit-label">Тип</span>
                     <div style="flex: 1; display: flex; gap: 8px;">
-                        <select id="addItemType" class="edit-input" style="flex: 2;" onchange="onAddTypeChange()">
-                            <option value="">Выберите тип</option>
-                        </select>
+                        <div id="addItemTypeContainer" style="flex: 2;"></div>
                         <input type="text" id="addItemNewType" class="edit-input" style="flex: 1; display: none;" placeholder="Новый тип">
                         <button type="button" id="toggleNewTypeBtn" class="add-cost-btn" style="width: auto; padding: 8px 12px;" onclick="toggleNewTypeInput()">➕</button>
                     </div>
@@ -583,6 +579,7 @@
 
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/customSelects.js"></script>
     <script src="js/api.js"></script>
     <script src="js/offline.js"></script>
     <script src="js/auth.js"></script>
