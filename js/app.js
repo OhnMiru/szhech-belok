@@ -1,6 +1,25 @@
 // ========== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ==========
+
+// Загрузка конфигурации типов мерча
+async function loadMerchTypes() {
+    console.log("🔄 Загрузка конфигурации типов мерча...");
+    if (typeof loadMerchTypesConfig === 'function') {
+        const success = await loadMerchTypesConfig();
+        if (success) {
+            console.log("✅ Конфигурация типов загружена:", window.merchTypesConfig?.length || 0, "типов");
+        } else {
+            console.warn("⚠️ Не удалось загрузить конфигурацию типов");
+        }
+    } else {
+        console.error("❌ loadMerchTypesConfig не определена");
+    }
+}
+
 function initApp() {
     console.log("Инициализация приложения...");
+    
+    // Загружаем конфигурацию типов мерча
+    loadMerchTypes();
     
     // Загружаем данные с задержкой, чтобы все скрипты успели загрузиться
     setTimeout(() => {
@@ -163,6 +182,12 @@ function initApp() {
         loadAllComments();
     }
     
+    // Инициализируем селектор типов в модалке добавления (если она уже открыта)
+    if (typeof initAddItemTypeSelector === 'function') {
+        // Не вызываем автоматически, только если модалка открыта
+        // Функция будет вызвана при открытии модалки
+    }
+    
     console.log("Инициализация приложения завершена");
 }
 
@@ -287,3 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     }
 });
+
+// Экспортируем функцию в глобальную область
+window.loadMerchTypes = loadMerchTypes;
