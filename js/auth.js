@@ -137,7 +137,6 @@ async function login() {
             loadPendingOperations();
             
             // ========== ОЧИСТКА СТАРЫХ ОПЕРАЦИЙ ==========
-            // Удаляем операции старше 7 дней (старые записи)
             if (pendingOperations && pendingOperations.length > 0) {
                 const sevenDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
                 const oldOps = pendingOperations.filter(op => op.timestamp && op.timestamp < sevenDaysAgo);
@@ -148,7 +147,6 @@ async function login() {
                 }
             }
             
-            // Также очищаем старые записи истории из localStorage, если им больше 30 дней
             const savedHistory = localStorage.getItem('merch_sales_history');
             if (savedHistory) {
                 try {
@@ -181,10 +179,17 @@ async function login() {
                 sheetLink.href = CURRENT_USER.sheetUrl;
             }
             
+            // Показываем/скрываем кнопки организатора
+            const globalStatsBtn = document.getElementById('globalStatsBtn');
+            const impersonateBtn = document.getElementById('impersonateBtn');
+            
             if (CURRENT_USER.role === 'organizer') {
-                const globalStatsBtn = document.getElementById('globalStatsBtn');
                 if (globalStatsBtn) globalStatsBtn.style.display = 'inline-flex';
+                if (impersonateBtn) impersonateBtn.style.display = 'inline-flex';
                 showImpersonateUI();
+            } else {
+                if (globalStatsBtn) globalStatsBtn.style.display = 'none';
+                if (impersonateBtn) impersonateBtn.style.display = 'none';
             }
             
             initApp();
@@ -222,10 +227,17 @@ function checkExistingAuth() {
                 sheetLink.href = CURRENT_USER.sheetUrl;
             }
             
+            // Показываем/скрываем кнопки организатора
+            const globalStatsBtn = document.getElementById('globalStatsBtn');
+            const impersonateBtn = document.getElementById('impersonateBtn');
+            
             if (CURRENT_USER.role === 'organizer') {
-                const globalStatsBtn = document.getElementById('globalStatsBtn');
                 if (globalStatsBtn) globalStatsBtn.style.display = 'inline-flex';
+                if (impersonateBtn) impersonateBtn.style.display = 'inline-flex';
                 showImpersonateUI();
+            } else {
+                if (globalStatsBtn) globalStatsBtn.style.display = 'none';
+                if (impersonateBtn) impersonateBtn.style.display = 'none';
             }
             
             loadPrivacySettings().then(() => {
@@ -287,10 +299,13 @@ function showOrganizerButtons() {
 
 // Показывает UI для выбора пользователя (только для организатора)
 function showImpersonateUI() {
+    // Только для организатора
+    if (CURRENT_USER.role !== 'organizer') return;
+    
     let impersonateBtn = document.getElementById('impersonateBtn');
     if (!impersonateBtn) return;
     
-    if (CURRENT_USER.role !== 'organizer' || isImpersonating) {
+    if (isImpersonating) {
         impersonateBtn.style.display = 'none';
     } else {
         impersonateBtn.style.display = 'inline-flex';
