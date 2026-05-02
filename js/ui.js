@@ -1,4 +1,172 @@
 // ========== UI ФУНКЦИИ ==========
+
+// Инициализация модалки добавления товара с загрузкой типов
+async function openAddItemModal() {
+    // Загружаем конфигурацию типов, если ещё не загружена
+    if (!window.merchTypesLoaded) {
+        await loadMerchTypesConfig();
+    }
+    
+    const typeSelect = document.getElementById('addItemType');
+    if (typeSelect) {
+        typeSelect.innerHTML = '<option value="">Выберите тип</option>';
+        const types = getAllMerchTypes();
+        for (const type of types) {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            typeSelect.appendChild(option);
+        }
+    }
+    
+    // Очищаем контейнер атрибутов
+    const attributesContainer = document.getElementById('addAttributesContainer');
+    if (attributesContainer) {
+        attributesContainer.innerHTML = '';
+    }
+    
+    // Очищаем остальные поля
+    document.getElementById('addItemName').value = '';
+    document.getElementById('addItemTotal').value = '0';
+    document.getElementById('addItemStock').value = '0';
+    document.getElementById('addItemPrice').value = '0';
+    document.getElementById('addItemCost').value = '0';
+    
+    // Скрываем поле нового типа
+    const newTypeInput = document.getElementById('addItemNewType');
+    if (newTypeInput) {
+        newTypeInput.style.display = 'none';
+        newTypeInput.value = '';
+    }
+    
+    if (typeSelect) typeSelect.style.display = 'flex';
+    
+    // Показываем модальное окно
+    const modal = document.getElementById('addItemModal');
+    if (modal) modal.style.display = 'block';
+}
+
+function closeAddItemModal() {
+    const modal = document.getElementById('addItemModal');
+    if (modal) modal.style.display = 'none';
+    // Очищаем контейнер атрибутов
+    const attributesContainer = document.getElementById('addAttributesContainer');
+    if (attributesContainer) {
+        attributesContainer.innerHTML = '';
+    }
+}
+
+function toggleNewTypeInput() {
+    const typeSelect = document.getElementById('addItemType');
+    const newTypeInput = document.getElementById('addItemNewType');
+    const toggleBtn = document.getElementById('toggleNewTypeBtn');
+    
+    if (typeSelect.style.display !== 'none') {
+        typeSelect.style.display = 'none';
+        newTypeInput.style.display = 'flex';
+        toggleBtn.textContent = '📋';
+        newTypeInput.focus();
+        // Очищаем поля атрибутов, так как новый тип
+        const attributesContainer = document.getElementById('addAttributesContainer');
+        if (attributesContainer) {
+            attributesContainer.innerHTML = '';
+        }
+    } else {
+        typeSelect.style.display = 'flex';
+        newTypeInput.style.display = 'none';
+        newTypeInput.value = '';
+        toggleBtn.textContent = '➕';
+        // Восстанавливаем атрибуты для выбранного типа
+        const selectedType = typeSelect.value;
+        if (selectedType) {
+            renderAttributesFields('add', selectedType);
+        }
+    }
+}
+
+function onTypeSelectChange() {
+    const typeSelect = document.getElementById('addItemType');
+    const selectedType = typeSelect.value;
+    
+    if (selectedType === "") {
+        // Если выбран "Выберите тип", переключаемся на новый тип
+        if (typeSelect.style.display !== 'none') {
+            toggleNewTypeInput();
+        }
+    } else {
+        // Отрисовываем поля атрибутов для выбранного типа
+        renderAttributesFields('add', selectedType);
+    }
+}
+
+// ОБНОВЛЕНА: добавлена поддержка атрибутов
+async function addNewItem() {
+    let type = '';
+    const typeSelect = document.getElementById('addItemType');
+    const newTypeInput = document.getElementById('addItemNewType');
+    const isNewTypeVisible = newTypeInput && newTypeInput.style.display !== 'none';
+    
+    if (isNewTypeVisible) {
+        type = newTypeInput.value.trim();
+        if (type === "") {
+            showToast("Введите тип товара", false);
+            return;
+        }
+    } else {
+        type = typeSelect.value;
+        if (type === "") {
+            showToast("Выберите тип товара", false);
+            return;
+        }
+    }
+    
+    const name = document.getElementById('addItemName').value.trim();
+    if (name === "") {
+        showToast("Введите название товара", false);
+        return;
+    }
+    
+    const total = parseInt(document.getElementById('addItemTotal').value) || 0;
+    const stock = parseInt(document.getElementById('addItemStock').value) || 0;
+    
+    if (total < 0) {
+        showToast("Количество не может быть отрицательным", false);
+        return;
+    }
+    if (stock < 0 || stock > total) {
+        showToast("Остаток не может быть отрицательным или больше общего количества", false);
+        return;
+    }
+    
+    const price = parseFloat(document.getElementById('addItemPrice').value) || 0;
+    if (price < 0) {
+        showToast("Цена не может быть отрицательной", false);
+        return;
+    }
+    
+    const cost = parseFloat(document.getElementById('addItemCost').value) || 0;
+    if (cost < 0) {
+        showToast("Себестоимость не может быть отрицательной", false);
+        return;
+    }
+    
+    // Получаем значения атрибутов
+    let attribute1 = '';
+    let attribute2 = '';
+    if (!isNewTypeVisible) {
+        const attr1Select = document.getElementById('add_attr1');
+        const attr2Select = document.getElementById('add_attr2');
+        attribute1 = attr1Select ? attr1Select.value : '';
+        attribute2 = attr2Select ? attr2Select.value : '';
+    }
+    
+    await sendAddItemRequest(type, name, total, stock, price, cost, attribute1, attribute2);
+    
+    closeAddItemModal();
+}
+
+// ========== ОСТАЛЬНЫЕ UI ФУНКЦИИ (БЕЗ ИЗМЕНЕНИЙ) ==========
+
 function openRulesModal() {
     selectedProducts.clear();
     renderRuleForm();
@@ -32,36 +200,6 @@ function openCartModal() {
 function closeCartModal() { 
     const modal = document.getElementById('cartModal'); 
     if (modal) modal.style.display = 'none'; 
-}
-
-function openEditProductModal(id) {
-    currentEditId = id;
-    const card = originalCardsData.find(c => c.id === id);
-    
-    if (card) {
-        document.getElementById('editTitle').textContent = `✏️ Редактирование товара №${card.id}`;
-        document.getElementById('editType').value = card.type || "";
-        document.getElementById('editName').value = card.name || "";
-        document.getElementById('editStock').value = card.stock;
-        document.getElementById('editTotal').value = card.total;
-        document.getElementById('editPrice').value = card.price;
-        document.getElementById('editCost').value = card.cost || 0;
-        
-        loadPhotoPreview(id).catch(e => console.error("Error loading photo preview:", e));
-        
-        document.getElementById('editProductModal').style.display = 'block';
-        
-        setTimeout(() => {
-            initPhotoUploadInEditModal();
-        }, 100);
-    } else {
-        showToast("Товар не найден", false);
-    }
-}
-
-function closeEditProductModal() {
-    document.getElementById('editProductModal').style.display = 'none';
-    currentEditId = null;
 }
 
 function showHistory() { 
@@ -119,137 +257,6 @@ function openBookingsModal() {
 function closeBookingsModal() {
     const modal = document.getElementById('bookingsModal');
     if (modal) modal.style.display = 'none';
-}
-
-// ========== ДОБАВЛЕНИЕ ТОВАРА ==========
-
-function openAddItemModal() {
-    const typeSelect = document.getElementById('addItemType');
-    if (typeSelect) {
-        typeSelect.innerHTML = '<option value="">Выберите или добавьте новый</option>';
-        const sortedTypes = [...typeOptions].sort();
-        for (const type of sortedTypes) {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            typeSelect.appendChild(option);
-        }
-    }
-    
-    document.getElementById('addItemName').value = '';
-    document.getElementById('addItemTotal').value = '0';
-    document.getElementById('addItemStock').value = '0';
-    document.getElementById('addItemPrice').value = '0';
-    document.getElementById('addItemCost').value = '0';
-    
-    const newTypeInput = document.getElementById('addItemNewType');
-    if (newTypeInput) {
-        newTypeInput.style.display = 'none';
-        newTypeInput.value = '';
-    }
-    
-    if (typeSelect) typeSelect.style.display = 'flex';
-    
-    const modal = document.getElementById('addItemModal');
-    if (modal) modal.style.display = 'block';
-}
-
-function closeAddItemModal() {
-    const modal = document.getElementById('addItemModal');
-    if (modal) modal.style.display = 'none';
-}
-
-function toggleNewTypeInput() {
-    const typeSelect = document.getElementById('addItemType');
-    const newTypeInput = document.getElementById('addItemNewType');
-    const toggleBtn = document.getElementById('toggleNewTypeBtn');
-    
-    if (typeSelect.style.display !== 'none') {
-        typeSelect.style.display = 'none';
-        newTypeInput.style.display = 'flex';
-        toggleBtn.textContent = '📋';
-        newTypeInput.focus();
-    } else {
-        typeSelect.style.display = 'flex';
-        newTypeInput.style.display = 'none';
-        newTypeInput.value = '';
-        toggleBtn.textContent = '➕';
-        const currentType = typeSelect.value;
-        typeSelect.innerHTML = '<option value="">Выберите или добавьте новый</option>';
-        const sortedTypes = [...typeOptions].sort();
-        for (const type of sortedTypes) {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            typeSelect.appendChild(option);
-        }
-        if (currentType && typeOptions.includes(currentType)) {
-            typeSelect.value = currentType;
-        }
-    }
-}
-
-function onTypeSelectChange() {
-    const typeSelect = document.getElementById('addItemType');
-    if (typeSelect.value === "") {
-        if (typeSelect.style.display !== 'none') {
-            toggleNewTypeInput();
-        }
-    }
-}
-
-async function addNewItem() {
-    let type = '';
-    const typeSelect = document.getElementById('addItemType');
-    const newTypeInput = document.getElementById('addItemNewType');
-    
-    if (typeSelect.style.display !== 'none') {
-        type = typeSelect.value;
-        if (type === "") {
-            showToast("Выберите тип товара", false);
-            return;
-        }
-    } else {
-        type = newTypeInput.value.trim();
-        if (type === "") {
-            showToast("Введите тип товара", false);
-            return;
-        }
-    }
-    
-    const name = document.getElementById('addItemName').value.trim();
-    if (name === "") {
-        showToast("Введите название товара", false);
-        return;
-    }
-    
-    const total = parseInt(document.getElementById('addItemTotal').value) || 0;
-    const stock = parseInt(document.getElementById('addItemStock').value) || 0;
-    
-    if (total < 0) {
-        showToast("Количество не может быть отрицательным", false);
-        return;
-    }
-    if (stock < 0 || stock > total) {
-        showToast("Остаток не может быть отрицательным или больше общего количества", false);
-        return;
-    }
-    
-    const price = parseFloat(document.getElementById('addItemPrice').value) || 0;
-    if (price < 0) {
-        showToast("Цена не может быть отрицательной", false);
-        return;
-    }
-    
-    const cost = parseFloat(document.getElementById('addItemCost').value) || 0;
-    if (cost < 0) {
-        showToast("Себестоимость не может быть отрицательной", false);
-        return;
-    }
-    
-    await sendAddItemRequest(type, name, total, stock, price, cost);
-    
-    closeAddItemModal();
 }
 
 // ========== ФУНКЦИИ ДЛЯ ФОТО ==========
@@ -406,14 +413,11 @@ function initPhotoUploadInEditModal() {
 
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ (ГЛОБАЛЬНЫЕ) ==========
 
-// Эта функция будет вызываться из render.js
 function showCommentModal(itemId, itemName) {
-    // Получаем текущий комментарий
     let currentComment = "";
     if (commentsCache.has(itemId) && commentsCache.get(itemId).comment) {
         currentComment = commentsCache.get(itemId).comment;
     } else if (isOnline) {
-        // Пробуем загрузить с сервера, если нет в кэше
         getComment(itemId).then(commentData => {
             if (commentData && commentData.comment) {
                 currentComment = commentData.comment;
@@ -428,7 +432,6 @@ function showCommentModal(itemId, itemName) {
 }
 
 function renderCommentModal(itemId, itemName, currentComment) {
-    // Создаём или получаем модальное окно для комментария
     let modal = document.getElementById('commentModal');
     if (!modal) {
         modal = document.createElement('div');
@@ -454,7 +457,6 @@ function renderCommentModal(itemId, itemName, currentComment) {
         document.body.appendChild(modal);
     }
     
-    // Заполняем данные
     document.getElementById('commentItemName').innerHTML = `📦 ${escapeHtml(itemName)} (ID: ${itemId})`;
     document.getElementById('commentText').value = currentComment;
     
@@ -466,7 +468,6 @@ function renderCommentModal(itemId, itemName, currentComment) {
         lastUpdatedEl.innerHTML = lastUpdated ? `Последнее изменение: ${lastUpdated}` : '';
     }
     
-    // Сохраняем itemId в атрибут модального окна
     modal.setAttribute('data-item-id', itemId);
     modal.setAttribute('data-item-name', itemName);
     
@@ -500,7 +501,6 @@ async function saveCommentAndClose() {
 // ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
 
 function openSupplyModal() {
-    // Заполняем селектор товарами
     const select = document.getElementById('supplyProductId');
     if (select) {
         select.innerHTML = '<option value="">Выберите товар</option>';
@@ -512,12 +512,14 @@ function openSupplyModal() {
         for (const product of sortedProducts) {
             const option = document.createElement('option');
             option.value = product.id;
-            option.textContent = `${product.type} ${product.name} (остаток: ${product.stock} шт)`;
+            let displayText = `${product.type} ${product.name}`;
+            if (product.attribute1) displayText += ` | ${product.attribute1}`;
+            if (product.attribute2) displayText += ` | ${product.attribute2}`;
+            option.textContent = `${displayText} (остаток: ${product.stock} шт)`;
             select.appendChild(option);
         }
     }
     
-    // Очищаем поле количества
     const quantityInput = document.getElementById('supplyQuantity');
     if (quantityInput) quantityInput.value = '1';
     
@@ -530,7 +532,6 @@ function closeSupplyModal() {
     if (modal) modal.style.display = 'none';
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ (без рекурсии)
 async function handleAddSupply() {
     const select = document.getElementById('supplyProductId');
     const itemId = parseInt(select?.value);
@@ -552,7 +553,6 @@ async function handleAddSupply() {
         return;
     }
     
-    // Вызываем API функцию addSupply (из api.js)
     const success = await window.addSupply(itemId, quantity);
     if (success) {
         closeSupplyModal();
@@ -629,7 +629,8 @@ function closeInstructionsModal() {
     }
 }
 
-// Делаем функции глобальными
+// ========== ЭКСПОРТ ФУНКЦИЙ ==========
+
 window.openInstructionsModal = openInstructionsModal;
 window.closeInstructionsModal = closeInstructionsModal;
 window.showCommentModal = showCommentModal;
@@ -639,8 +640,13 @@ window.handleAddSupply = handleAddSupply;
 window.openSupportModal = openSupportModal;
 window.closeSupportModal = closeSupportModal;
 window.sendSupportRequest = sendSupportRequest;
+window.openAddItemModal = openAddItemModal;
+window.closeAddItemModal = closeAddItemModal;
+window.toggleNewTypeInput = toggleNewTypeInput;
+window.onTypeSelectChange = onTypeSelectChange;
+window.addNewItem = addNewItem;
 
-// Экспортируем функции имперсонации в глобальную область (если они есть в auth.js)
+// Экспортируем функции имперсонации
 window.impersonateUser = typeof impersonateUser !== 'undefined' ? impersonateUser : null;
 window.stopImpersonating = typeof stopImpersonating !== 'undefined' ? stopImpersonating : null;
 window.getRealUserParam = typeof getRealUserParam !== 'undefined' ? getRealUserParam : () => "";
