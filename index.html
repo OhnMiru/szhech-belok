@@ -330,7 +330,7 @@
         </div>
     </div>
 
-    <!-- Edit Product Modal -->
+    <!-- Edit Product Modal (ОБНОВЛЕН: добавлены поля атрибутов) -->
     <div id="editProductModal" class="modal edit-product-modal">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="closeEditProductModal()">×</button>
@@ -340,8 +340,14 @@
             <div id="edit-product-content">
                 <div class="edit-row">
                     <span class="edit-label">Тип</span>
-                    <input type="text" id="editType" class="edit-input" placeholder="Тип мерча">
+                    <select id="editType" class="edit-input" onchange="onEditTypeChange()">
+                        <option value="">Выберите тип</option>
+                    </select>
                 </div>
+                
+                <!-- Динамические поля атрибутов (редактирование) -->
+                <div id="editAttributesContainer"></div>
+                
                 <div class="edit-row">
                     <span class="edit-label">Название</span>
                     <input type="text" id="editName" class="edit-input" placeholder="Название товара">
@@ -399,7 +405,7 @@
         </div>
     </div>
 
-    <!-- Add Item Modal -->
+    <!-- Add Item Modal (ОБНОВЛЕН: добавлены поля атрибутов) -->
     <div id="addItemModal" class="modal">
         <div class="modal-content" style="max-width: 450px;">
             <button class="modal-close-btn" onclick="closeAddItemModal()">×</button>
@@ -410,13 +416,17 @@
                 <div class="edit-row">
                     <span class="edit-label">Тип</span>
                     <div style="flex: 1; display: flex; gap: 8px;">
-                        <select id="addItemType" class="edit-input" style="flex: 2;" onchange="onTypeSelectChange()">
-                            <option value="">Выберите или добавьте новый</option>
+                        <select id="addItemType" class="edit-input" style="flex: 2;" onchange="onAddTypeChange()">
+                            <option value="">Выберите тип</option>
                         </select>
                         <input type="text" id="addItemNewType" class="edit-input" style="flex: 1; display: none;" placeholder="Новый тип">
                         <button type="button" id="toggleNewTypeBtn" class="add-cost-btn" style="width: auto; padding: 8px 12px;" onclick="toggleNewTypeInput()">➕</button>
                     </div>
                 </div>
+                
+                <!-- Динамические поля атрибутов (добавление) -->
+                <div id="addAttributesContainer"></div>
+                
                 <div class="edit-row">
                     <span class="edit-label">Название</span>
                     <input type="text" id="addItemName" class="edit-input" placeholder="Название товара">
