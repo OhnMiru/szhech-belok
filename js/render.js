@@ -17,6 +17,19 @@ function renderCards() {
         const isOutOfStock = stock === 0;
         const typeColor = type ? getTypeColor(type) : '#c25d1a';
         
+        // Получаем атрибуты товара
+        const attribute1 = card.attribute1 || "";
+        const attribute2 = card.attribute2 || "";
+        
+        // Формируем строку атрибутов для отображения
+        let attributesHtml = "";
+        if (attribute1 || attribute2) {
+            const parts = [];
+            if (attribute1) parts.push(escapeHtml(attribute1));
+            if (attribute2) parts.push(escapeHtml(attribute2));
+            attributesHtml = `<div class="card-attributes" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${parts.join(' | ')}</div>`;
+        }
+        
         // Проверяем, есть ли комментарий
         const hasComment = commentsCache.has(id) && commentsCache.get(id).comment && commentsCache.get(id).comment.trim() !== "";
         
@@ -42,6 +55,7 @@ function renderCards() {
                     ${currentSortBy === 'custom' ? '<span class="sort-handle">⋮⋮</span>' : ''}
                     <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>
                 </div>
+                ${attributesHtml}
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
                 <div class="total-row"><span class="total">📦 Всего: ${total} шт</span></div>
                 <div class="price-actions-row">
@@ -100,6 +114,75 @@ async function handleButtonClick(e) {
     const id = parseInt(btn.dataset.id);
     const delta = parseInt(btn.dataset.delta);
     await updateStock(id, delta);
+}
+
+// ОБНОВЛЕНА: обновление карточки после редактирования (с учётом атрибутов)
+function updateCardInDOM(cardId, updatedData) {
+    const cardElement = document.querySelector(`.card[data-id="${cardId}"]`);
+    if (!cardElement) return;
+    
+    // Обновляем тип
+    const typeBadge = cardElement.querySelector('.type-badge');
+    if (typeBadge && updatedData.type !== undefined) {
+        typeBadge.textContent = updatedData.type;
+        const typeColor = updatedData.type ? getTypeColor(updatedData.type) : '#c25d1a';
+        typeBadge.style.background = `${typeColor}20`;
+        typeBadge.style.color = typeColor;
+    }
+    
+    // Обновляем название
+    const nameElement = cardElement.querySelector('.name');
+    if (nameElement && updatedData.name !== undefined) {
+        nameElement.textContent = updatedData.name;
+        nameElement.setAttribute('data-name', updatedData.name);
+    }
+    
+    // Обновляем атрибуты
+    if (updatedData.attribute1 !== undefined || updatedData.attribute2 !== undefined) {
+        const oldAttributes = cardElement.querySelector('.card-attributes');
+        if (oldAttributes) oldAttributes.remove();
+        
+        const attr1 = updatedData.attribute1 || "";
+        const attr2 = updatedData.attribute2 || "";
+        
+        if (attr1 || attr2) {
+            const parts = [];
+            if (attr1) parts.push(escapeHtml(attr1));
+            if (attr2) parts.push(escapeHtml(attr2));
+            const attributesHtml = `<div class="card-attributes" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${parts.join(' | ')}</div>`;
+            
+            const titleRow = cardElement.querySelector('.title-row');
+            if (titleRow && titleRow.nextSibling) {
+                titleRow.insertAdjacentHTML('afterend', attributesHtml);
+            } else {
+                const infoDiv = cardElement.querySelector('.info');
+                if (infoDiv) infoDiv.insertAdjacentHTML('beforeend', attributesHtml);
+            }
+        }
+    }
+    
+    // Обновляем остаток
+    const stockSpan = cardElement.querySelector('.stock');
+    if (stockSpan && updatedData.stock !== undefined) {
+        stockSpan.textContent = `Остаток: ${updatedData.stock} шт`;
+        if (updatedData.stock === 0) {
+            cardElement.classList.add('out-of-stock');
+        } else {
+            cardElement.classList.remove('out-of-stock');
+        }
+    }
+    
+    // Обновляем общее количество
+    const totalSpan = cardElement.querySelector('.total');
+    if (totalSpan && updatedData.total !== undefined) {
+        totalSpan.textContent = `📦 Всего: ${updatedData.total} шт`;
+    }
+    
+    // Обновляем цену
+    const priceSpan = cardElement.querySelector('.price');
+    if (priceSpan && updatedData.price !== undefined) {
+        priceSpan.textContent = `💰 Цена: ${updatedData.price} ₽`;
+    }
 }
 
 // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ ==========
@@ -212,3 +295,4 @@ window.showCommentModal = showCommentModal;
 window.closeCommentModal = closeCommentModal;
 window.saveCommentAndClose = saveCommentAndClose;
 window.updateCommentIndicators = updateCommentIndicators;
+window.updateCardInDOM = updateCardInDOM;
