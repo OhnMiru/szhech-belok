@@ -17,18 +17,8 @@ function renderCards() {
         const isOutOfStock = stock === 0;
         const typeColor = type ? getTypeColor(type) : '#c25d1a';
         
-        // Получаем атрибуты товара
         const attribute1 = card.attribute1 || "";
         const attribute2 = card.attribute2 || "";
-        
-        // Формируем строку атрибутов для отображения
-        let attributesHtml = "";
-        if (attribute1 || attribute2) {
-            const parts = [];
-            if (attribute1) parts.push(escapeHtml(attribute1));
-            if (attribute2) parts.push(escapeHtml(attribute2));
-            attributesHtml = `<div class="card-attributes" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${parts.join(' | ')}</div>`;
-        }
         
         // Проверяем, есть ли комментарий
         const hasComment = commentsCache.has(id) && commentsCache.get(id).comment && commentsCache.get(id).comment.trim() !== "";
@@ -48,14 +38,18 @@ function renderCards() {
             cardDiv.addEventListener('drop', (e) => dropHandler(e, displayIndex));
         }
         
+        // Формируем текст для плашки: тип + атрибуты через |
+        let typeDisplayText = type;
+        if (attribute1) typeDisplayText += ` | ${attribute1}`;
+        if (attribute2) typeDisplayText += ` | ${attribute2}`;
+        
         cardDiv.innerHTML = `
             <div class="info">
                 <div class="title-row">
-                    ${type ? `<span class="type-badge" style="background: ${typeColor}20; color: ${typeColor}; border: 1px solid ${typeColor}40;">${escapeHtml(type)}</span>` : ''}
+                    ${type ? `<span class="type-badge" style="background: ${typeColor}20; color: ${typeColor}; border: 1px solid ${typeColor}40;">${escapeHtml(typeDisplayText)}</span>` : ''}
                     ${currentSortBy === 'custom' ? '<span class="sort-handle">⋮⋮</span>' : ''}
                     <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>
                 </div>
-                ${attributesHtml}
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
                 <div class="total-row"><span class="total">📦 Всего: ${total} шт</span></div>
                 <div class="price-actions-row">
