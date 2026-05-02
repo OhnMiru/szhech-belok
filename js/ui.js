@@ -613,7 +613,25 @@ async function sendSupportRequest() {
     }
 }
 
-// ========== ЭКСПОРТ ФУНКЦИЙ В ГЛОБАЛЬНУЮ ОБЛАСТЬ ==========
+// ========== ФУНКЦИИ ДЛЯ ИНСТРУКЦИИ ==========
+
+function openInstructionsModal() {
+    const modal = document.getElementById('instructionsModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeInstructionsModal() {
+    const modal = document.getElementById('instructionsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Делаем функции глобальными
+window.openInstructionsModal = openInstructionsModal;
+window.closeInstructionsModal = closeInstructionsModal;
 window.showCommentModal = showCommentModal;
 window.closeCommentModal = closeCommentModal;
 window.saveCommentAndClose = saveCommentAndClose;
