@@ -59,21 +59,21 @@ function renderCards() {
         
         cardDiv.innerHTML = `
             <div class="info">
-                <div class="title-row" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 4px;">
+                <div class="title-row" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 2px;">
                     ${type ? `<span class="type-badge" style="background: ${typeColor}20; color: ${typeColor}; border: 1px solid ${typeColor}40; padding: 2px 8px; border-radius: 20px; font-size: 11px; display: inline-block;">${escapeHtml(typeDisplayText)}</span>` : ''}
                     ${actionButtonsHtml}
                     ${sortHandleHtml}
                 </div>
-                <div class="name-row" style="margin-bottom: 6px;">
-                    <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}" style="font-weight: bold; font-size: 18px; cursor: pointer;">${escapeHtml(name)}</span>
+                <div class="name-row" style="margin-bottom: 4px;">
+                    <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}" style="font-weight: bold; font-size: 30px; cursor: pointer; line-height: 1.2;">${escapeHtml(name)}</span>
                 </div>
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
                 <div class="total-row"><span class="total">📦 Всего: ${total} шт</span></div>
-                <div class="price-actions-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                <div class="price-actions-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
                     <span class="price">💰 Цена: ${price} ₽</span>
                 </div>
             </div>
-            <div class="buttons" style="display: flex; gap: 8px; margin-top: 10px;">
+            <div class="buttons" style="display: flex; gap: 8px; margin-top: 8px;">
                 <button class="minus" data-id="${id}" data-delta="-1">−1</button>
                 <button class="plus" data-id="${id}" data-delta="+1">+1</button>
                 <button class="add-to-cart" data-id="${id}">➕</button>
