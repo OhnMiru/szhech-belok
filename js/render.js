@@ -59,21 +59,21 @@ function renderCards() {
         
         cardDiv.innerHTML = `
             <div class="info">
-                <div class="title-row" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 2px;">
+                <div class="title-row" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 4px;">
                     ${type ? `<span class="type-badge" style="background: ${typeColor}20; color: ${typeColor}; border: 1px solid ${typeColor}40; padding: 2px 8px; border-radius: 20px; font-size: 11px; display: inline-block;">${escapeHtml(typeDisplayText)}</span>` : ''}
                     ${actionButtonsHtml}
                     ${sortHandleHtml}
                 </div>
                 <div class="name-row" style="margin-bottom: 4px;">
-                    <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}" style="font-weight: bold; font-size: 30px; cursor: pointer; line-height: 1.2;">${escapeHtml(name)}</span>
+                    <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}" style="font-weight: bold; font-size: 24px; cursor: pointer; line-height: 1.2;">${escapeHtml(name)}</span>
                 </div>
-                <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
-                <div class="total-row"><span class="total">📦 Всего: ${total} шт</span></div>
-                <div class="price-actions-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                <div class="stock-row" style="margin-bottom: 2px;"><span class="stock">Остаток: ${stock} шт</span></div>
+                <div class="total-row" style="margin-bottom: 2px;"><span class="total">📦 Всего: ${total} шт</span></div>
+                <div class="price-actions-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px; margin-bottom: 2px;">
                     <span class="price">💰 Цена: ${price} ₽</span>
                 </div>
             </div>
-            <div class="buttons" style="display: flex; gap: 8px; margin-top: 8px;">
+            <div class="buttons" style="display: flex; gap: 8px; margin-top: 6px;">
                 <button class="minus" data-id="${id}" data-delta="-1">−1</button>
                 <button class="plus" data-id="${id}" data-delta="+1">+1</button>
                 <button class="add-to-cart" data-id="${id}">➕</button>
