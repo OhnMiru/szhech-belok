@@ -940,6 +940,15 @@
                 console.log("✅ Кнопка техподдержки активирована");
             }
         });
+
+         // Кнопка инструкции
+        const instructionsLink = document.getElementById('instructionsLink');
+        if (instructionsLink) {
+            instructionsLink.addEventListener('click', function() {
+                openInstructionsModal();
+            });
+            console.log("✅ Кнопка инструкции активирована");
+        }
         
         // Делаем функции глобальными
         window.openSupportModal = openSupportModal;
