@@ -43,27 +43,37 @@ function renderCards() {
         if (attribute1) typeDisplayText += ` | ${attribute1}`;
         if (attribute2) typeDisplayText += ` | ${attribute2}`;
         
+        // Формируем блок кнопок для первой строки
+        const actionButtonsHtml = `
+            <div class="action-buttons-inline" style="display: inline-flex; gap: 6px; margin-left: 8px;">
+                <button class="edit-icon" onclick="openEditProductModal(${id})" title="Редактировать" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px;">✏️</button>
+                <button class="comment-icon ${hasComment ? 'has-comment' : ''}" onclick="showCommentModal(${id}, '${escapeHtml(name).replace(/'/g, "\\'")}')" title="Комментарий" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px; position: relative;">
+                    💬
+                    ${hasComment ? '<span class="comment-badge" style="position: absolute; top: -4px; right: -6px; width: 8px; height: 8px; background: #f39c12; border-radius: 50%;"></span>' : ''}
+                </button>
+            </div>
+        `;
+        
+        // Ручка для сортировки
+        const sortHandleHtml = currentSortBy === 'custom' ? '<span class="sort-handle" style="cursor: grab; margin-left: 8px; opacity: 0.6;">⋮⋮</span>' : '';
+        
         cardDiv.innerHTML = `
             <div class="info">
-                <div class="title-row">
-                    ${type ? `<span class="type-badge" style="background: ${typeColor}20; color: ${typeColor}; border: 1px solid ${typeColor}40;">${escapeHtml(typeDisplayText)}</span>` : ''}
-                    ${currentSortBy === 'custom' ? '<span class="sort-handle">⋮⋮</span>' : ''}
-                    <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>
+                <div class="title-row" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                    ${type ? `<span class="type-badge" style="background: ${typeColor}20; color: ${typeColor}; border: 1px solid ${typeColor}40; padding: 2px 8px; border-radius: 20px; font-size: 11px; display: inline-block;">${escapeHtml(typeDisplayText)}</span>` : ''}
+                    ${actionButtonsHtml}
+                    ${sortHandleHtml}
+                </div>
+                <div class="name-row" style="margin-bottom: 8px;">
+                    <span class="name clickable" data-id="${id}" data-name="${escapeHtml(name)}" style="font-weight: bold; font-size: 15px; cursor: pointer;">${escapeHtml(name)}</span>
                 </div>
                 <div class="stock-row"><span class="stock">Остаток: ${stock} шт</span></div>
                 <div class="total-row"><span class="total">📦 Всего: ${total} шт</span></div>
-                <div class="price-actions-row">
+                <div class="price-actions-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                     <span class="price">💰 Цена: ${price} ₽</span>
-                    <div class="action-buttons">
-                        <button class="edit-icon" onclick="openEditProductModal(${id})" title="Редактировать">✏️</button>
-                        <button class="comment-icon ${hasComment ? 'has-comment' : ''}" onclick="showCommentModal(${id}, '${escapeHtml(name).replace(/'/g, "\\'")}')" title="Комментарий">
-                            💬
-                            ${hasComment ? '<span class="comment-badge"></span>' : ''}
-                        </button>
-                    </div>
                 </div>
             </div>
-            <div class="buttons">
+            <div class="buttons" style="display: flex; gap: 8px; margin-top: 12px;">
                 <button class="minus" data-id="${id}" data-delta="-1">−1</button>
                 <button class="plus" data-id="${id}" data-delta="+1">+1</button>
                 <button class="add-to-cart" data-id="${id}">➕</button>
@@ -115,10 +125,16 @@ function updateCardInDOM(cardId, updatedData) {
     const cardElement = document.querySelector(`.card[data-id="${cardId}"]`);
     if (!cardElement) return;
     
-    // Обновляем тип
+    // Обновляем плашку с типом и атрибутами
     const typeBadge = cardElement.querySelector('.type-badge');
     if (typeBadge && updatedData.type !== undefined) {
-        typeBadge.textContent = updatedData.type;
+        let typeDisplayText = updatedData.type;
+        const attr1 = updatedData.attribute1 || "";
+        const attr2 = updatedData.attribute2 || "";
+        if (attr1) typeDisplayText += ` | ${attr1}`;
+        if (attr2) typeDisplayText += ` | ${attr2}`;
+        typeBadge.textContent = typeDisplayText;
+        
         const typeColor = updatedData.type ? getTypeColor(updatedData.type) : '#c25d1a';
         typeBadge.style.background = `${typeColor}20`;
         typeBadge.style.color = typeColor;
@@ -131,27 +147,29 @@ function updateCardInDOM(cardId, updatedData) {
         nameElement.setAttribute('data-name', updatedData.name);
     }
     
-    // Обновляем атрибуты
-    if (updatedData.attribute1 !== undefined || updatedData.attribute2 !== undefined) {
-        const oldAttributes = cardElement.querySelector('.card-attributes');
-        if (oldAttributes) oldAttributes.remove();
-        
-        const attr1 = updatedData.attribute1 || "";
-        const attr2 = updatedData.attribute2 || "";
-        
-        if (attr1 || attr2) {
-            const parts = [];
-            if (attr1) parts.push(escapeHtml(attr1));
-            if (attr2) parts.push(escapeHtml(attr2));
-            const attributesHtml = `<div class="card-attributes" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${parts.join(' | ')}</div>`;
-            
-            const titleRow = cardElement.querySelector('.title-row');
-            if (titleRow && titleRow.nextSibling) {
-                titleRow.insertAdjacentHTML('afterend', attributesHtml);
-            } else {
-                const infoDiv = cardElement.querySelector('.info');
-                if (infoDiv) infoDiv.insertAdjacentHTML('beforeend', attributesHtml);
+    // Обновляем индикатор комментария
+    const hasComment = commentsCache.has(cardId) && commentsCache.get(cardId).comment && commentsCache.get(cardId).comment.trim() !== "";
+    const commentBtn = cardElement.querySelector('.comment-icon');
+    if (commentBtn) {
+        if (hasComment) {
+            commentBtn.classList.add('has-comment');
+            let badge = commentBtn.querySelector('.comment-badge');
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'comment-badge';
+                badge.style.position = 'absolute';
+                badge.style.top = '-4px';
+                badge.style.right = '-6px';
+                badge.style.width = '8px';
+                badge.style.height = '8px';
+                badge.style.background = '#f39c12';
+                badge.style.borderRadius = '50%';
+                commentBtn.appendChild(badge);
             }
+        } else {
+            commentBtn.classList.remove('has-comment');
+            const badge = commentBtn.querySelector('.comment-badge');
+            if (badge) badge.remove();
         }
     }
     
@@ -273,6 +291,13 @@ function updateCommentIndicators() {
                 if (!badge) {
                     badge = document.createElement('span');
                     badge.className = 'comment-badge';
+                    badge.style.position = 'absolute';
+                    badge.style.top = '-4px';
+                    badge.style.right = '-6px';
+                    badge.style.width = '8px';
+                    badge.style.height = '8px';
+                    badge.style.background = '#f39c12';
+                    badge.style.borderRadius = '50%';
                     commentBtn.appendChild(badge);
                 }
             } else {
