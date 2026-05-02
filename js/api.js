@@ -17,6 +17,96 @@ function buildApiUrl(action, extraParams = "") {
     return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}${realUserParam}&t=${Date.now()}`;
 }
 
+// ========== ФУНКЦИИ ДЛЯ ЗАГРУЗКИ КОНФИГУРАЦИИ ТИПОВ МЕРЧА ==========
+
+// Загрузить конфигурацию типов мерча с сервера
+async function loadMerchTypesConfig() {
+    if (!window.isOnline) {
+        // Пробуем загрузить из localStorage
+        const saved = localStorage.getItem('merch_types_config');
+        if (saved) {
+            try {
+                const config = JSON.parse(saved);
+                window.merchTypesConfig = config.types || [];
+                updateMerchTypesCache();
+                window.merchTypesLoaded = true;
+                console.log("✅ Конфигурация типов загружена из localStorage:", window.merchTypesConfig.length);
+                return true;
+            } catch(e) {
+                console.error("Ошибка загрузки из localStorage:", e);
+            }
+        }
+        return false;
+    }
+    
+    try {
+        const response = await fetch(buildApiUrl("getMerchTypes"));
+        const result = await response.json();
+        
+        if (result && result.types) {
+            window.merchTypesConfig = result.types;
+            updateMerchTypesCache();
+            window.merchTypesLoaded = true;
+            
+            // Сохраняем в localStorage
+            localStorage.setItem('merch_types_config', JSON.stringify({ types: result.types, loaded: Date.now() }));
+            
+            console.log("✅ Конфигурация типов загружена с сервера:", window.merchTypesConfig.length);
+            return true;
+        } else {
+            console.warn("⚠️ Нет данных о типах мерча");
+            return false;
+        }
+    } catch(e) {
+        console.error("Ошибка загрузки конфигурации типов:", e);
+        
+        // Пробуем загрузить из localStorage при ошибке
+        const saved = localStorage.getItem('merch_types_config');
+        if (saved) {
+            try {
+                const config = JSON.parse(saved);
+                window.merchTypesConfig = config.types || [];
+                updateMerchTypesCache();
+                window.merchTypesLoaded = true;
+                console.log("✅ Конфигурация типов загружена из localStorage (fallback):", window.merchTypesConfig.length);
+                return true;
+            } catch(e2) {
+                console.error("Ошибка загрузки из localStorage:", e2);
+            }
+        }
+        return false;
+    }
+}
+
+// Обновить кэш типов для быстрого доступа
+function updateMerchTypesCache() {
+    window.merchTypesCache.clear();
+    for (const typeConfig of window.merchTypesConfig) {
+        if (typeConfig && typeConfig.type) {
+            window.merchTypesCache.set(typeConfig.type.toLowerCase(), typeConfig);
+        }
+    }
+}
+
+// Получить конфигурацию для конкретного типа
+function getTypeConfigFromCache(typeName) {
+    if (!typeName) return null;
+    return window.merchTypesCache.get(typeName.toLowerCase()) || null;
+}
+
+// Проверить, есть ли у типа атрибуты
+function hasAttributesForType(typeName) {
+    const config = getTypeConfigFromCache(typeName);
+    if (!config) return false;
+    return (config.attribute1 && config.attribute1.values && config.attribute1.values.length > 0) ||
+           (config.attribute2 && config.attribute2.values && config.attribute2.values.length > 0);
+}
+
+// Получить список всех типов мерча
+function getAllMerchTypes() {
+    return window.merchTypesConfig.map(t => t.type);
+}
+
 // ========== ОСНОВНЫЕ ФУНКЦИИ ==========
 async function loadData(showLoading = true, showProgress = false) {
     console.log("✅ loadData ВЫЗВАНА!");
@@ -38,7 +128,14 @@ async function loadData(showLoading = true, showProgress = false) {
         const response = await fetch(buildApiUrl("get"));
         const data = await response.json();
         console.log("Данные получены:", data?.length || 0);
+        
+        // Проверяем наличие атрибутов в данных (для обратной совместимости)
         if (data && data.length > 0) {
+            // Если у товаров нет полей attribute1/attribute2, добавляем их
+            for (const item of data) {
+                if (item.attribute1 === undefined) item.attribute1 = "";
+                if (item.attribute2 === undefined) item.attribute2 = "";
+            }
             window.originalCardsData = data;
             if (typeof window.updateTypeOptions === 'function') window.updateTypeOptions();
             if (typeof window.filterAndSort === 'function') window.filterAndSort();
@@ -67,32 +164,47 @@ async function loadData(showLoading = true, showProgress = false) {
     }
 }
 
-async function updateFullItem(id, type, name, stock, total, price, cost) {
+// ОБНОВЛЕНА: добавлены параметры attribute1 и attribute2
+async function updateFullItem(id, type, name, stock, total, price, cost, attribute1 = "", attribute2 = "") {
     if (!window.isOnline) {
         if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("updateFullItem", { id: id, type: type, name: name, stock: stock, total: total, price: price, cost: cost });
+            window.addPendingOperation("updateFullItem", { 
+                id: id, type: type, name: name, stock: stock, total: total, 
+                price: price, cost: cost, attribute1: attribute1, attribute2: attribute2 
+            });
         }
         return { success: true, offline: true };
     }
     try {
-        const params = `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}`;
+        const params = `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}&attribute1=${encodeURIComponent(attribute1)}&attribute2=${encodeURIComponent(attribute2)}`;
         const response = await fetch(buildApiUrl("updateFullItem", params));
         return await response.json();
     } catch(e) {
         if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("updateFullItem", { id: id, type: type, name: name, stock: stock, total: total, price: price, cost: cost });
+            window.addPendingOperation("updateFullItem", { 
+                id: id, type: type, name: name, stock: stock, total: total, 
+                price: price, cost: cost, attribute1: attribute1, attribute2: attribute2 
+            });
         }
         return { success: true, offline: true };
     }
 }
 
-async function sendAddItemRequest(type, name, total, stock, price, cost) {
+// ОБНОВЛЕНА: добавлены параметры attribute1 и attribute2
+async function sendAddItemRequest(type, name, total, stock, price, cost, attribute1 = "", attribute2 = "") {
     if (!window.isOnline) {
         if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("addItem", { type: type, name: name, total: total, stock: stock, price: price, cost: cost });
+            window.addPendingOperation("addItem", { 
+                type: type, name: name, total: total, stock: stock, 
+                price: price, cost: cost, attribute1: attribute1, attribute2: attribute2 
+            });
         }
         const tempId = -Date.now();
-        const newItem = { id: tempId, type: type, name: name, total: total, stock: stock, price: price, cost: cost || 0 };
+        const newItem = { 
+            id: tempId, type: type, name: name, total: total, 
+            stock: stock, price: price, cost: cost || 0,
+            attribute1: attribute1, attribute2: attribute2 
+        };
         window.originalCardsData.push(newItem);
         if (typeof window.updateTypeOptions === 'function') window.updateTypeOptions();
         if (typeof window.filterAndSort === 'function') window.filterAndSort();
@@ -101,11 +213,15 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
     }
     
     try {
-        const params = `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}`;
+        const params = `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}&attribute1=${encodeURIComponent(attribute1)}&attribute2=${encodeURIComponent(attribute2)}`;
         const response = await fetch(buildApiUrl("addItem", params));
         const result = await response.json();
         if (result.success) {
-            const newItem = { id: result.id, type: type, name: name, total: total, stock: stock, price: price, cost: cost || 0 };
+            const newItem = { 
+                id: result.id, type: type, name: name, total: total, 
+                stock: stock, price: price, cost: cost || 0,
+                attribute1: attribute1, attribute2: attribute2 
+            };
             window.originalCardsData.push(newItem);
             if (typeof window.updateTypeOptions === 'function') window.updateTypeOptions();
             if (typeof window.filterAndSort === 'function') window.filterAndSort();
@@ -114,7 +230,10 @@ async function sendAddItemRequest(type, name, total, stock, price, cost) {
         return result;
     } catch(e) {
         if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("addItem", { type: type, name: name, total: total, stock: stock, price: price, cost: cost });
+            window.addPendingOperation("addItem", { 
+                type: type, name: name, total: total, stock: stock, 
+                price: price, cost: cost, attribute1: attribute1, attribute2: attribute2 
+            });
         }
         return { success: true, offline: true };
     }
@@ -561,5 +680,12 @@ window.getPhotoUrl = getPhotoUrl;
 window.uploadPhoto = uploadPhoto;
 window.deletePhoto = deletePhoto;
 
+// Новые функции для работы с типами мерча
+window.loadMerchTypesConfig = loadMerchTypesConfig;
+window.getTypeConfigFromCache = getTypeConfigFromCache;
+window.hasAttributesForType = hasAttributesForType;
+window.getAllMerchTypes = getAllMerchTypes;
+
 console.log("✅ api.js загружен, getComment определена:", typeof window.getComment);
 console.log("✅ api.js загружен, loadData определена:", typeof window.loadData);
+console.log("✅ api.js загружен, loadMerchTypesConfig определена:", typeof window.loadMerchTypesConfig);
