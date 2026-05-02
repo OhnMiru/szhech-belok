@@ -1,10 +1,12 @@
 // ========== ДАТА И ВРЕМЯ ==========
+
 function initDateTimeSelects() {
     const currentYear = new Date().getFullYear();
     const years = [];
     for (let i = currentYear - 2; i <= currentYear + 2; i++) years.push(i);
     const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
     
+    // Заполняем скрытые select днём (для хранения значений)
     ['dateFromDay', 'dateToDay'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
@@ -69,6 +71,11 @@ function initDateTimeSelects() {
             }
         }
     });
+    
+    // Инициализируем кастомные селекторы
+    if (typeof initCustomDateTimeSelects === 'function') {
+        initCustomDateTimeSelects();
+    }
 }
 
 function getDateTimeFromSelects(prefix) {
