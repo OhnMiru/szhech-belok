@@ -1,14 +1,22 @@
 // ========== СТАТИСТИКА ==========
 
-// Переменные для фильтра
+// Переменные для фильтра по времени
 let statsFilterFromDate = null;
 let statsFilterToDate = null;
 let statsFilterActive = false;
 
+// Переменные для фильтра по атрибутам
+let statsSelectedType = "";
+let statsSelectedAttribute = "";
+let statsSelectedValues = []; // массив выбранных значений атрибута
+let statsAttributeFilterActive = false;
+
+// Кэш для данных статистики по атрибутам
+let attributeStatsCache = null;
+
 function openStatsModal() {
     const modal = document.getElementById('statsModal');
     if (modal) {
-        // Инициализируем селекты дат при открытии
         if (typeof initStatsDateTimeSelects === 'function') {
             initStatsDateTimeSelects();
         }
@@ -22,6 +30,287 @@ function closeStatsModal() {
     if (modal) modal.style.display = 'none'; 
 }
 
+// ========== ФИЛЬТРЫ ПО АТРИБУТАМ ==========
+
+// Инициализация селектора типов в статистике
+function initStatsTypeSelector() {
+    const container = document.getElementById('statsAttributeFilters');
+    if (!container) return;
+    
+    const types = getAllMerchTypes();
+    let html = `
+        <div class="stats-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px;">
+            <div style="font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">🔍 Фильтр по атрибутам</div>
+            <div class="filter-row" style="margin-bottom: 8px;">
+                <select id="statsTypeSelect" class="edit-input" style="flex: 1;" onchange="onStatsTypeChange()">
+                    <option value="">Все типы</option>
+    `;
+    for (const type of types) {
+        html += `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`;
+    }
+    html += `
+                </select>
+            </div>
+            <div id="statsAttributeSelectContainer" style="display: none; margin-bottom: 8px;"></div>
+            <div id="statsValueCheckboxesContainer" style="display: none; margin-bottom: 8px;"></div>
+            <div id="statsAttributeFilterButtons" style="display: none; display: flex; gap: 8px; margin-top: 8px;">
+                <button class="edit-save-btn" onclick="applyStatsAttributeFilter()" style="padding: 6px 16px;">Применить</button>
+                <button class="edit-cancel-btn" onclick="resetStatsAttributeFilter()" style="padding: 6px 16px;">Сбросить</button>
+            </div>
+        </div>
+    `;
+    
+    // Вставляем фильтры после блока с фильтром по времени
+    const filterBlock = document.getElementById('statsFilterBlock');
+    if (filterBlock) {
+        // Проверяем, есть ли уже контейнер для атрибутов
+        let attrContainer = document.getElementById('statsAttributeFilters');
+        if (!attrContainer) {
+            filterBlock.insertAdjacentHTML('afterend', html);
+        }
+    }
+}
+
+// Обработчик смены типа в статистике
+function onStatsTypeChange() {
+    const typeSelect = document.getElementById('statsTypeSelect');
+    const selectedType = typeSelect?.value || "";
+    
+    statsSelectedType = selectedType;
+    
+    const attrContainer = document.getElementById('statsAttributeSelectContainer');
+    const valueContainer = document.getElementById('statsValueCheckboxesContainer');
+    const buttonsContainer = document.getElementById('statsAttributeFilterButtons');
+    
+    if (!selectedType) {
+        if (attrContainer) attrContainer.style.display = 'none';
+        if (valueContainer) valueContainer.style.display = 'none';
+        if (buttonsContainer) buttonsContainer.style.display = 'none';
+        return;
+    }
+    
+    const typeConfig = getTypeConfigFromCache(selectedType);
+    if (!typeConfig) {
+        if (attrContainer) attrContainer.style.display = 'none';
+        if (valueContainer) valueContainer.style.display = 'none';
+        if (buttonsContainer) buttonsContainer.style.display = 'none';
+        return;
+    }
+    
+    // Собираем доступные атрибуты
+    const attributes = [];
+    if (typeConfig.attribute1 && typeConfig.attribute1.values && typeConfig.attribute1.values.length > 0) {
+        attributes.push({ name: typeConfig.attribute1.name, key: 'attr1', values: typeConfig.attribute1.values });
+    }
+    if (typeConfig.attribute2 && typeConfig.attribute2.values && typeConfig.attribute2.values.length > 0) {
+        attributes.push({ name: typeConfig.attribute2.name, key: 'attr2', values: typeConfig.attribute2.values });
+    }
+    
+    if (attributes.length === 0) {
+        if (attrContainer) attrContainer.style.display = 'none';
+        if (valueContainer) valueContainer.style.display = 'none';
+        if (buttonsContainer) buttonsContainer.style.display = 'none';
+        return;
+    }
+    
+    // Показываем селектор атрибутов
+    if (attrContainer) {
+        attrContainer.style.display = 'block';
+        let attrHtml = `<select id="statsAttributeSelect" class="edit-input" style="width: 100%;" onchange="onStatsAttributeChange()">
+            <option value="">Выберите атрибут</option>`;
+        for (const attr of attributes) {
+            attrHtml += `<option value="${escapeHtml(attr.name)}" data-key="${attr.key}">${escapeHtml(attr.name)}</option>`;
+        }
+        attrHtml += `</select>`;
+        attrContainer.innerHTML = attrHtml;
+    }
+    
+    if (buttonsContainer) buttonsContainer.style.display = 'flex';
+    if (valueContainer) valueContainer.style.display = 'none';
+    statsSelectedAttribute = "";
+    statsSelectedValues = [];
+}
+
+// Обработчик смены атрибута в статистике
+function onStatsAttributeChange() {
+    const attrSelect = document.getElementById('statsAttributeSelect');
+    const selectedAttr = attrSelect?.value || "";
+    const selectedKey = attrSelect?.options[attrSelect.selectedIndex]?.dataset?.key || "";
+    
+    statsSelectedAttribute = selectedAttr;
+    
+    const valueContainer = document.getElementById('statsValueCheckboxesContainer');
+    if (!valueContainer) return;
+    
+    if (!selectedAttr || !selectedKey) {
+        valueContainer.style.display = 'none';
+        statsSelectedValues = [];
+        return;
+    }
+    
+    const typeConfig = getTypeConfigFromCache(statsSelectedType);
+    if (!typeConfig) {
+        valueContainer.style.display = 'none';
+        return;
+    }
+    
+    let values = [];
+    if (selectedKey === 'attr1' && typeConfig.attribute1) {
+        values = typeConfig.attribute1.values;
+    } else if (selectedKey === 'attr2' && typeConfig.attribute2) {
+        values = typeConfig.attribute2.values;
+    }
+    
+    if (values.length === 0) {
+        valueContainer.style.display = 'none';
+        return;
+    }
+    
+    // Создаём чекбоксы для значений
+    let valuesHtml = `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Выберите значения:</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">`;
+    
+    // Добавляем чекбокс "Все"
+    const allChecked = statsSelectedValues.length === 0 || statsSelectedValues.length === values.length;
+    valuesHtml += `<label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px;">
+        <input type="checkbox" class="stats-value-checkbox" data-value="__all__" ${allChecked ? 'checked' : ''} onchange="onStatsValueChange('__all__', this.checked)"> 
+        Все
+    </label>`;
+    
+    for (const value of values) {
+        const isChecked = statsSelectedValues.includes(value) || allChecked;
+        valuesHtml += `<label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px;">
+            <input type="checkbox" class="stats-value-checkbox" data-value="${escapeHtml(value)}" ${isChecked ? 'checked' : ''} onchange="onStatsValueChange('${escapeHtml(value).replace(/'/g, "\\'")}', this.checked)"> 
+            ${escapeHtml(value)}
+        </label>`;
+    }
+    
+    valuesHtml += `</div>`;
+    valueContainer.innerHTML = valuesHtml;
+    valueContainer.style.display = 'block';
+}
+
+// Обработчик выбора значения
+function onStatsValueChange(value, isChecked) {
+    if (value === '__all__') {
+        // Если выбрали "Все", очищаем массив
+        statsSelectedValues = [];
+        // Обновляем все чекбоксы
+        document.querySelectorAll('.stats-value-checkbox').forEach(cb => {
+            if (cb.dataset.value !== '__all__') {
+                cb.checked = isChecked;
+            }
+        });
+    } else {
+        if (isChecked) {
+            if (!statsSelectedValues.includes(value)) {
+                statsSelectedValues.push(value);
+            }
+            // Снимаем галочку с "Все", если она была
+            const allCheckbox = document.querySelector('.stats-value-checkbox[data-value="__all__"]');
+            if (allCheckbox) allCheckbox.checked = false;
+        } else {
+            statsSelectedValues = statsSelectedValues.filter(v => v !== value);
+            // Если после удаления массив пустой, отмечаем "Все"
+            if (statsSelectedValues.length === 0) {
+                const allCheckbox = document.querySelector('.stats-value-checkbox[data-value="__all__"]');
+                if (allCheckbox) allCheckbox.checked = true;
+            }
+        }
+    }
+}
+
+// Применение фильтра по атрибутам
+function applyStatsAttributeFilter() {
+    const typeSelect = document.getElementById('statsTypeSelect');
+    statsSelectedType = typeSelect?.value || "";
+    
+    const attrSelect = document.getElementById('statsAttributeSelect');
+    statsSelectedAttribute = attrSelect?.value || "";
+    
+    statsAttributeFilterActive = !!(statsSelectedType && statsSelectedAttribute);
+    
+    renderStats();
+}
+
+// Сброс фильтра по атрибутам
+function resetStatsAttributeFilter() {
+    const typeSelect = document.getElementById('statsTypeSelect');
+    if (typeSelect) typeSelect.value = "";
+    
+    statsSelectedType = "";
+    statsSelectedAttribute = "";
+    statsSelectedValues = [];
+    statsAttributeFilterActive = false;
+    
+    // Скрываем дополнительные контейнеры
+    const attrContainer = document.getElementById('statsAttributeSelectContainer');
+    const valueContainer = document.getElementById('statsValueCheckboxesContainer');
+    const buttonsContainer = document.getElementById('statsAttributeFilterButtons');
+    if (attrContainer) attrContainer.style.display = 'none';
+    if (valueContainer) valueContainer.style.display = 'none';
+    if (buttonsContainer) buttonsContainer.style.display = 'none';
+    
+    renderStats();
+}
+
+// Фильтрация продаж по атрибутам
+function filterSalesByAttributes(sales) {
+    if (!statsAttributeFilterActive || !statsSelectedType || !statsSelectedAttribute) {
+        return sales;
+    }
+    
+    const filtered = [];
+    for (const sale of sales) {
+        let hasMatchingItem = false;
+        for (const item of sale.items) {
+            const card = originalCardsData.find(c => c.id === item.id);
+            if (!card) continue;
+            
+            // Проверяем тип
+            if (card.type !== statsSelectedType) continue;
+            
+            // Проверяем значение атрибута
+            let attributeValue = "";
+            if (statsSelectedAttribute === "Размер" || statsSelectedAttribute === "Форма и размер") {
+                attributeValue = card.attribute1 || "";
+            } else if (statsSelectedAttribute === "Акрил" || statsSelectedAttribute === "Материал") {
+                attributeValue = card.attribute2 || "";
+            } else {
+                // Поиск по названию атрибута в конфиге
+                const typeConfig = getTypeConfigFromCache(statsSelectedType);
+                if (typeConfig) {
+                    if (typeConfig.attribute1?.name === statsSelectedAttribute) {
+                        attributeValue = card.attribute1 || "";
+                    } else if (typeConfig.attribute2?.name === statsSelectedAttribute) {
+                        attributeValue = card.attribute2 || "";
+                    }
+                }
+            }
+            
+            // Если выбраны конкретные значения
+            if (statsSelectedValues.length > 0) {
+                if (statsSelectedValues.includes(attributeValue)) {
+                    hasMatchingItem = true;
+                    break;
+                }
+            } else {
+                // Если выбрано "Все" — подходят любые значения
+                if (attributeValue) {
+                    hasMatchingItem = true;
+                    break;
+                }
+            }
+        }
+        if (hasMatchingItem) {
+            filtered.push(sale);
+        }
+    }
+    return filtered;
+}
+
+// ========== ОСТАЛЬНЫЕ ФУНКЦИИ СТАТИСТИКИ ==========
+
 // Инициализация селектов даты и времени для статистики
 function initStatsDateTimeSelects() {
     const currentYear = new Date().getFullYear();
@@ -29,7 +318,6 @@ function initStatsDateTimeSelects() {
     for (let i = currentYear - 2; i <= currentYear + 2; i++) years.push(i);
     const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
     
-    // Дни
     ['statsDateFromDay', 'statsDateToDay'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
@@ -43,7 +331,6 @@ function initStatsDateTimeSelects() {
         }
     });
     
-    // Месяцы
     ['statsDateFromMonth', 'statsDateToMonth'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
@@ -57,7 +344,6 @@ function initStatsDateTimeSelects() {
         }
     });
     
-    // Годы
     ['statsDateFromYear', 'statsDateToYear'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
@@ -68,7 +354,6 @@ function initStatsDateTimeSelects() {
                 option.textContent = year;
                 select.appendChild(option);
             }
-            // Устанавливаем текущий год по умолчанию
             if (select.id.includes('To')) {
                 select.value = currentYear;
             } else {
@@ -77,7 +362,6 @@ function initStatsDateTimeSelects() {
         }
     });
     
-    // Часы
     ['statsTimeFromHour', 'statsTimeToHour'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
@@ -96,7 +380,6 @@ function initStatsDateTimeSelects() {
         }
     });
     
-    // Минуты
     ['statsTimeFromMinute', 'statsTimeToMinute'].forEach(id => {
         const select = document.getElementById(id);
         if (select) {
@@ -114,9 +397,11 @@ function initStatsDateTimeSelects() {
             }
         }
     });
+    
+    // Инициализируем фильтры по атрибутам
+    initStatsTypeSelector();
 }
 
-// Получение даты из селектов
 function getStatsDateTimeFromSelects(prefix) {
     const day = document.getElementById(`${prefix}Day`)?.value;
     const month = document.getElementById(`${prefix}Month`)?.value;
@@ -130,7 +415,6 @@ function getStatsDateTimeFromSelects(prefix) {
     return null;
 }
 
-// Переключение видимости фильтра
 function toggleStatsFilter() {
     const block = document.getElementById('statsFilterBlock');
     if (block) {
@@ -139,9 +423,7 @@ function toggleStatsFilter() {
     }
 }
 
-// Сброс фильтра
 function resetStatsFilter() {
-    // Сбрасываем селекты на значения по умолчанию
     const now = new Date();
     const fromDate = new Date(now);
     fromDate.setDate(now.getDate() - 30);
@@ -156,7 +438,6 @@ function resetStatsFilter() {
     renderStats();
 }
 
-// Установка значений селектов
 function setStatsDateTimeValues(prefix, date) {
     if (!date) return;
     const day = document.getElementById(`${prefix}Day`);
@@ -172,7 +453,6 @@ function setStatsDateTimeValues(prefix, date) {
     if (minute) minute.value = date.getMinutes();
 }
 
-// Применение фильтра
 function applyStatsFilter() {
     statsFilterFromDate = getStatsDateTimeFromSelects('statsDateFrom');
     statsFilterToDate = getStatsDateTimeFromSelects('statsDateTo');
@@ -180,7 +460,6 @@ function applyStatsFilter() {
     renderStats();
 }
 
-// Получение отфильтрованной истории
 function getFilteredSalesHistory() {
     let filteredSales = salesHistory.filter(entry => !entry.isReturn && !entry.hidden);
     
@@ -191,6 +470,9 @@ function getFilteredSalesHistory() {
         filteredSales = filteredSales.filter(entry => new Date(entry.date) <= statsFilterToDate);
     }
     
+    // Применяем фильтр по атрибутам
+    filteredSales = filterSalesByAttributes(filteredSales);
+    
     return filteredSales;
 }
 
@@ -198,7 +480,6 @@ function renderStats() {
     const container = document.getElementById('stats-content');
     if (!container) return;
     
-    // Используем отфильтрованную историю
     const sales = getFilteredSalesHistory();
     
     let totalRevenue = 0, totalItemsSold = 0, orderCount = sales.length;
@@ -240,6 +521,8 @@ function renderStats() {
             stock: card.stock || 0,
             name: card.name,
             type: card.type,
+            attribute1: card.attribute1 || "",
+            attribute2: card.attribute2 || "",
             soldQty: 0,
             revenue: 0
         });
@@ -269,6 +552,8 @@ function renderStats() {
             id: id,
             name: data.name,
             type: data.type,
+            attribute1: data.attribute1,
+            attribute2: data.attribute2,
             soldQty: data.soldQty,
             stock: data.stock,
             revenue: data.revenue,
@@ -287,7 +572,8 @@ function renderStats() {
             typeStats[type] = { 
                 fullCost: 0, 
                 revenue: 0,
-                soldQty: 0
+                soldQty: 0,
+                attributeStats: {}
             };
         }
         typeStats[type].fullCost += fullCost;
@@ -300,6 +586,22 @@ function renderStats() {
             if (typeStats[type]) {
                 typeStats[type].revenue += item.qty * item.price;
                 typeStats[type].soldQty += item.qty;
+                
+                // Собираем статистику по атрибутам
+                if (card.attribute1) {
+                    if (!typeStats[type].attributeStats[card.attribute1]) {
+                        typeStats[type].attributeStats[card.attribute1] = { revenue: 0, qty: 0 };
+                    }
+                    typeStats[type].attributeStats[card.attribute1].revenue += item.qty * item.price;
+                    typeStats[type].attributeStats[card.attribute1].qty += item.qty;
+                }
+                if (card.attribute2) {
+                    if (!typeStats[type].attributeStats[card.attribute2]) {
+                        typeStats[type].attributeStats[card.attribute2] = { revenue: 0, qty: 0 };
+                    }
+                    typeStats[type].attributeStats[card.attribute2].revenue += item.qty * item.price;
+                    typeStats[type].attributeStats[card.attribute2].qty += item.qty;
+                }
             }
         }
     }
@@ -313,7 +615,8 @@ function renderStats() {
             revenue: data.revenue,
             fullCost: data.fullCost,
             profit: profit,
-            margin: margin
+            margin: margin,
+            attributeStats: data.attributeStats
         };
     }).sort((a, b) => b.margin - a.margin);
     
@@ -325,7 +628,6 @@ function renderStats() {
     const formatNumber = (value) => value.toLocaleString('ru-RU');
     const formatPercent = (value) => value.toFixed(1) + '%';
     
-    // Добавляем информацию о фильтре
     let filterInfo = '';
     if (statsFilterActive && (statsFilterFromDate || statsFilterToDate)) {
         const fromStr = statsFilterFromDate ? statsFilterFromDate.toLocaleDateString('ru-RU') : 'все время';
@@ -333,7 +635,14 @@ function renderStats() {
         filterInfo = `<div style="text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">📅 Период: ${fromStr} — ${toStr}</div>`;
     }
     
-    let html = filterInfo;
+    // Добавляем информацию о фильтре по атрибутам
+    let attributeFilterInfo = '';
+    if (statsAttributeFilterActive && statsSelectedType && statsSelectedAttribute) {
+        let valuesText = statsSelectedValues.length > 0 ? statsSelectedValues.join(', ') : 'все';
+        attributeFilterInfo = `<div style="text-align: center; font-size: 11px; color: var(--btn-bg); margin-bottom: 12px;">🔍 Фильтр: ${statsSelectedType} → ${statsSelectedAttribute} (${valuesText})</div>`;
+    }
+    
+    let html = filterInfo + attributeFilterInfo;
     
     html += `<div class="stats-grid">
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalRevenue)}</div><div class="stats-card-label">💰 Выручка</div></div>
@@ -373,16 +682,27 @@ function renderStats() {
         <div class="table-wrapper">
             <table class="detail-table">
                 <thead>
-                    <tr><th>Товар</th><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                    <tr><th>Товар</th><th>Тип</th><th>Атрибуты</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
                 </tr>
                 </thead>
                 <tbody>`;
     for (const p of productStats) {
         const profitClass = p.profit >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = p.margin >= 0 ? 'profit-positive' : 'profit-negative';
+        let attributesText = "";
+        if (p.attribute1 && p.attribute2) {
+            attributesText = `${p.attribute1} | ${p.attribute2}`;
+        } else if (p.attribute1) {
+            attributesText = p.attribute1;
+        } else if (p.attribute2) {
+            attributesText = p.attribute2;
+        } else {
+            attributesText = "—";
+        }
         html += `<tr>
             <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td style="font-size: 11px; color: var(--text-muted);">${escapeHtml(attributesText)}</td>
             <td class="text-right">${p.soldQty} шт</td>
             <td class="text-right">${p.stock} шт</td>
             <td class="text-right">${formatCurrency(p.revenue)}</td>
@@ -419,8 +739,39 @@ function renderStats() {
     html += `</tbody>
         </table>
         </div>
-    </div>
-    <div class="two-columns">
+    </div>`;
+    
+    // Детализация по атрибутам для каждого типа
+    html += `<div class="detail-section">
+        <div class="detail-title">🏷️ Детализация по атрибутам (внутри типов)</div>`;
+    for (const t of sortedTypeDetails) {
+        if (Object.keys(t.attributeStats).length > 0) {
+            html += `<div style="margin-top: 16px;">
+                <div style="font-weight: bold; margin-bottom: 8px; color: var(--btn-bg);">${escapeHtml(t.type)}</div>
+                <div class="table-wrapper">
+                    <table class="detail-table-small">
+                        <thead>
+                            <tr><th>Атрибут</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+            const sortedAttrs = Object.entries(t.attributeStats).sort((a, b) => b[1].qty - a[1].qty);
+            for (const [attr, data] of sortedAttrs) {
+                html += `<tr>
+                    <td style="font-size: 12px;">${escapeHtml(attr)}</td>
+                    <td class="text-right">${data.qty} шт</td>
+                    <td class="text-right">${formatCurrency(data.revenue)}</td>
+                </tr>`;
+            }
+            html += `</tbody>
+                    </table>
+                </div>
+            </div>`;
+        }
+    }
+    html += `</div>`;
+    
+    html += `<div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
@@ -436,7 +787,7 @@ function renderStats() {
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
-            <td class="text-right">${p.soldQty} шт</td>
+            <td class="text-right">${p.soldQty} шт</td
         </tr>`;
     }
     html += `</tbody>
@@ -457,7 +808,7 @@ function renderStats() {
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td>
+            <td class="text-right">${t.soldQty} шт</td
         </tr>`;
     }
     html += `</tbody>
@@ -535,3 +886,10 @@ function addExtraIncomeFromModal() {
     if (amountInput) amountInput.value = '0';
     renderStats();
 }
+
+// Экспортируем новые функции
+window.onStatsTypeChange = onStatsTypeChange;
+window.onStatsAttributeChange = onStatsAttributeChange;
+window.onStatsValueChange = onStatsValueChange;
+window.applyStatsAttributeFilter = applyStatsAttributeFilter;
+window.resetStatsAttributeFilter = resetStatsAttributeFilter;
