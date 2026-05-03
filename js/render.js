@@ -233,7 +233,7 @@ async function showCommentModal(itemId, itemName) {
     modal.setAttribute('data-item-id', itemId);
     modal.setAttribute('data-item-name', itemName);
     
-    // Показываем модальное окно
+    // Показываем модальное окно 
     modal.style.display = 'block';
 }
 
