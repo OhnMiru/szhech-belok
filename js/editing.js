@@ -5,7 +5,6 @@ async function loadTypesToSelector(selectorId, selectedType = "") {
     const selector = document.getElementById(selectorId);
     if (!selector) return;
     
-    // Загружаем конфигурацию типов, если ещё не загружена
     if (!window.merchTypesLoaded) {
         await loadMerchTypesConfig();
     }
@@ -28,16 +27,24 @@ async function loadTypesToSelector(selectorId, selectedType = "") {
 function onAddTypeChange() {
     const hiddenSelect = document.getElementById('addItemType');
     const selectedType = hiddenSelect ? hiddenSelect.value : '';
-    renderAttributesFields('add', selectedType);
+    if (selectedType) {
+        renderAttributesFields('add', selectedType);
+    }
 }
 
 // Динамическое обновление полей атрибутов при выборе типа (редактирование)
 function onEditTypeChange() {
     const hiddenSelect = document.getElementById('editType');
     const selectedType = hiddenSelect ? hiddenSelect.value : '';
-    renderAttributesFields('edit', selectedType);
+    if (selectedType) {
+        // Небольшая задержка для гарантии обновления скрытого select
+        setTimeout(() => {
+            renderAttributesFields('edit', selectedType);
+        }, 50);
+    }
 }
 
+// Отрисовка полей атрибутов
 function renderAttributesFields(mode, selectedType) {
     const containerId = mode === 'add' ? 'addAttributesContainer' : 'editAttributesContainer';
     const container = document.getElementById(containerId);
@@ -108,7 +115,7 @@ function renderAttributesFields(mode, selectedType) {
                 initAddAttributeSelects(attr1Values, attr2Values);
             }
         }
-    }, 50);
+    }, 100);
 }
 
 // Получить значения атрибутов из формы (добавление)
@@ -131,7 +138,6 @@ function renderAttributesOnCard(card, container) {
     
     const attr1 = card.attribute1 || '';
     const attr2 = card.attribute2 || '';
-    const type = card.type || '';
     
     if (!attr1 && !attr2) return;
     
