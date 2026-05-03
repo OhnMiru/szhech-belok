@@ -37,7 +37,12 @@ function onEditTypeChange() {
     const hiddenSelect = document.getElementById('editType');
     const selectedType = hiddenSelect ? hiddenSelect.value : '';
     if (selectedType) {
-        // Небольшая задержка для гарантии обновления скрытого select
+        // При смене типа очищаем старые значения атрибутов
+        const attr1Select = document.getElementById('edit_attr1');
+        const attr2Select = document.getElementById('edit_attr2');
+        if (attr1Select) attr1Select.value = '';
+        if (attr2Select) attr2Select.value = '';
+        
         setTimeout(() => {
             renderAttributesFields('edit', selectedType);
         }, 50);
@@ -62,14 +67,20 @@ function renderAttributesFields(mode, selectedType) {
     const attr2Name = typeConfig.attribute2?.name || '';
     const attr2Values = typeConfig.attribute2?.values || [];
     
+    // При смене типа сбрасываем текущие значения атрибутов
     let currentAttr1 = '';
     let currentAttr2 = '';
+    
+    // Только если это не смена типа (т.е. при загрузке модалки)
+    // и текущий товар имеет эти атрибуты
     if (mode === 'edit' && currentEditId) {
         const card = originalCardsData.find(c => c.id === currentEditId);
-        if (card) {
+        if (card && card.type === selectedType) {
+            // Только если тип товара совпадает с типом карточки, берем его атрибуты
             currentAttr1 = card.attribute1 || '';
             currentAttr2 = card.attribute2 || '';
         }
+        // Если тип не совпадает — оставляем пустые строки (очищаем)
     }
     
     let html = '';
