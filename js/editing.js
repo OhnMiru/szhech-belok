@@ -26,19 +26,15 @@ async function loadTypesToSelector(selectorId, selectedType = "") {
 
 // Динамическое обновление полей атрибутов при выборе типа (добавление)
 function onAddTypeChange() {
-    const typeSelect = document.getElementById('addItemType');
-    if (!typeSelect) return;
-    
-    const selectedType = typeSelect.value;
+    const hiddenSelect = document.getElementById('addItemType');
+    const selectedType = hiddenSelect ? hiddenSelect.value : '';
     renderAttributesFields('add', selectedType);
 }
 
 // Динамическое обновление полей атрибутов при выборе типа (редактирование)
 function onEditTypeChange() {
-    // Для кастомного селектора значение хранится в скрытом select
     const hiddenSelect = document.getElementById('editType');
     const selectedType = hiddenSelect ? hiddenSelect.value : '';
-    
     renderAttributesFields('edit', selectedType);
 }
 
@@ -102,15 +98,17 @@ function renderAttributesFields(mode, selectedType) {
     container.innerHTML = html;
     
     // Инициализируем кастомные селекторы после вставки HTML
-    if (mode === 'edit') {
-        if (typeof initEditAttributeSelects === 'function') {
-            initEditAttributeSelects(currentAttr1, currentAttr2, attr1Values, attr2Values);
+    setTimeout(() => {
+        if (mode === 'edit') {
+            if (typeof initEditAttributeSelects === 'function') {
+                initEditAttributeSelects(currentAttr1, currentAttr2, attr1Values, attr2Values);
+            }
+        } else {
+            if (typeof initAddAttributeSelects === 'function') {
+                initAddAttributeSelects(attr1Values, attr2Values);
+            }
         }
-    } else {
-        if (typeof initAddAttributeSelects === 'function') {
-            initAddAttributeSelects(attr1Values, attr2Values);
-        }
-    }
+    }, 50);
 }
 
 // Получить значения атрибутов из формы (добавление)
@@ -144,10 +142,8 @@ function renderAttributesOnCard(card, container) {
     attributesHtml += parts.join(' | ');
     attributesHtml += '</div>';
     
-    // Вставляем после строки с типом или в конец info
     const infoDiv = container.querySelector('.info');
     if (infoDiv) {
-        // Удаляем старые атрибуты, если есть
         const oldAttributes = infoDiv.querySelector('.card-attributes');
         if (oldAttributes) oldAttributes.remove();
         infoDiv.insertAdjacentHTML('beforeend', attributesHtml);
@@ -162,11 +158,9 @@ async function openEditProductModal(id) {
     if (card) {
         document.getElementById('editTitle').textContent = `✏️ Редактирование товара №${card.id}`;
         
-        // Инициализируем кастомный селектор типа, если функция доступна
         if (typeof initEditTypeSelector === 'function') {
             await initEditTypeSelector(card.type || "");
         } else {
-            // Загружаем типы в обычный селектор (запасной вариант)
             await loadTypesToSelector('editType', card.type || "");
         }
         
@@ -176,10 +170,8 @@ async function openEditProductModal(id) {
         document.getElementById('editPrice').value = card.price;
         document.getElementById('editCost').value = card.cost || 0;
         
-        // Отрисовываем поля атрибутов
         renderAttributesFields('edit', card.type || "");
         
-        // Загружаем фото в превью
         loadPhotoPreview(id);
         
         document.getElementById('editProductModal').style.display = 'block';
@@ -198,14 +190,12 @@ function closeEditProductModal() {
 async function saveProductChanges() {
     if (currentEditId === null) return;
     
-    // Получаем значение из скрытого select (для кастомного селектора) или из обычного
     let newType = document.getElementById('editType')?.value.trim();
     if (!newType) {
-        // Если кастомный селектор не обновил скрытый select, пробуем взять из контейнера
         const typeContainer = document.getElementById('editTypeContainer');
-        const trigger = typeContainer?.querySelector('.custom-select-flat-trigger');
-        if (trigger) {
-            newType = trigger.childNodes[0]?.textContent.trim() || '';
+        const trigger = typeContainer?.querySelector('div[style*="cursor: pointer"]');
+        if (trigger && trigger.childNodes[0]) {
+            newType = trigger.childNodes[0].textContent.trim();
         }
     }
     
@@ -237,7 +227,6 @@ async function saveProductChanges() {
         return;
     }
     
-    // Обновляем в originalCardsData
     const card = originalCardsData.find(c => c.id === currentEditId);
     if (card) {
         card.type = newType;
@@ -251,7 +240,6 @@ async function saveProductChanges() {
         filterAndSort();
     }
     
-    // Обновляем в DOM
     const cardElement = document.querySelector(`.card[data-id="${currentEditId}"]`);
     if (cardElement) {
         const nameElement = cardElement.querySelector('.name');
@@ -261,23 +249,21 @@ async function saveProductChanges() {
         const priceSpan = cardElement.querySelector('.price');
         
         if (nameElement) nameElement.textContent = newName;
-        if (typeBadge) typeBadge.textContent = newType;
+        if (typeBadge) {
+            let typeDisplayText = newType;
+            if (attribute1) typeDisplayText += ` | ${attribute1}`;
+            if (attribute2) typeDisplayText += ` | ${attribute2}`;
+            typeBadge.textContent = typeDisplayText;
+            const typeColor = newType ? getTypeColor(newType) : '#c25d1a';
+            typeBadge.style.background = `${typeColor}20`;
+            typeBadge.style.color = typeColor;
+        }
         if (stockSpan) stockSpan.textContent = `Остаток: ${newStock} шт`;
         if (totalSpan) totalSpan.textContent = `📦 Всего: ${newTotal} шт`;
         if (priceSpan) priceSpan.textContent = `💰 Цена: ${newPrice} ₽`;
         
-        // Обновляем атрибуты на карточке
         const oldAttributes = cardElement.querySelector('.card-attributes');
         if (oldAttributes) oldAttributes.remove();
-        
-        if (attribute1 || attribute2) {
-            const parts = [];
-            if (attribute1) parts.push(escapeHtml(attribute1));
-            if (attribute2) parts.push(escapeHtml(attribute2));
-            const attributesHtml = `<div class="card-attributes" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${parts.join(' | ')}</div>`;
-            const infoDiv = cardElement.querySelector('.info');
-            if (infoDiv) infoDiv.insertAdjacentHTML('beforeend', attributesHtml);
-        }
         
         if (newStock === 0) cardElement.classList.add('out-of-stock');
         else cardElement.classList.remove('out-of-stock');
@@ -328,10 +314,10 @@ async function saveProductChanges() {
     }
 }
 
-// ДОБАВЛЕНИЕ НОВОГО ТОВАРА (для совместимости с ui.js)
+// ДОБАВЛЕНИЕ НОВОГО ТОВАРА
 async function addNewItem() {
     let type = '';
-    const typeSelect = document.getElementById('addItemType');
+    const hiddenSelect = document.getElementById('addItemType');
     const newTypeInput = document.getElementById('addItemNewType');
     const isNewTypeVisible = newTypeInput && newTypeInput.style.display !== 'none';
     
@@ -341,12 +327,15 @@ async function addNewItem() {
             showToast("Введите тип товара", false);
             return;
         }
-    } else {
-        type = typeSelect.value;
+    } else if (hiddenSelect && hiddenSelect.value) {
+        type = hiddenSelect.value;
         if (type === "") {
             showToast("Выберите тип товара", false);
             return;
         }
+    } else {
+        showToast("Выберите тип товара", false);
+        return;
     }
     
     const name = document.getElementById('addItemName').value.trim();
@@ -386,7 +375,7 @@ async function addNewItem() {
     closeAddItemModal();
 }
 
-// ИНИЦИАЛИЗАЦИЯ СЕЛЕКТОРА ТИПОВ В МОДАЛКЕ ДОБАВЛЕНИЯ (для обратной совместимости)
+// ИНИЦИАЛИЗАЦИЯ СЕЛЕКТОРА ТИПОВ В МОДАЛКЕ ДОБАВЛЕНИЯ
 async function initAddItemTypeSelector() {
     const typeSelect = document.getElementById('addItemType');
     if (!typeSelect) return;
@@ -405,19 +394,17 @@ async function initAddItemTypeSelector() {
         typeSelect.appendChild(option);
     }
     
-    // Очищаем поля атрибутов
     const container = document.getElementById('addAttributesContainer');
     if (container) container.innerHTML = '';
 }
 
-// Обновляем openAddItemModal для загрузки типов (для обратной совместимости)
 const originalOpenAddItemModal = window.openAddItemModal;
 window.openAddItemModal = async function() {
     await initAddItemTypeSelector();
     if (originalOpenAddItemModal) originalOpenAddItemModal();
 };
 
-// Экспортируем функции в глобальную область
+// Экспортируем функции
 window.openEditProductModal = openEditProductModal;
 window.closeEditProductModal = closeEditProductModal;
 window.saveProductChanges = saveProductChanges;
