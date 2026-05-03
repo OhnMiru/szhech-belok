@@ -334,9 +334,14 @@
                     <span class="edit-label">Тип</span>
                     <div id="editTypeContainer" style="flex: 1;"></div>
                 </div>
-                
+            
                 <div id="editAttributesContainer"></div>
-                
+            
+                <!-- Скрытые select для хранения значений атрибутов -->
+                <select id="edit_attr1" style="display: none;"></select>
+                <select id="edit_attr2" style="display: none;"></select>
+                <select id="editType" style="display: none;"></select>
+            
                 <div class="edit-row">
                     <span class="edit-label">Название</span>
                     <input type="text" id="editName" class="edit-input" placeholder="Название товара">
@@ -357,7 +362,7 @@
                     <span class="edit-label">Себестоимость</span>
                     <input type="number" id="editCost" class="edit-input" value="0" min="0" step="1">
                 </div>
-                
+            
                 <div class="photo-section">
                     <div class="photo-header">📷 Фото товара</div>
                     <div class="photo-content">
@@ -371,7 +376,7 @@
                         </div>
                     </div>
                 </div>
-                
+            
                 <div class="edit-buttons">
                     <button class="edit-cancel-btn" onclick="closeEditProductModal()">❌ Отмена</button>
                     <button class="edit-save-btn" onclick="saveProductChanges()">💾 Сохранить</button>
@@ -379,7 +384,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- Bookings Modal -->
     <div id="bookingsModal" class="modal">
         <div class="modal-content" style="max-width: 700px;">
