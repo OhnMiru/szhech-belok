@@ -473,93 +473,6 @@ function initPhotoUploadInEditModal() {
     }
 }
 
-// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ ==========
-
-function showCommentModal(itemId, itemName) {
-    let currentComment = "";
-    if (commentsCache.has(itemId) && commentsCache.get(itemId).comment) {
-        currentComment = commentsCache.get(itemId).comment;
-    } else if (isOnline) {
-        getComment(itemId).then(commentData => {
-            if (commentData && commentData.comment) {
-                currentComment = commentData.comment;
-            }
-            renderCommentModal(itemId, itemName, currentComment);
-        }).catch(() => {
-            renderCommentModal(itemId, itemName, currentComment);
-        });
-        return;
-    }
-    renderCommentModal(itemId, itemName, currentComment);
-}
-
-function renderCommentModal(itemId, itemName, currentComment) {
-    let modal = document.getElementById('commentModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'commentModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <button class="modal-close-btn" onclick="closeCommentModal()">×</button>
-                <div class="modal-header">
-                    <span>💬 Комментарий к товару</span>
-                </div>
-                <div id="commentModalContent">
-                    <div class="comment-item-name" id="commentItemName" style="margin-bottom: 12px; font-weight: bold; color: var(--badge-text);"></div>
-                    <textarea id="commentText" rows="5" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); font-size: 14px; resize: vertical;" placeholder="Введите комментарий к товару..."></textarea>
-                    <div class="comment-last-updated" id="commentLastUpdated" style="font-size: 11px; color: var(--text-muted); margin-top: 8px;"></div>
-                    <div class="edit-buttons" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
-                        <button class="edit-cancel-btn" onclick="closeCommentModal()">❌ Отмена</button>
-                        <button class="edit-save-btn" onclick="saveCommentAndClose()">💾 Сохранить</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-    
-    document.getElementById('commentItemName').innerHTML = `📦 ${escapeHtml(itemName)} (ID: ${itemId})`;
-    document.getElementById('commentText').value = currentComment;
-    
-    const lastUpdated = commentsCache.has(itemId) && commentsCache.get(itemId).lastUpdated 
-        ? new Date(commentsCache.get(itemId).lastUpdated).toLocaleString('ru-RU')
-        : null;
-    const lastUpdatedEl = document.getElementById('commentLastUpdated');
-    if (lastUpdatedEl) {
-        lastUpdatedEl.innerHTML = lastUpdated ? `Последнее изменение: ${lastUpdated}` : '';
-    }
-    
-    modal.setAttribute('data-item-id', itemId);
-    modal.setAttribute('data-item-name', itemName);
-    
-    modal.style.display = 'block';
-}
-
-function closeCommentModal() {
-    const modal = document.getElementById('commentModal');
-    if (modal) modal.style.display = 'none';
-}
-
-async function saveCommentAndClose() {
-    const modal = document.getElementById('commentModal');
-    if (!modal) return;
-    
-    const itemId = parseInt(modal.getAttribute('data-item-id'));
-    const commentText = document.getElementById('commentText').value;
-    
-    if (isNaN(itemId)) return;
-    
-    const success = await saveComment(itemId, commentText);
-    
-    if (success) {
-        if (typeof updateCommentIndicators === 'function') {
-            updateCommentIndicators();
-        }
-        closeCommentModal();
-    }
-}
-
 // ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
 
 function openSupplyModal() {
@@ -691,13 +604,11 @@ function closeInstructionsModal() {
     }
 }
 
-// ========== ЭКСПОРТ ФУНКЦИЙ ==========
+// ========== ЭКСПОРТ ФУНКЦИЙ (БЕЗ КОММЕНТАРИЕВ — ОНИ В RENDER.JS) ==========
 
 window.openInstructionsModal = openInstructionsModal;
 window.closeInstructionsModal = closeInstructionsModal;
-window.showCommentModal = showCommentModal;
-window.closeCommentModal = closeCommentModal;
-window.saveCommentAndClose = saveCommentAndClose;
+// Функции комментариев удалены из ui.js, используются из render.js
 window.handleAddSupply = handleAddSupply;
 window.openSupportModal = openSupportModal;
 window.closeSupportModal = closeSupportModal;
