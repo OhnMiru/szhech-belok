@@ -190,47 +190,16 @@ function updateCardInDOM(cardId, updatedData) {
     }
 }
 
-// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ (ОПТИМИЗИРОВАНЫ) ==========
-
-// Создаём модальное окно один раз при загрузке страницы, а не при каждом открытии
-let commentModalInstance = null;
-let commentModalContent = null;
-let commentTextarea = null;
-
-function initCommentModal() {
-    if (commentModalInstance) return;
-    
-    commentModalInstance = document.createElement('div');
-    commentModalInstance.id = 'commentModal';
-    commentModalInstance.className = 'modal';
-    commentModalInstance.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
-            <button class="modal-close-btn" onclick="closeCommentModal()">×</button>
-            <div class="modal-header">
-                <span>💬 Комментарий к товару</span>
-            </div>
-            <div id="commentModalContent">
-                <div class="comment-item-name" id="commentItemName" style="margin-bottom: 12px; font-weight: bold; color: var(--badge-text);"></div>
-                <textarea id="commentText" rows="5" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); font-size: 14px; resize: vertical;" placeholder="Введите комментарий к товару..."></textarea>
-                <div class="comment-last-updated" id="commentLastUpdated" style="font-size: 11px; color: var(--text-muted); margin-top: 8px;"></div>
-                <div class="edit-buttons" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
-                    <button class="edit-cancel-btn" onclick="closeCommentModal()">❌ Отмена</button>
-                    <button class="edit-save-btn" onclick="saveCommentAndClose()">💾 Сохранить</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(commentModalInstance);
-    
-    commentModalContent = document.getElementById('commentModalContent');
-    commentTextarea = document.getElementById('commentText');
-}
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ ==========
 
 async function showCommentModal(itemId, itemName) {
-    // Инициализируем модальное окно, если ещё не создано
-    if (!commentModalInstance) {
-        initCommentModal();
-    }
+    // Получаем модальное окно из HTML (оно уже есть)
+    const modal = document.getElementById('commentModal');
+    if (!modal) return;
+    
+    // Получаем элементы внутри модального окна
+    const commentItemName = document.getElementById('commentItemName');
+    const commentTextarea = document.getElementById('commentText');
     
     // Получаем текущий комментарий
     let currentComment = "";
@@ -244,7 +213,6 @@ async function showCommentModal(itemId, itemName) {
     }
     
     // Заполняем данные (БЕЗ ID в скобках)
-    const commentItemName = document.getElementById('commentItemName');
     if (commentItemName) {
         commentItemName.innerHTML = `📦 ${escapeHtml(itemName)}`;
     }
@@ -262,17 +230,19 @@ async function showCommentModal(itemId, itemName) {
     }
     
     // Сохраняем itemId в атрибут модального окна
-    commentModalInstance.setAttribute('data-item-id', itemId);
-    commentModalInstance.setAttribute('data-item-name', itemName);
+    modal.setAttribute('data-item-id', itemId);
+    modal.setAttribute('data-item-name', itemName);
     
     // Показываем модальное окно
-    commentModalInstance.style.display = 'block';
+    modal.style.display = 'block';
 }
 
 function closeCommentModal() {
-    if (commentModalInstance) {
-        commentModalInstance.style.display = 'none';
+    const modal = document.getElementById('commentModal');
+    if (modal) {
+        modal.style.display = 'none';
         // Очищаем текстовое поле для следующего открытия
+        const commentTextarea = document.getElementById('commentText');
         if (commentTextarea) {
             commentTextarea.value = '';
         }
@@ -280,10 +250,11 @@ function closeCommentModal() {
 }
 
 async function saveCommentAndClose() {
-    if (!commentModalInstance) return;
+    const modal = document.getElementById('commentModal');
+    if (!modal) return;
     
-    const itemId = parseInt(commentModalInstance.getAttribute('data-item-id'));
-    const commentText = commentTextarea ? commentTextarea.value : '';
+    const itemId = parseInt(modal.getAttribute('data-item-id'));
+    const commentText = document.getElementById('commentText')?.value || '';
     
     if (isNaN(itemId)) return;
     
