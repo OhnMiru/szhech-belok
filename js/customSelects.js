@@ -1,6 +1,6 @@
 // ========== КАСТОМНЫЕ СЕЛЕКТОРЫ ==========
 
-// Создать кастомный селектор (плоский компактный режим)
+// Создать кастомный селектор (минималистичный, как обычный select)
 function createCustomSelect(containerId, options, selectedValue, onSelect) {
     let container = document.getElementById(containerId);
     
@@ -26,17 +26,16 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
     customSelect.style.position = 'relative';
     customSelect.style.display = 'inline-block';
     customSelect.style.width = 'auto';
-    customSelect.style.minWidth = '50px';
     
     const trigger = document.createElement('div');
     trigger.className = 'custom-select-trigger';
-    // Плоский стиль, как у обычного select
-    trigger.style.cssText = 'background: var(--badge-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 18px 4px 8px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); position: relative; display: inline-block; font-family: monospace;';
+    // Минималистичный стиль — как обычный текст
+    trigger.style.cssText = 'padding: 0 14px 0 0; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); position: relative; display: inline-block; font-family: monospace;';
     trigger.textContent = displayText;
     
-    // Один треугольник, без лишних элементов
+    // Маленькая стрелка
     const arrow = document.createElement('span');
-    arrow.style.cssText = 'position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--text-secondary); pointer-events: none;';
+    arrow.style.cssText = 'position: absolute; right: 0; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--text-secondary); pointer-events: none;';
     arrow.textContent = '▼';
     trigger.appendChild(arrow);
     
@@ -107,11 +106,11 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     container.innerHTML = '';
     container.style.display = 'inline-flex';
     container.style.alignItems = 'center';
-    container.style.gap = '6px';
-    container.style.backgroundColor = 'var(--badge-bg)';
-    container.style.padding = '4px 8px';
-    container.style.borderRadius = '20px';
-    container.style.border = '1px solid var(--border-color)';
+    container.style.gap = '4px';
+    // Никакого фона, никаких обводок — просто текст
+    container.style.backgroundColor = 'transparent';
+    container.style.padding = '0';
+    container.style.border = 'none';
     
     // Дни
     const daysOptions = [];
@@ -119,8 +118,6 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
         daysOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
     createCustomSelect(containerId + '_day', daysOptions, dayValue, (value) => {
-        const hiddenSelect = document.getElementById('dateFromDay');
-        if (hiddenSelect) hiddenSelect.value = value;
         if (onDateChange) onDateChange('day', value);
     });
     
@@ -137,8 +134,6 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
         monthsOptions.push({ value: i + 1, label: monthNames[i] });
     }
     createCustomSelect(containerId + '_month', monthsOptions, monthValue, (value) => {
-        const hiddenSelect = document.getElementById('dateFromMonth');
-        if (hiddenSelect) hiddenSelect.value = value;
         if (onDateChange) onDateChange('month', value);
     });
     
@@ -155,8 +150,6 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
         yearsOptions.push({ value: i, label: i.toString() });
     }
     createCustomSelect(containerId + '_year', yearsOptions, yearValue, (value) => {
-        const hiddenSelect = document.getElementById('dateFromYear');
-        if (hiddenSelect) hiddenSelect.value = value;
         if (onDateChange) onDateChange('year', value);
     });
 }
@@ -172,11 +165,10 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
     container.innerHTML = '';
     container.style.display = 'inline-flex';
     container.style.alignItems = 'center';
-    container.style.gap = '6px';
-    container.style.backgroundColor = 'var(--badge-bg)';
-    container.style.padding = '4px 8px';
-    container.style.borderRadius = '20px';
-    container.style.border = '1px solid var(--border-color)';
+    container.style.gap = '4px';
+    container.style.backgroundColor = 'transparent';
+    container.style.padding = '0';
+    container.style.border = 'none';
     
     // Часы
     const hoursOptions = [];
@@ -184,8 +176,6 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
         hoursOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
     createCustomSelect(containerId + '_hour', hoursOptions, hourValue, (value) => {
-        const hiddenSelect = document.getElementById('timeFromHour');
-        if (hiddenSelect) hiddenSelect.value = value;
         if (onTimeChange) onTimeChange('hour', value);
     });
     
@@ -201,8 +191,6 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
         minutesOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
     createCustomSelect(containerId + '_minute', minutesOptions, minuteValue, (value) => {
-        const hiddenSelect = document.getElementById('timeFromMinute');
-        if (hiddenSelect) hiddenSelect.value = value;
         if (onTimeChange) onTimeChange('minute', value);
     });
 }
