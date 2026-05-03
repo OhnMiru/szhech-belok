@@ -138,7 +138,7 @@
         </div>
     </div>
 
-    <!-- History Modal -->
+    <!-- History Modal (исправлен: стандартные select для даты/времени) -->
     <div id="historyModal" class="modal">
         <div class="modal-content" style="max-width: 550px;">
             <button class="modal-close-btn" onclick="closeHistory()">×</button>
@@ -169,15 +169,35 @@
                     <div class="history-filter-left">
                         <div class="custom-datetime" id="datetimeFromContainer">
                             <span class="datetime-label">с</span>
-                            <div id="dateFromDateGroup" style="display: inline-flex; align-items: center; gap: 2px;"></div>
-                            <div id="dateFromTimeGroup" style="display: inline-flex; align-items: center; gap: 2px; margin-left: 6px;"></div>
+                            <div class="datetime-group">
+                                <select id="dateFromDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="dateFromMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="dateFromYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="timeFromHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="timeFromMinute" class="datetime-select"></select>
+                            </div>
                         </div>
                     </div>
                     <div class="history-filter-left" style="margin-top: 8px;">
                         <div class="custom-datetime" id="datetimeToContainer">
                             <span class="datetime-label">по</span>
-                            <div id="dateToDateGroup" style="display: inline-flex; align-items: center; gap: 2px;"></div>
-                            <div id="dateToTimeGroup" style="display: inline-flex; align-items: center; gap: 2px; margin-left: 6px;"></div>
+                            <div class="datetime-group">
+                                <select id="dateToDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="dateToMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="dateToYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="timeToHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="timeToMinute" class="datetime-select"></select>
+                            </div>
                         </div>
                         <div class="history-price-filter">
                             <span>💰</span>
@@ -198,7 +218,7 @@
         </div>
     </div>
 
-    <!-- Stats Modal -->
+    <!-- Stats Modal (исправлен: стандартные select для даты/времени) -->
     <div id="statsModal" class="modal">
         <div class="modal-content" style="max-width: 800px;">
             <button class="modal-close-btn" onclick="closeStatsModal()">×</button>
@@ -211,15 +231,35 @@
                     <div class="history-filter-left">
                         <div class="custom-datetime" id="statsDatetimeFromContainer">
                             <span class="datetime-label">с</span>
-                            <div id="statsDateFromDateGroup" style="display: inline-flex; align-items: center; gap: 2px;"></div>
-                            <div id="statsDateFromTimeGroup" style="display: inline-flex; align-items: center; gap: 2px; margin-left: 6px;"></div>
+                            <div class="datetime-group">
+                                <select id="statsDateFromDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="statsDateFromMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="statsDateFromYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="statsTimeFromHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="statsTimeFromMinute" class="datetime-select"></select>
+                            </div>
                         </div>
                     </div>
                     <div class="history-filter-left" style="margin-top: 8px;">
                         <div class="custom-datetime" id="statsDatetimeToContainer">
                             <span class="datetime-label">по</span>
-                            <div id="statsDateToDateGroup" style="display: inline-flex; align-items: center; gap: 2px;"></div>
-                            <div id="statsDateToTimeGroup" style="display: inline-flex; align-items: center; gap: 2px; margin-left: 6px;"></div>
+                            <div class="datetime-group">
+                                <select id="statsDateToDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="statsDateToMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="statsDateToYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="statsTimeToHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="statsTimeToMinute" class="datetime-select"></select>
+                            </div>
                         </div>
                     </div>
                     <div class="history-filter-reset-row" style="justify-content: flex-end; gap: 8px; margin-top: 8px;">
@@ -234,7 +274,7 @@
         </div>
     </div>
 
-    <!-- Global Stats Modal -->
+    <!-- Global Stats Modal (исправлен: стандартные select для даты/времени) -->
     <div id="globalStatsModal" class="modal">
         <div class="modal-content" style="max-width: 1000px;">
             <button class="modal-close-btn" onclick="closeGlobalStatsModal()">×</button>
@@ -247,15 +287,35 @@
                     <div class="history-filter-left">
                         <div class="custom-datetime" id="globalStatsDatetimeFromContainer">
                             <span class="datetime-label">с</span>
-                            <div id="globalStatsDateFromDateGroup" style="display: inline-flex; align-items: center; gap: 2px;"></div>
-                            <div id="globalStatsDateFromTimeGroup" style="display: inline-flex; align-items: center; gap: 2px; margin-left: 6px;"></div>
+                            <div class="datetime-group">
+                                <select id="globalStatsDateFromDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="globalStatsDateFromMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="globalStatsDateFromYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="globalStatsTimeFromHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="globalStatsTimeFromMinute" class="datetime-select"></select>
+                            </div>
                         </div>
                     </div>
                     <div class="history-filter-left" style="margin-top: 8px;">
                         <div class="custom-datetime" id="globalStatsDatetimeToContainer">
                             <span class="datetime-label">по</span>
-                            <div id="globalStatsDateToDateGroup" style="display: inline-flex; align-items: center; gap: 2px;"></div>
-                            <div id="globalStatsDateToTimeGroup" style="display: inline-flex; align-items: center; gap: 2px; margin-left: 6px;"></div>
+                            <div class="datetime-group">
+                                <select id="globalStatsDateToDay" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="globalStatsDateToMonth" class="datetime-select"></select>
+                                <span class="datetime-sep"> </span>
+                                <select id="globalStatsDateToYear" class="datetime-select"></select>
+                            </div>
+                            <div class="datetime-group">
+                                <select id="globalStatsTimeToHour" class="datetime-select"></select>
+                                <span class="datetime-sep">:</span>
+                                <select id="globalStatsTimeToMinute" class="datetime-select"></select>
+                            </div>
                         </div>
                     </div>
                     <div class="history-filter-reset-row" style="justify-content: flex-end; gap: 8px; margin-top: 8px;">
@@ -434,7 +494,9 @@
                 <div class="edit-row" style="margin-bottom: 16px;">
                     <span class="edit-label">Товар</span>
                     <div class="supply-product-select" id="supplyProductSelect" style="flex: 2;">
-                        <div id="supplyProductIdContainer" style="width: 100%;"></div>
+                        <select id="supplyProductId" class="edit-input" style="width: 100%;">
+                            <option value="">Выберите товар</option>
+                        </select>
                     </div>
                 </div>
                 <div class="edit-row" style="margin-bottom: 16px;">
@@ -517,7 +579,6 @@
 
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
-    <script src="js/customSelects.js"></script>
     <script src="js/api.js"></script>
     <script src="js/offline.js"></script>
     <script src="js/auth.js"></script>
