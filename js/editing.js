@@ -1,6 +1,6 @@
 // ========== РЕДАКТИРОВАНИЕ ==========
 
-// Загрузить список типов в селектор
+// Загрузить список типов в селектор (для обратной совместимости)
 async function loadTypesToSelector(selectorId, selectedType = "") {
     const selector = document.getElementById(selectorId);
     if (!selector) return;
@@ -35,10 +35,10 @@ function onAddTypeChange() {
 
 // Динамическое обновление полей атрибутов при выборе типа (редактирование)
 function onEditTypeChange() {
-    const typeSelect = document.getElementById('editType');
-    if (!typeSelect) return;
+    // Для кастомного селектора значение хранится в скрытом select
+    const hiddenSelect = document.getElementById('editType');
+    const selectedType = hiddenSelect ? hiddenSelect.value : '';
     
-    const selectedType = typeSelect.value;
     renderAttributesFields('edit', selectedType);
 }
 
@@ -155,7 +155,7 @@ function renderAttributesOnCard(card, container) {
     }
 }
 
-// ОТКРЫТИЕ МОДАЛЬНОГО ОКНА РЕДАКТИРОВАНИЯ (ОБНОВЛЕНО)
+// ОТКРЫТИЕ МОДАЛЬНОГО ОКНА РЕДАКТИРОВАНИЯ
 async function openEditProductModal(id) {
     currentEditId = id;
     const card = originalCardsData.find(c => c.id === id);
@@ -163,8 +163,13 @@ async function openEditProductModal(id) {
     if (card) {
         document.getElementById('editTitle').textContent = `✏️ Редактирование товара №${card.id}`;
         
-        // Загружаем типы в селектор
-        await loadTypesToSelector('editType', card.type || "");
+        // Инициализируем кастомный селектор типа, если функция доступна
+        if (typeof initEditTypeSelector === 'function') {
+            await initEditTypeSelector(card.type || "");
+        } else {
+            // Загружаем типы в обычный селектор (запасной вариант)
+            await loadTypesToSelector('editType', card.type || "");
+        }
         
         document.getElementById('editName').value = card.name || "";
         document.getElementById('editStock').value = card.stock;
@@ -190,11 +195,21 @@ function closeEditProductModal() {
     currentEditId = null;
 }
 
-// СОХРАНЕНИЕ ИЗМЕНЕНИЙ (ОБНОВЛЕНО)
+// СОХРАНЕНИЕ ИЗМЕНЕНИЙ
 async function saveProductChanges() {
     if (currentEditId === null) return;
     
-    const newType = document.getElementById('editType').value.trim();
+    // Получаем значение из скрытого select (для кастомного селектора) или из обычного
+    let newType = document.getElementById('editType')?.value.trim();
+    if (!newType) {
+        // Если кастомный селектор не обновил скрытый select, пробуем взять из контейнера
+        const typeContainer = document.getElementById('editTypeContainer');
+        const trigger = typeContainer?.querySelector('.custom-select-flat-trigger');
+        if (trigger) {
+            newType = trigger.childNodes[0]?.textContent.trim() || '';
+        }
+    }
+    
     const newName = document.getElementById('editName').value.trim();
     const newStock = parseInt(document.getElementById('editStock').value);
     const newTotal = parseInt(document.getElementById('editTotal').value);
@@ -314,7 +329,7 @@ async function saveProductChanges() {
     }
 }
 
-// ДОБАВЛЕНИЕ НОВОГО ТОВАРА (ОБНОВЛЕНО)
+// ДОБАВЛЕНИЕ НОВОГО ТОВАРА (для совместимости с ui.js)
 async function addNewItem() {
     let type = '';
     const typeSelect = document.getElementById('addItemType');
@@ -372,7 +387,7 @@ async function addNewItem() {
     closeAddItemModal();
 }
 
-// ИНИЦИАЛИЗАЦИЯ СЕЛЕКТОРА ТИПОВ В МОДАЛКЕ ДОБАВЛЕНИЯ
+// ИНИЦИАЛИЗАЦИЯ СЕЛЕКТОРА ТИПОВ В МОДАЛКЕ ДОБАВЛЕНИЯ (для обратной совместимости)
 async function initAddItemTypeSelector() {
     const typeSelect = document.getElementById('addItemType');
     if (!typeSelect) return;
@@ -396,7 +411,7 @@ async function initAddItemTypeSelector() {
     if (container) container.innerHTML = '';
 }
 
-// Обновляем openAddItemModal для загрузки типов
+// Обновляем openAddItemModal для загрузки типов (для обратной совместимости)
 const originalOpenAddItemModal = window.openAddItemModal;
 window.openAddItemModal = async function() {
     await initAddItemTypeSelector();
@@ -411,3 +426,4 @@ window.onAddTypeChange = onAddTypeChange;
 window.onEditTypeChange = onEditTypeChange;
 window.renderAttributesOnCard = renderAttributesOnCard;
 window.loadTypesToSelector = loadTypesToSelector;
+window.addNewItem = addNewItem;
