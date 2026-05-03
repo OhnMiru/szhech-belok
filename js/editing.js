@@ -42,18 +42,15 @@ function onEditTypeChange() {
     renderAttributesFields('edit', selectedType);
 }
 
-// Отрисовка полей атрибутов
 function renderAttributesFields(mode, selectedType) {
     const containerId = mode === 'add' ? 'addAttributesContainer' : 'editAttributesContainer';
     const container = document.getElementById(containerId);
     if (!container) return;
     
-    // Очищаем контейнер
     container.innerHTML = '';
     
     if (!selectedType) return;
     
-    // Получаем конфигурацию типа
     const typeConfig = getTypeConfigFromCache(selectedType);
     if (!typeConfig) return;
     
@@ -62,7 +59,6 @@ function renderAttributesFields(mode, selectedType) {
     const attr2Name = typeConfig.attribute2?.name || '';
     const attr2Values = typeConfig.attribute2?.values || [];
     
-    // Получаем текущие значения атрибутов (для режима редактирования)
     let currentAttr1 = '';
     let currentAttr2 = '';
     if (mode === 'edit' && currentEditId) {
@@ -80,14 +76,10 @@ function renderAttributesFields(mode, selectedType) {
         html += `
             <div class="edit-row">
                 <span class="edit-label">${escapeHtml(attr1Name)}</span>
-                <select id="${mode}_attr1" class="edit-input" ${mode === 'add' ? 'onchange="onAttributeChange()"' : ''}>
+                <div id="${mode}_attr1_container" style="flex: 1;"></div>
+                <select id="${mode}_attr1" style="display: none;">
                     <option value="">Не выбран</option>
-        `;
-        for (const value of attr1Values) {
-            const selected = (currentAttr1 === value) ? 'selected' : '';
-            html += `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
-        }
-        html += `
+                    ${attr1Values.map(v => `<option value="${escapeHtml(v)}" ${currentAttr1 === v ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')}
                 </select>
             </div>
         `;
@@ -98,20 +90,27 @@ function renderAttributesFields(mode, selectedType) {
         html += `
             <div class="edit-row">
                 <span class="edit-label">${escapeHtml(attr2Name)}</span>
-                <select id="${mode}_attr2" class="edit-input">
+                <div id="${mode}_attr2_container" style="flex: 1;"></div>
+                <select id="${mode}_attr2" style="display: none;">
                     <option value="">Не выбран</option>
-        `;
-        for (const value of attr2Values) {
-            const selected = (currentAttr2 === value) ? 'selected' : '';
-            html += `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
-        }
-        html += `
+                    ${attr2Values.map(v => `<option value="${escapeHtml(v)}" ${currentAttr2 === v ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')}
                 </select>
             </div>
         `;
     }
     
     container.innerHTML = html;
+    
+    // Инициализируем кастомные селекторы после вставки HTML
+    if (mode === 'edit') {
+        if (typeof initEditAttributeSelects === 'function') {
+            initEditAttributeSelects(currentAttr1, currentAttr2, attr1Values, attr2Values);
+        }
+    } else {
+        if (typeof initAddAttributeSelects === 'function') {
+            initAddAttributeSelects(attr1Values, attr2Values);
+        }
+    }
 }
 
 // Получить значения атрибутов из формы (добавление)
