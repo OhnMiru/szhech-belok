@@ -302,6 +302,11 @@ function resetHistoryFilters() {
     if (minPrice) minPrice.value = '0';
     if (maxPrice) maxPrice.value = '';
 
+    // Обновляем кастомные селекторы после сброса значений
+    if (typeof initCustomDateTimeSelects === 'function') {
+        initCustomDateTimeSelects();
+    }
+    
     renderHistoryList();
 }
 
@@ -396,5 +401,35 @@ function renderHistoryList() {
     container.innerHTML = html;
 }
 
-// Экспортируем функцию в глобальную область
+// ОБНОВЛЕНА: открытие истории с инициализацией кастомных селекторов
+function showHistory() { 
+    const modal = document.getElementById('historyModal'); 
+    if (modal) { 
+        resetHistoryFilters(); 
+        renderHistoryList(); 
+        modal.style.display = 'block';
+        // Инициализируем кастомные селекторы после открытия модалки
+        setTimeout(() => {
+            if (typeof initCustomDateTimeSelects === 'function') {
+                initCustomDateTimeSelects();
+            }
+        }, 50);
+    } 
+}
+
+function closeHistory() { 
+    const modal = document.getElementById('historyModal'); 
+    if (modal) modal.style.display = 'none'; 
+}
+
+// Экспортируем функции в глобальную область
 window.getItemFullName = getItemFullName;
+window.showHistory = showHistory;
+window.closeHistory = closeHistory;
+window.setHistoryMethodFilter = setHistoryMethodFilter;
+window.setHistoryTypeFilter = setHistoryTypeFilter;
+window.setHistoryPaymentFilter = setHistoryPaymentFilter;
+window.clearAllHistory = clearAllHistory;
+window.resetHistoryFilters = resetHistoryFilters;
+window.hideHistoryEntry = hideHistoryEntry;
+window.cancelHistoryEntry = cancelHistoryEntry;
