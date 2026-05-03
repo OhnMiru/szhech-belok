@@ -120,12 +120,10 @@ async function handleButtonClick(e) {
     await updateStock(id, delta);
 }
 
-// ОБНОВЛЕНА: обновление карточки после редактирования (с учётом атрибутов)
 function updateCardInDOM(cardId, updatedData) {
     const cardElement = document.querySelector(`.card[data-id="${cardId}"]`);
     if (!cardElement) return;
     
-    // Обновляем плашку с типом и атрибутами
     const typeBadge = cardElement.querySelector('.type-badge');
     if (typeBadge && updatedData.type !== undefined) {
         let typeDisplayText = updatedData.type;
@@ -140,14 +138,12 @@ function updateCardInDOM(cardId, updatedData) {
         typeBadge.style.color = typeColor;
     }
     
-    // Обновляем название
     const nameElement = cardElement.querySelector('.name');
     if (nameElement && updatedData.name !== undefined) {
         nameElement.textContent = updatedData.name;
         nameElement.setAttribute('data-name', updatedData.name);
     }
     
-    // Обновляем индикатор комментария
     const hasComment = commentsCache.has(cardId) && commentsCache.get(cardId).comment && commentsCache.get(cardId).comment.trim() !== "";
     const commentBtn = cardElement.querySelector('.comment-icon');
     if (commentBtn) {
@@ -173,7 +169,6 @@ function updateCardInDOM(cardId, updatedData) {
         }
     }
     
-    // Обновляем остаток
     const stockSpan = cardElement.querySelector('.stock');
     if (stockSpan && updatedData.stock !== undefined) {
         stockSpan.textContent = `Остаток: ${updatedData.stock} шт`;
@@ -184,22 +179,59 @@ function updateCardInDOM(cardId, updatedData) {
         }
     }
     
-    // Обновляем общее количество
     const totalSpan = cardElement.querySelector('.total');
     if (totalSpan && updatedData.total !== undefined) {
         totalSpan.textContent = `📦 Всего: ${updatedData.total} шт`;
     }
     
-    // Обновляем цену
     const priceSpan = cardElement.querySelector('.price');
     if (priceSpan && updatedData.price !== undefined) {
         priceSpan.textContent = `💰 Цена: ${updatedData.price} ₽`;
     }
 }
 
-// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ ==========
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ (ОПТИМИЗИРОВАНЫ) ==========
+
+// Создаём модальное окно один раз при загрузке страницы, а не при каждом открытии
+let commentModalInstance = null;
+let commentModalContent = null;
+let commentTextarea = null;
+
+function initCommentModal() {
+    if (commentModalInstance) return;
+    
+    commentModalInstance = document.createElement('div');
+    commentModalInstance.id = 'commentModal';
+    commentModalInstance.className = 'modal';
+    commentModalInstance.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close-btn" onclick="closeCommentModal()">×</button>
+            <div class="modal-header">
+                <span>💬 Комментарий к товару</span>
+            </div>
+            <div id="commentModalContent">
+                <div class="comment-item-name" id="commentItemName" style="margin-bottom: 12px; font-weight: bold; color: var(--badge-text);"></div>
+                <textarea id="commentText" rows="5" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); font-size: 14px; resize: vertical;" placeholder="Введите комментарий к товару..."></textarea>
+                <div class="comment-last-updated" id="commentLastUpdated" style="font-size: 11px; color: var(--text-muted); margin-top: 8px;"></div>
+                <div class="edit-buttons" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+                    <button class="edit-cancel-btn" onclick="closeCommentModal()">❌ Отмена</button>
+                    <button class="edit-save-btn" onclick="saveCommentAndClose()">💾 Сохранить</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(commentModalInstance);
+    
+    commentModalContent = document.getElementById('commentModalContent');
+    commentTextarea = document.getElementById('commentText');
+}
 
 async function showCommentModal(itemId, itemName) {
+    // Инициализируем модальное окно, если ещё не создано
+    if (!commentModalInstance) {
+        initCommentModal();
+    }
+    
     // Получаем текущий комментарий
     let currentComment = "";
     if (commentsCache.has(itemId) && commentsCache.get(itemId).comment) {
@@ -211,35 +243,15 @@ async function showCommentModal(itemId, itemName) {
         }
     }
     
-    // Создаём или получаем модальное окно для комментария
-    let modal = document.getElementById('commentModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'commentModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <button class="modal-close-btn" onclick="closeCommentModal()">×</button>
-                <div class="modal-header">
-                    <span>💬 Комментарий к товару</span>
-                </div>
-                <div id="commentModalContent">
-                    <div class="comment-item-name" id="commentItemName" style="margin-bottom: 12px; font-weight: bold; color: var(--badge-text);"></div>
-                    <textarea id="commentText" rows="5" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); font-size: 14px; resize: vertical;" placeholder="Введите комментарий к товару..."></textarea>
-                    <div class="comment-last-updated" id="commentLastUpdated" style="font-size: 11px; color: var(--text-muted); margin-top: 8px;"></div>
-                    <div class="edit-buttons" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
-                        <button class="edit-cancel-btn" onclick="closeCommentModal()">❌ Отмена</button>
-                        <button class="edit-save-btn" onclick="saveCommentAndClose()">💾 Сохранить</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+    // Заполняем данные (без ID в скобках)
+    const commentItemName = document.getElementById('commentItemName');
+    if (commentItemName) {
+        commentItemName.innerHTML = `📦 ${escapeHtml(itemName)}`;
     }
     
-    // Заполняем данные
-    document.getElementById('commentItemName').innerHTML = `📦 ${escapeHtml(itemName)} (ID: ${itemId})`;
-    document.getElementById('commentText').value = currentComment;
+    if (commentTextarea) {
+        commentTextarea.value = currentComment;
+    }
     
     const lastUpdated = commentsCache.has(itemId) && commentsCache.get(itemId).lastUpdated 
         ? new Date(commentsCache.get(itemId).lastUpdated).toLocaleString('ru-RU')
@@ -250,23 +262,28 @@ async function showCommentModal(itemId, itemName) {
     }
     
     // Сохраняем itemId в атрибут модального окна
-    modal.setAttribute('data-item-id', itemId);
-    modal.setAttribute('data-item-name', itemName);
+    commentModalInstance.setAttribute('data-item-id', itemId);
+    commentModalInstance.setAttribute('data-item-name', itemName);
     
-    modal.style.display = 'block';
+    // Показываем модальное окно
+    commentModalInstance.style.display = 'block';
 }
 
 function closeCommentModal() {
-    const modal = document.getElementById('commentModal');
-    if (modal) modal.style.display = 'none';
+    if (commentModalInstance) {
+        commentModalInstance.style.display = 'none';
+        // Очищаем текстовое поле для следующего открытия
+        if (commentTextarea) {
+            commentTextarea.value = '';
+        }
+    }
 }
 
 async function saveCommentAndClose() {
-    const modal = document.getElementById('commentModal');
-    if (!modal) return;
+    if (!commentModalInstance) return;
     
-    const itemId = parseInt(modal.getAttribute('data-item-id'));
-    const commentText = document.getElementById('commentText').value;
+    const itemId = parseInt(commentModalInstance.getAttribute('data-item-id'));
+    const commentText = commentTextarea ? commentTextarea.value : '';
     
     if (isNaN(itemId)) return;
     
