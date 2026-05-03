@@ -436,6 +436,7 @@ function createCustomAttributeSelect(containerId, options, selectedValue, onSele
     let container = document.getElementById(containerId);
     if (!container) return null;
     
+    // Полностью очищаем контейнер
     container.innerHTML = '';
     container.style.display = 'inline-block';
     container.style.width = '100%';
@@ -513,26 +514,36 @@ function createCustomAttributeSelect(containerId, options, selectedValue, onSele
 
 // Инициализация кастомных селекторов для атрибутов (редактирование)
 function initEditAttributeSelects(attr1Value, attr2Value, attr1Options, attr2Options) {
+    // Атрибут 1
     if (attr1Options && attr1Options.length > 0) {
         const container1 = document.getElementById('edit_attr1_container');
         if (container1) {
+            container1.innerHTML = '';
             const options = attr1Options.map(val => ({ value: val, label: val }));
             createCustomAttributeSelect('edit_attr1_container', options, attr1Value, (value) => {
                 const hiddenSelect = document.getElementById('edit_attr1');
                 if (hiddenSelect) hiddenSelect.value = value;
             });
         }
+    } else {
+        const container1 = document.getElementById('edit_attr1_container');
+        if (container1) container1.innerHTML = '';
     }
     
+    // Атрибут 2
     if (attr2Options && attr2Options.length > 0) {
         const container2 = document.getElementById('edit_attr2_container');
         if (container2) {
+            container2.innerHTML = '';
             const options = attr2Options.map(val => ({ value: val, label: val }));
             createCustomAttributeSelect('edit_attr2_container', options, attr2Value, (value) => {
                 const hiddenSelect = document.getElementById('edit_attr2');
                 if (hiddenSelect) hiddenSelect.value = value;
             });
         }
+    } else {
+        const container2 = document.getElementById('edit_attr2_container');
+        if (container2) container2.innerHTML = '';
     }
 }
 
@@ -541,22 +552,30 @@ function initAddAttributeSelects(attr1Options, attr2Options) {
     if (attr1Options && attr1Options.length > 0) {
         const container1 = document.getElementById('add_attr1_container');
         if (container1) {
+            container1.innerHTML = '';
             const options = attr1Options.map(val => ({ value: val, label: val }));
             createCustomAttributeSelect('add_attr1_container', options, '', (value) => {
                 const hiddenSelect = document.getElementById('add_attr1');
                 if (hiddenSelect) hiddenSelect.value = value;
             });
         }
+    } else {
+        const container1 = document.getElementById('add_attr1_container');
+        if (container1) container1.innerHTML = '';
     }
     
     if (attr2Options && attr2Options.length > 0) {
         const container2 = document.getElementById('add_attr2_container');
         if (container2) {
+            container2.innerHTML = '';
             const options = attr2Options.map(val => ({ value: val, label: val }));
             createCustomAttributeSelect('add_attr2_container', options, '', (value) => {
                 const hiddenSelect = document.getElementById('add_attr2');
                 if (hiddenSelect) hiddenSelect.value = value;
             });
         }
+    } else {
+        const container2 = document.getElementById('add_attr2_container');
+        if (container2) container2.innerHTML = '';
     }
 }
