@@ -1,6 +1,6 @@
 // ========== КАСТОМНЫЕ СЕЛЕКТОРЫ ==========
 
-// Создать кастомный селектор (минималистичный, как обычный select)
+// Создать кастомный селектор (без собственной стрелки)
 function createCustomSelect(containerId, options, selectedValue, onSelect) {
     let container = document.getElementById(containerId);
     
@@ -29,15 +29,9 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
     
     const trigger = document.createElement('div');
     trigger.className = 'custom-select-trigger';
-    // Минималистичный стиль — как обычный текст
-    trigger.style.cssText = 'padding: 0 14px 0 0; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); position: relative; display: inline-block; font-family: monospace;';
+    // Просто текст, без стрелки
+    trigger.style.cssText = 'padding: 0; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); display: inline-block; font-family: monospace;';
     trigger.textContent = displayText;
-    
-    // Маленькая стрелка
-    const arrow = document.createElement('span');
-    arrow.style.cssText = 'position: absolute; right: 0; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--text-secondary); pointer-events: none;';
-    arrow.textContent = '▼';
-    trigger.appendChild(arrow);
     
     const dropdown = document.createElement('div');
     dropdown.className = 'custom-select-dropdown';
@@ -56,7 +50,7 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
         }
         
         optionDiv.addEventListener('click', () => {
-            trigger.childNodes[0].textContent = opt.label;
+            trigger.textContent = opt.label;
             dropdown.style.display = 'none';
             if (onSelect) onSelect(opt.value, opt.label);
         });
@@ -95,7 +89,7 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
     return { trigger, dropdown, customSelect };
 }
 
-// Создать группу кастомных селекторов для даты
+// Создать группу кастомных селекторов для даты (с общей стрелкой)
 function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onDateChange) {
     let container = document.getElementById(containerId);
     if (!container) {
@@ -106,18 +100,18 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     container.innerHTML = '';
     container.style.display = 'inline-flex';
     container.style.alignItems = 'center';
-    container.style.gap = '4px';
-    // Никакого фона, никаких обводок — просто текст
+    container.style.gap = '2px';
     container.style.backgroundColor = 'transparent';
     container.style.padding = '0';
     container.style.border = 'none';
+    container.style.cursor = 'pointer';
     
     // Дни
     const daysOptions = [];
     for (let i = 1; i <= 31; i++) {
         daysOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
-    createCustomSelect(containerId + '_day', daysOptions, dayValue, (value) => {
+    const daySelect = createCustomSelect(containerId + '_day', daysOptions, dayValue, (value) => {
         if (onDateChange) onDateChange('day', value);
     });
     
@@ -133,7 +127,7 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     for (let i = 0; i < 12; i++) {
         monthsOptions.push({ value: i + 1, label: monthNames[i] });
     }
-    createCustomSelect(containerId + '_month', monthsOptions, monthValue, (value) => {
+    const monthSelect = createCustomSelect(containerId + '_month', monthsOptions, monthValue, (value) => {
         if (onDateChange) onDateChange('month', value);
     });
     
@@ -149,12 +143,28 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     for (let i = currentYear - 2; i <= currentYear + 2; i++) {
         yearsOptions.push({ value: i, label: i.toString() });
     }
-    createCustomSelect(containerId + '_year', yearsOptions, yearValue, (value) => {
+    const yearSelect = createCustomSelect(containerId + '_year', yearsOptions, yearValue, (value) => {
         if (onDateChange) onDateChange('year', value);
+    });
+    
+    // Общая стрелка для всей группы
+    const arrow = document.createElement('span');
+    arrow.textContent = ' ▼';
+    arrow.style.cssText = 'font-size: 9px; color: var(--text-secondary); margin-left: 2px;';
+    container.appendChild(arrow);
+    
+    // Клик по всей группе открывает выпадайку первого селектора (дней)
+    container.addEventListener('click', (e) => {
+        if (e.target === container || container.contains(e.target)) {
+            const firstTrigger = daySelect?.trigger;
+            if (firstTrigger) {
+                firstTrigger.click();
+            }
+        }
     });
 }
 
-// Создать группу кастомных селекторов для времени
+// Создать группу кастомных селекторов для времени (с общей стрелкой)
 function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange) {
     let container = document.getElementById(containerId);
     if (!container) {
@@ -165,17 +175,18 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
     container.innerHTML = '';
     container.style.display = 'inline-flex';
     container.style.alignItems = 'center';
-    container.style.gap = '4px';
+    container.style.gap = '2px';
     container.style.backgroundColor = 'transparent';
     container.style.padding = '0';
     container.style.border = 'none';
+    container.style.cursor = 'pointer';
     
     // Часы
     const hoursOptions = [];
     for (let i = 0; i <= 23; i++) {
         hoursOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
-    createCustomSelect(containerId + '_hour', hoursOptions, hourValue, (value) => {
+    const hourSelect = createCustomSelect(containerId + '_hour', hoursOptions, hourValue, (value) => {
         if (onTimeChange) onTimeChange('hour', value);
     });
     
@@ -190,8 +201,24 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
     for (let i = 0; i <= 59; i++) {
         minutesOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
-    createCustomSelect(containerId + '_minute', minutesOptions, minuteValue, (value) => {
+    const minuteSelect = createCustomSelect(containerId + '_minute', minutesOptions, minuteValue, (value) => {
         if (onTimeChange) onTimeChange('minute', value);
+    });
+    
+    // Общая стрелка для всей группы
+    const arrow = document.createElement('span');
+    arrow.textContent = ' ▼';
+    arrow.style.cssText = 'font-size: 9px; color: var(--text-secondary); margin-left: 2px;';
+    container.appendChild(arrow);
+    
+    // Клик по всей группе открывает выпадайку первого селектора (часов)
+    container.addEventListener('click', (e) => {
+        if (e.target === container || container.contains(e.target)) {
+            const firstTrigger = hourSelect?.trigger;
+            if (firstTrigger) {
+                firstTrigger.click();
+            }
+        }
     });
 }
 
