@@ -26,7 +26,7 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
     customSelect.style.margin = '0 2px';
     
     const trigger = document.createElement('div');
-    trigger.style.cssText = 'background: var(--badge-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 6px 22px 6px 14px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); display: inline-block; font-family: monospace; min-width: 50px; text-align: center;';
+    trigger.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 6px 22px 6px 14px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); display: inline-block; font-family: monospace; min-width: 50px; text-align: center;';
     trigger.textContent = displayText;
     
     const arrow = document.createElement('span');
