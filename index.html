@@ -169,20 +169,10 @@
                     <div class="history-filter-left">
                         <div class="custom-datetime" id="datetimeFromContainer">
                             <span class="datetime-label">с</span>
-                            <div class="datetime-group">
-                                <div id="dateFromDayCustom" style="display: inline-block;"></div>
-                                <span class="datetime-sep"> </span>
-                                <div id="dateFromMonthCustom" style="display: inline-block;"></div>
-                                <span class="datetime-sep"> </span>
-                                <div id="dateFromYearCustom" style="display: inline-block;"></div>
-                            </div>
-                            <div class="datetime-group">
-                                <div id="timeFromHourCustom" style="display: inline-block;"></div>
-                                <span class="datetime-sep">:</span>
-                                <div id="timeFromMinuteCustom" style="display: inline-block;"></div>
-                            </div>
+                            <div id="dateFromDateGroup" style="display: inline-flex; align-items: center; gap: 6px;"></div>
+                            <div id="dateFromTimeGroup" style="display: inline-flex; align-items: center; gap: 6px; margin-left: 8px;"></div>
                         </div>
-                        <!-- Скрытые select для хранения значений -->
+                    <!-- Скрытые select для хранения значений -->
                         <select id="dateFromDay" style="display: none;"></select>
                         <select id="dateFromMonth" style="display: none;"></select>
                         <select id="dateFromYear" style="display: none;"></select>
@@ -192,20 +182,10 @@
                     <div class="history-filter-left" style="margin-top: 8px;">
                         <div class="custom-datetime" id="datetimeToContainer">
                             <span class="datetime-label">по</span>
-                            <div class="datetime-group">
-                                <div id="dateToDayCustom" style="display: inline-block;"></div>
-                                <span class="datetime-sep"> </span>
-                                <div id="dateToMonthCustom" style="display: inline-block;"></div>
-                                <span class="datetime-sep"> </span>
-                                <div id="dateToYearCustom" style="display: inline-block;"></div>
-                            </div>
-                            <div class="datetime-group">
-                                <div id="timeToHourCustom" style="display: inline-block;"></div>
-                                <span class="datetime-sep">:</span>
-                                <div id="timeToMinuteCustom" style="display: inline-block;"></div>
-                            </div>
+                            <div id="dateToDateGroup" style="display: inline-flex; align-items: center; gap: 6px;"></div>
+                            <div id="dateToTimeGroup" style="display: inline-flex; align-items: center; gap: 6px; margin-left: 8px;"></div>
                         </div>
-                        <!-- Скрытые select для хранения значений -->
+                    <!-- Скрытые select для хранения значений -->
                         <select id="dateToDay" style="display: none;"></select>
                         <select id="dateToMonth" style="display: none;"></select>
                         <select id="dateToYear" style="display: none;"></select>
@@ -229,7 +209,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- Stats Modal -->
     <div id="statsModal" class="modal">
         <div class="modal-content" style="max-width: 800px;">
