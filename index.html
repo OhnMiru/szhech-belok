@@ -138,7 +138,7 @@
         </div>
     </div>
 
-    <!-- History Modal (исправлен: стандартные select для даты/времени) -->
+    <!-- History Modal (кастомные селекторы для даты/времени) -->
     <div id="historyModal" class="modal">
         <div class="modal-content" style="max-width: 550px;">
             <button class="modal-close-btn" onclick="closeHistory()">×</button>
@@ -170,35 +170,47 @@
                         <div class="custom-datetime" id="datetimeFromContainer">
                             <span class="datetime-label">с</span>
                             <div class="datetime-group">
-                                <select id="dateFromDay" class="datetime-select"></select>
+                                <div id="dateFromDayCustom" style="display: inline-block;"></div>
                                 <span class="datetime-sep"> </span>
-                                <select id="dateFromMonth" class="datetime-select"></select>
+                                <div id="dateFromMonthCustom" style="display: inline-block;"></div>
                                 <span class="datetime-sep"> </span>
-                                <select id="dateFromYear" class="datetime-select"></select>
+                                <div id="dateFromYearCustom" style="display: inline-block;"></div>
                             </div>
                             <div class="datetime-group">
-                                <select id="timeFromHour" class="datetime-select"></select>
+                                <div id="timeFromHourCustom" style="display: inline-block;"></div>
                                 <span class="datetime-sep">:</span>
-                                <select id="timeFromMinute" class="datetime-select"></select>
+                                <div id="timeFromMinuteCustom" style="display: inline-block;"></div>
                             </div>
                         </div>
+                        <!-- Скрытые select для хранения значений -->
+                        <select id="dateFromDay" style="display: none;"></select>
+                        <select id="dateFromMonth" style="display: none;"></select>
+                        <select id="dateFromYear" style="display: none;"></select>
+                        <select id="timeFromHour" style="display: none;"></select>
+                        <select id="timeFromMinute" style="display: none;"></select>
                     </div>
                     <div class="history-filter-left" style="margin-top: 8px;">
                         <div class="custom-datetime" id="datetimeToContainer">
                             <span class="datetime-label">по</span>
                             <div class="datetime-group">
-                                <select id="dateToDay" class="datetime-select"></select>
+                                <div id="dateToDayCustom" style="display: inline-block;"></div>
                                 <span class="datetime-sep"> </span>
-                                <select id="dateToMonth" class="datetime-select"></select>
+                                <div id="dateToMonthCustom" style="display: inline-block;"></div>
                                 <span class="datetime-sep"> </span>
-                                <select id="dateToYear" class="datetime-select"></select>
+                                <div id="dateToYearCustom" style="display: inline-block;"></div>
                             </div>
                             <div class="datetime-group">
-                                <select id="timeToHour" class="datetime-select"></select>
+                                <div id="timeToHourCustom" style="display: inline-block;"></div>
                                 <span class="datetime-sep">:</span>
-                                <select id="timeToMinute" class="datetime-select"></select>
+                                <div id="timeToMinuteCustom" style="display: inline-block;"></div>
                             </div>
                         </div>
+                        <!-- Скрытые select для хранения значений -->
+                        <select id="dateToDay" style="display: none;"></select>
+                        <select id="dateToMonth" style="display: none;"></select>
+                        <select id="dateToYear" style="display: none;"></select>
+                        <select id="timeToHour" style="display: none;"></select>
+                        <select id="timeToMinute" style="display: none;"></select>
                         <div class="history-price-filter">
                             <span>💰</span>
                             <input type="number" id="historyMinPrice" placeholder="0" value="0" step="100">
@@ -218,7 +230,7 @@
         </div>
     </div>
 
-    <!-- Stats Modal (исправлен: стандартные select для даты/времени) -->
+    <!-- Stats Modal -->
     <div id="statsModal" class="modal">
         <div class="modal-content" style="max-width: 800px;">
             <button class="modal-close-btn" onclick="closeStatsModal()">×</button>
@@ -274,7 +286,7 @@
         </div>
     </div>
 
-    <!-- Global Stats Modal (исправлен: стандартные select для даты/времени) -->
+    <!-- Global Stats Modal -->
     <div id="globalStatsModal" class="modal">
         <div class="modal-content" style="max-width: 1000px;">
             <button class="modal-close-btn" onclick="closeGlobalStatsModal()">×</button>
@@ -343,7 +355,6 @@
                     <div id="editTypeContainer" style="flex: 1;"></div>
                 </div>
                 
-                <!-- Динамические поля атрибутов (редактирование) -->
                 <div id="editAttributesContainer"></div>
                 
                 <div class="edit-row">
@@ -367,7 +378,6 @@
                     <input type="number" id="editCost" class="edit-input" value="0" min="0" step="1">
                 </div>
                 
-                <!-- Блок фото -->
                 <div class="photo-section">
                     <div class="photo-header">📷 Фото товара</div>
                     <div class="photo-content">
@@ -420,7 +430,6 @@
                     </div>
                 </div>
                 
-                <!-- Динамические поля атрибутов (добавление) -->
                 <div id="addAttributesContainer"></div>
                 
                 <div class="edit-row">
@@ -538,7 +547,7 @@
         </div>
     </div>
 
-    <!-- Easter Egg Modal (Создатели) -->
+    <!-- Easter Egg Modal -->
     <div id="easterEggModal" class="modal">
         <div class="modal-content" style="max-width: 500px; text-align: center; position: relative;">
             <button class="modal-close-btn" onclick="closeEasterEggModal()" style="position: absolute; top: 12px; right: 16px;">×</button>
@@ -579,6 +588,7 @@
 
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/customSelects.js"></script>
     <script src="js/api.js"></script>
     <script src="js/offline.js"></script>
     <script src="js/auth.js"></script>
@@ -601,9 +611,7 @@
     <script src="js/app.js"></script>
     <script src="js/instructions.js"></script>
 
-    <!-- Easter Egg, Support & Instructions Script -->
     <script>
-        // Функции для пасхалки
         function openEasterEggModal() {
             const modal = document.getElementById('easterEggModal');
             if (modal) modal.style.display = 'block';
@@ -625,9 +633,7 @@
         
         function resetEasterEggButton() {
             const button = document.getElementById('easterEggButton');
-            if (button) {
-                button.style.display = 'inline-block';
-            }
+            if (button) button.style.display = 'inline-block';
             const closeBtn = document.getElementById('easterEggImageCloseBtn');
             if (closeBtn) closeBtn.remove();
         }
@@ -703,7 +709,6 @@
             content.appendChild(closeImgBtn);
         }
         
-        // Функции для техподдержки
         function openSupportModal() {
             const modal = document.getElementById('supportModal');
             if (modal) {
@@ -723,9 +728,7 @@
             const message = document.getElementById('supportMessage').value.trim();
             
             if (!message) {
-                if (typeof showToast === 'function') {
-                    showToast("Напишите сообщение", false);
-                }
+                if (typeof showToast === 'function') showToast("Напишите сообщение", false);
                 return;
             }
             
@@ -747,60 +750,42 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    if (typeof showToast === 'function') {
-                        showToast("Сообщение отправлено! Спасибо.", true);
-                    }
+                    if (typeof showToast === 'function') showToast("Сообщение отправлено! Спасибо.", true);
                     closeSupportModal();
                 } else {
-                    if (typeof showToast === 'function') {
-                        showToast("Ошибка: " + (result.error || "неизвестная"), false);
-                    }
+                    if (typeof showToast === 'function') showToast("Ошибка: " + (result.error || "неизвестная"), false);
                 }
             } catch(e) {
                 console.error("Support error:", e);
-                if (typeof showToast === 'function') {
-                    showToast("Ошибка отправки. Попробуйте позже.", false);
-                }
+                if (typeof showToast === 'function') showToast("Ошибка отправки. Попробуйте позже.", false);
             }
         }
         
-        // Функция закрытия инструкции
         function closeInstructionsModal() {
             const modal = document.getElementById('instructionsModal');
             if (modal) modal.style.display = 'none';
         }
         
-        // Делаем "Намяукано" и "Инструкцию" кликабельными
         document.addEventListener('DOMContentLoaded', function() {
             const namyaucano = document.getElementById('namyaucano');
             if (namyaucano) {
                 namyaucano.style.textDecoration = 'none';
-                namyaucano.addEventListener('click', function() {
-                    openEasterEggModal();
-                });
-                console.log("✅ Намяукано стало кликабельным");
+                namyaucano.addEventListener('click', function() { openEasterEggModal(); });
             }
             
             const supportBtn = document.getElementById('supportBtn');
             if (supportBtn) {
-                supportBtn.addEventListener('click', function() {
-                    openSupportModal();
-                });
-                console.log("✅ Кнопка техподдержки активирована");
+                supportBtn.addEventListener('click', function() { openSupportModal(); });
             }
             
             const instructionsLink = document.getElementById('instructionsLink');
             if (instructionsLink) {
                 instructionsLink.addEventListener('click', function() {
-                    if (typeof openInstructionsModal === 'function') {
-                        openInstructionsModal();
-                    }
+                    if (typeof openInstructionsModal === 'function') openInstructionsModal();
                 });
-                console.log("✅ Кнопка инструкции активирована");
             }
         });
         
-        // Делаем функции глобальными
         window.openSupportModal = openSupportModal;
         window.closeSupportModal = closeSupportModal;
         window.sendSupportRequest = sendSupportRequest;
