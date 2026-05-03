@@ -1,15 +1,13 @@
 // ========== КАСТОМНЫЕ СЕЛЕКТОРЫ ==========
 
-// Создать кастомный селектор (компактный режим)
+// Создать кастомный селектор (плоский компактный режим)
 function createCustomSelect(containerId, options, selectedValue, onSelect) {
     let container = document.getElementById(containerId);
     
-    // Если контейнер не существует, создаём его
     if (!container) {
         container = document.createElement('div');
         container.id = containerId;
         container.style.display = 'inline-block';
-        // Находим родительский элемент, куда вставить
         const parent = document.getElementById(containerId.replace(/_[^_]+$/, ''));
         if (parent) {
             parent.appendChild(container);
@@ -32,17 +30,19 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
     
     const trigger = document.createElement('div');
     trigger.className = 'custom-select-trigger';
-    trigger.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 30px; padding: 4px 20px 4px 8px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); position: relative; display: inline-block;';
+    // Плоский стиль, как у обычного select
+    trigger.style.cssText = 'background: var(--badge-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 18px 4px 8px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); position: relative; display: inline-block; font-family: monospace;';
     trigger.textContent = displayText;
     
+    // Один треугольник, без лишних элементов
     const arrow = document.createElement('span');
-    arrow.style.cssText = 'position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 7px; color: var(--text-secondary);';
+    arrow.style.cssText = 'position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--text-secondary); pointer-events: none;';
     arrow.textContent = '▼';
     trigger.appendChild(arrow);
     
     const dropdown = document.createElement('div');
     dropdown.className = 'custom-select-dropdown';
-    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 1000; display: none; max-height: 200px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow); min-width: 100px;';
+    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; z-index: 1000; display: none; max-height: 200px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow); min-width: 100px;';
     
     options.forEach(opt => {
         const optionDiv = document.createElement('div');
@@ -107,14 +107,17 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     container.innerHTML = '';
     container.style.display = 'inline-flex';
     container.style.alignItems = 'center';
-    container.style.gap = '4px';
+    container.style.gap = '6px';
+    container.style.backgroundColor = 'var(--badge-bg)';
+    container.style.padding = '4px 8px';
+    container.style.borderRadius = '20px';
+    container.style.border = '1px solid var(--border-color)';
     
     // Дни
     const daysOptions = [];
     for (let i = 1; i <= 31; i++) {
         daysOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
-    
     createCustomSelect(containerId + '_day', daysOptions, dayValue, (value) => {
         const hiddenSelect = document.getElementById('dateFromDay');
         if (hiddenSelect) hiddenSelect.value = value;
@@ -124,6 +127,7 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     const sep1 = document.createElement('span');
     sep1.textContent = ' ';
     sep1.style.color = 'var(--text-muted)';
+    sep1.style.fontSize = '12px';
     container.appendChild(sep1);
     
     // Месяцы
@@ -141,6 +145,7 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     const sep2 = document.createElement('span');
     sep2.textContent = ' ';
     sep2.style.color = 'var(--text-muted)';
+    sep2.style.fontSize = '12px';
     container.appendChild(sep2);
     
     // Годы
@@ -167,7 +172,11 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
     container.innerHTML = '';
     container.style.display = 'inline-flex';
     container.style.alignItems = 'center';
-    container.style.gap = '4px';
+    container.style.gap = '6px';
+    container.style.backgroundColor = 'var(--badge-bg)';
+    container.style.padding = '4px 8px';
+    container.style.borderRadius = '20px';
+    container.style.border = '1px solid var(--border-color)';
     
     // Часы
     const hoursOptions = [];
@@ -183,6 +192,7 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
     const sep = document.createElement('span');
     sep.textContent = ':';
     sep.style.color = 'var(--text-muted)';
+    sep.style.fontSize = '12px';
     container.appendChild(sep);
     
     // Минуты
@@ -221,7 +231,7 @@ function initCustomDateTimeSelects() {
     });
 }
 
-// Инициализация для статистики (аналогично)
+// Инициализация для статистики
 function initCustomStatsDateTimeSelects() {
     const now = new Date();
     const currentDay = now.getDate();
@@ -230,7 +240,6 @@ function initCustomStatsDateTimeSelects() {
     const oneMonthAgo = new Date(now);
     oneMonthAgo.setMonth(now.getMonth() - 1);
     
-    // Создаём временные функции для обновления скрытых селекторов статистики
     createCustomDateGroup('statsDateFromDateGroup', oneMonthAgo.getDate(), oneMonthAgo.getMonth() + 1, oneMonthAgo.getFullYear(), null);
     createCustomTimeGroup('statsDateFromTimeGroup', 0, 0, null);
     createCustomDateGroup('statsDateToDateGroup', currentDay, currentMonth, currentYear, null);
