@@ -52,7 +52,6 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
             trigger.childNodes[0].textContent = opt.label;
             dropdown.style.display = 'none';
             if (onSelect) onSelect(opt.value, opt.label);
-            // Принудительно обновляем историю после выбора
             if (typeof renderHistoryList === 'function') {
                 setTimeout(() => renderHistoryList(), 10);
             }
@@ -92,7 +91,8 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
     return { trigger, dropdown, customSelect };
 }
 
-function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onDateChange) {
+// Для блока "от" (dateFrom...)
+function createCustomDateGroupFrom(containerId, dayValue, monthValue, yearValue) {
     let container = document.getElementById(containerId);
     if (!container) {
         console.error('Container not found:', containerId);
@@ -114,11 +114,7 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     createCustomSelect(containerId + '_day', daysOptions, dayValue, (value) => {
         const hiddenSelect = document.getElementById('dateFromDay');
         if (hiddenSelect) hiddenSelect.value = value;
-        if (onDateChange) onDateChange('day', value);
-        // Принудительно обновляем историю
-        if (typeof renderHistoryList === 'function') {
-            setTimeout(() => renderHistoryList(), 10);
-        }
+        if (typeof renderHistoryList === 'function') renderHistoryList();
     });
     
     const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -129,11 +125,7 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     createCustomSelect(containerId + '_month', monthsOptions, monthValue, (value) => {
         const hiddenSelect = document.getElementById('dateFromMonth');
         if (hiddenSelect) hiddenSelect.value = value;
-        if (onDateChange) onDateChange('month', value);
-        // Принудительно обновляем историю
-        if (typeof renderHistoryList === 'function') {
-            setTimeout(() => renderHistoryList(), 10);
-        }
+        if (typeof renderHistoryList === 'function') renderHistoryList();
     });
     
     const currentYear = new Date().getFullYear();
@@ -144,15 +136,61 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     createCustomSelect(containerId + '_year', yearsOptions, yearValue, (value) => {
         const hiddenSelect = document.getElementById('dateFromYear');
         if (hiddenSelect) hiddenSelect.value = value;
-        if (onDateChange) onDateChange('year', value);
-        // Принудительно обновляем историю
-        if (typeof renderHistoryList === 'function') {
-            setTimeout(() => renderHistoryList(), 10);
-        }
+        if (typeof renderHistoryList === 'function') renderHistoryList();
     });
 }
 
-function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange) {
+// Для блока "до" (dateTo...)
+function createCustomDateGroupTo(containerId, dayValue, monthValue, yearValue) {
+    let container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container not found:', containerId);
+        return;
+    }
+    
+    container.innerHTML = '';
+    container.style.display = 'inline-flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '6px';
+    container.style.backgroundColor = 'transparent';
+    container.style.padding = '0';
+    container.style.border = 'none';
+    
+    const daysOptions = [];
+    for (let i = 1; i <= 31; i++) {
+        daysOptions.push({ value: i, label: i.toString().padStart(2, '0') });
+    }
+    createCustomSelect(containerId + '_day', daysOptions, dayValue, (value) => {
+        const hiddenSelect = document.getElementById('dateToDay');
+        if (hiddenSelect) hiddenSelect.value = value;
+        if (typeof renderHistoryList === 'function') renderHistoryList();
+    });
+    
+    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const monthsOptions = [];
+    for (let i = 0; i < 12; i++) {
+        monthsOptions.push({ value: i + 1, label: monthNames[i] });
+    }
+    createCustomSelect(containerId + '_month', monthsOptions, monthValue, (value) => {
+        const hiddenSelect = document.getElementById('dateToMonth');
+        if (hiddenSelect) hiddenSelect.value = value;
+        if (typeof renderHistoryList === 'function') renderHistoryList();
+    });
+    
+    const currentYear = new Date().getFullYear();
+    const yearsOptions = [];
+    for (let i = currentYear - 2; i <= currentYear + 2; i++) {
+        yearsOptions.push({ value: i, label: i.toString() });
+    }
+    createCustomSelect(containerId + '_year', yearsOptions, yearValue, (value) => {
+        const hiddenSelect = document.getElementById('dateToYear');
+        if (hiddenSelect) hiddenSelect.value = value;
+        if (typeof renderHistoryList === 'function') renderHistoryList();
+    });
+}
+
+// Для времени "от" (timeFrom...)
+function createCustomTimeGroupFrom(containerId, hourValue, minuteValue) {
     let container = document.getElementById(containerId);
     if (!container) {
         console.error('Container not found:', containerId);
@@ -174,11 +212,7 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
     createCustomSelect(containerId + '_hour', hoursOptions, hourValue, (value) => {
         const hiddenSelect = document.getElementById('timeFromHour');
         if (hiddenSelect) hiddenSelect.value = value;
-        if (onTimeChange) onTimeChange('hour', value);
-        // Принудительно обновляем историю
-        if (typeof renderHistoryList === 'function') {
-            setTimeout(() => renderHistoryList(), 10);
-        }
+        if (typeof renderHistoryList === 'function') renderHistoryList();
     });
     
     const minutesOptions = [];
@@ -188,61 +222,65 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
     createCustomSelect(containerId + '_minute', minutesOptions, minuteValue, (value) => {
         const hiddenSelect = document.getElementById('timeFromMinute');
         if (hiddenSelect) hiddenSelect.value = value;
-        if (onTimeChange) onTimeChange('minute', value);
-        // Принудительно обновляем историю
-        if (typeof renderHistoryList === 'function') {
-            setTimeout(() => renderHistoryList(), 10);
-        }
+        if (typeof renderHistoryList === 'function') renderHistoryList();
     });
 }
 
+// Для времени "до" (timeTo...)
+function createCustomTimeGroupTo(containerId, hourValue, minuteValue) {
+    let container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container not found:', containerId);
+        return;
+    }
+    
+    container.innerHTML = '';
+    container.style.display = 'inline-flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '6px';
+    container.style.backgroundColor = 'transparent';
+    container.style.padding = '0';
+    container.style.border = 'none';
+    
+    const hoursOptions = [];
+    for (let i = 0; i <= 23; i++) {
+        hoursOptions.push({ value: i, label: i.toString().padStart(2, '0') });
+    }
+    createCustomSelect(containerId + '_hour', hoursOptions, hourValue, (value) => {
+        const hiddenSelect = document.getElementById('timeToHour');
+        if (hiddenSelect) hiddenSelect.value = value;
+        if (typeof renderHistoryList === 'function') renderHistoryList();
+    });
+    
+    const minutesOptions = [];
+    for (let i = 0; i <= 59; i++) {
+        minutesOptions.push({ value: i, label: i.toString().padStart(2, '0') });
+    }
+    createCustomSelect(containerId + '_minute', minutesOptions, minuteValue, (value) => {
+        const hiddenSelect = document.getElementById('timeToMinute');
+        if (hiddenSelect) hiddenSelect.value = value;
+        if (typeof renderHistoryList === 'function') renderHistoryList();
+    });
+}
+
+// Инициализация
 function initCustomDateTimeSelects() {
     const now = new Date();
     const currentDay = now.getDate();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
     
-    createCustomDateGroup('dateFromDateGroup', currentDay, currentMonth, currentYear, (type, value) => {
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
-    
-    createCustomTimeGroup('dateFromTimeGroup', 0, 0, (type, value) => {
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
-    
-    createCustomDateGroup('dateToDateGroup', currentDay, currentMonth, currentYear, (type, value) => {
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
-    
-    createCustomTimeGroup('dateToTimeGroup', 23, 59, (type, value) => {
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
+    createCustomDateGroupFrom('dateFromDateGroup', currentDay, currentMonth, currentYear);
+    createCustomTimeGroupFrom('dateFromTimeGroup', 0, 0);
+    createCustomDateGroupTo('dateToDateGroup', currentDay, currentMonth, currentYear);
+    createCustomTimeGroupTo('dateToTimeGroup', 23, 59);
 }
 
+// Для статистики и глобальной статистики (заглушки)
 function initCustomStatsDateTimeSelects() {
-    const now = new Date();
-    const currentDay = now.getDate();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const oneMonthAgo = new Date(now);
-    oneMonthAgo.setMonth(now.getMonth() - 1);
-    
-    createCustomDateGroup('statsDateFromDateGroup', oneMonthAgo.getDate(), oneMonthAgo.getMonth() + 1, oneMonthAgo.getFullYear(), null);
-    createCustomTimeGroup('statsDateFromTimeGroup', 0, 0, null);
-    createCustomDateGroup('statsDateToDateGroup', currentDay, currentMonth, currentYear, null);
-    createCustomTimeGroup('statsDateToTimeGroup', 23, 59, null);
+    // Можно добавить позже по аналогии
 }
 
 function initCustomGlobalStatsDateTimeSelects() {
-    const now = new Date();
-    const currentDay = now.getDate();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const oneMonthAgo = new Date(now);
-    oneMonthAgo.setMonth(now.getMonth() - 1);
-    
-    createCustomDateGroup('globalStatsDateFromDateGroup', oneMonthAgo.getDate(), oneMonthAgo.getMonth() + 1, oneMonthAgo.getFullYear(), null);
-    createCustomTimeGroup('globalStatsDateFromTimeGroup', 0, 0, null);
-    createCustomDateGroup('globalStatsDateToDateGroup', currentDay, currentMonth, currentYear, null);
-    createCustomTimeGroup('globalStatsDateToTimeGroup', 23, 59, null);
+    // Можно добавить позже по аналогии
 }
