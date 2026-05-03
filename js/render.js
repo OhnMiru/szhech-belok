@@ -243,7 +243,7 @@ async function showCommentModal(itemId, itemName) {
         }
     }
     
-    // Заполняем данные (без ID в скобках)
+    // Заполняем данные (БЕЗ ID в скобках)
     const commentItemName = document.getElementById('commentItemName');
     if (commentItemName) {
         commentItemName.innerHTML = `📦 ${escapeHtml(itemName)}`;
