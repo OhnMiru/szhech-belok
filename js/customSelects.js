@@ -1,9 +1,20 @@
 // ========== КАСТОМНЫЕ СЕЛЕКТОРЫ ==========
 
-// Создать кастомный селектор
+// Создать кастомный селектор (с жёлтым фоном)
 function createCustomSelect(containerId, options, selectedValue, onSelect) {
-    const container = document.getElementById(containerId);
-    if (!container) return null;
+    let container = document.getElementById(containerId);
+    
+    if (!container) {
+        container = document.createElement('div');
+        container.id = containerId;
+        container.style.display = 'inline-block';
+        const parent = document.getElementById(containerId.replace(/_[^_]+$/, ''));
+        if (parent) {
+            parent.appendChild(container);
+        } else {
+            return null;
+        }
+    }
     
     container.innerHTML = '';
     
@@ -14,14 +25,17 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
     customSelect.className = 'custom-select-flat';
     customSelect.style.position = 'relative';
     customSelect.style.display = 'inline-block';
+    customSelect.style.margin = '0 2px';
     
+    // Жёлтый фон, как у итоговой суммы
     const trigger = document.createElement('div');
     trigger.className = 'custom-select-flat-trigger';
-    trigger.style.cssText = 'padding: 4px 14px 4px 0; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); display: inline-block; font-family: monospace;';
+    trigger.style.cssText = 'background: var(--badge-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 4px 20px 4px 12px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); display: inline-block; font-family: monospace; min-width: 40px; text-align: center;';
     trigger.textContent = displayText;
     
+    // Стрелка внутри жёлтой плашки
     const arrow = document.createElement('span');
-    arrow.style.cssText = 'position: absolute; right: 0; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--text-secondary);';
+    arrow.style.cssText = 'position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--text-secondary);';
     arrow.textContent = '▼';
     trigger.appendChild(arrow);
     
@@ -80,93 +94,136 @@ function createCustomSelect(containerId, options, selectedValue, onSelect) {
     return { trigger, dropdown, customSelect };
 }
 
-// Инициализация кастомных селекторов для истории
-function initCustomDateTimeSelects() {
-    const now = new Date();
-    const currentDay = now.getDate();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const monthNames = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+// Создать группу кастомных селекторов для даты
+function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onDateChange) {
+    let container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container not found:', containerId);
+        return;
+    }
+    
+    container.innerHTML = '';
+    container.style.display = 'inline-flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '6px';
+    container.style.backgroundColor = 'transparent';
+    container.style.padding = '0';
+    container.style.border = 'none';
     
     // Дни
     const daysOptions = [];
     for (let i = 1; i <= 31; i++) {
         daysOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
+    createCustomSelect(containerId + '_day', daysOptions, dayValue, (value) => {
+        if (onDateChange) onDateChange('day', value);
+    });
     
-    // Месяцы
+    // Месяцы (полные названия)
+    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
     const monthsOptions = [];
     for (let i = 0; i < 12; i++) {
         monthsOptions.push({ value: i + 1, label: monthNames[i] });
     }
+    createCustomSelect(containerId + '_month', monthsOptions, monthValue, (value) => {
+        if (onDateChange) onDateChange('month', value);
+    });
     
     // Годы
-    const currentYearNum = new Date().getFullYear();
+    const currentYear = new Date().getFullYear();
     const yearsOptions = [];
-    for (let i = currentYearNum - 2; i <= currentYearNum + 2; i++) {
+    for (let i = currentYear - 2; i <= currentYear + 2; i++) {
         yearsOptions.push({ value: i, label: i.toString() });
     }
+    createCustomSelect(containerId + '_year', yearsOptions, yearValue, (value) => {
+        if (onDateChange) onDateChange('year', value);
+    });
+}
+
+// Создать группу кастомных селекторов для времени
+function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange) {
+    let container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container not found:', containerId);
+        return;
+    }
+    
+    container.innerHTML = '';
+    container.style.display = 'inline-flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '6px';
+    container.style.backgroundColor = 'transparent';
+    container.style.padding = '0';
+    container.style.border = 'none';
     
     // Часы
     const hoursOptions = [];
     for (let i = 0; i <= 23; i++) {
         hoursOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
+    createCustomSelect(containerId + '_hour', hoursOptions, hourValue, (value) => {
+        if (onTimeChange) onTimeChange('hour', value);
+    });
     
     // Минуты
     const minutesOptions = [];
     for (let i = 0; i <= 59; i++) {
         minutesOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
+    createCustomSelect(containerId + '_minute', minutesOptions, minuteValue, (value) => {
+        if (onTimeChange) onTimeChange('minute', value);
+    });
+}
+
+// Инициализация кастомных селекторов для истории
+function initCustomDateTimeSelects() {
+    const now = new Date();
+    const currentDay = now.getDate();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
     
-    // Создаём селекторы
-    createCustomSelect('dateFromDayCustom', daysOptions, currentDay, (value) => {
-        document.getElementById('dateFromDay').value = value;
+    createCustomDateGroup('dateFromDateGroup', currentDay, currentMonth, currentYear, (type, value) => {
         if (typeof renderHistoryList === 'function') renderHistoryList();
     });
     
-    createCustomSelect('dateFromMonthCustom', monthsOptions, currentMonth, (value) => {
-        document.getElementById('dateFromMonth').value = value;
+    createCustomTimeGroup('dateFromTimeGroup', 0, 0, (type, value) => {
         if (typeof renderHistoryList === 'function') renderHistoryList();
     });
     
-    createCustomSelect('dateFromYearCustom', yearsOptions, currentYear, (value) => {
-        document.getElementById('dateFromYear').value = value;
+    createCustomDateGroup('dateToDateGroup', currentDay, currentMonth, currentYear, (type, value) => {
         if (typeof renderHistoryList === 'function') renderHistoryList();
     });
     
-    createCustomSelect('timeFromHourCustom', hoursOptions, 0, (value) => {
-        document.getElementById('timeFromHour').value = value;
+    createCustomTimeGroup('dateToTimeGroup', 23, 59, (type, value) => {
         if (typeof renderHistoryList === 'function') renderHistoryList();
     });
+}
+
+// Инициализация для статистики (если понадобится)
+function initCustomStatsDateTimeSelects() {
+    const now = new Date();
+    const currentDay = now.getDate();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const oneMonthAgo = new Date(now);
+    oneMonthAgo.setMonth(now.getMonth() - 1);
     
-    createCustomSelect('timeFromMinuteCustom', minutesOptions, 0, (value) => {
-        document.getElementById('timeFromMinute').value = value;
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
+    createCustomDateGroup('statsDateFromDateGroup', oneMonthAgo.getDate(), oneMonthAgo.getMonth() + 1, oneMonthAgo.getFullYear(), null);
+    createCustomTimeGroup('statsDateFromTimeGroup', 0, 0, null);
+    createCustomDateGroup('statsDateToDateGroup', currentDay, currentMonth, currentYear, null);
+    createCustomTimeGroup('statsDateToTimeGroup', 23, 59, null);
+}
+
+function initCustomGlobalStatsDateTimeSelects() {
+    const now = new Date();
+    const currentDay = now.getDate();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const oneMonthAgo = new Date(now);
+    oneMonthAgo.setMonth(now.getMonth() - 1);
     
-    createCustomSelect('dateToDayCustom', daysOptions, currentDay, (value) => {
-        document.getElementById('dateToDay').value = value;
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
-    
-    createCustomSelect('dateToMonthCustom', monthsOptions, currentMonth, (value) => {
-        document.getElementById('dateToMonth').value = value;
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
-    
-    createCustomSelect('dateToYearCustom', yearsOptions, currentYear, (value) => {
-        document.getElementById('dateToYear').value = value;
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
-    
-    createCustomSelect('timeToHourCustom', hoursOptions, 23, (value) => {
-        document.getElementById('timeToHour').value = value;
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
-    
-    createCustomSelect('timeToMinuteCustom', minutesOptions, 59, (value) => {
-        document.getElementById('timeToMinute').value = value;
-        if (typeof renderHistoryList === 'function') renderHistoryList();
-    });
+    createCustomDateGroup('globalStatsDateFromDateGroup', oneMonthAgo.getDate(), oneMonthAgo.getMonth() + 1, oneMonthAgo.getFullYear(), null);
+    createCustomTimeGroup('globalStatsDateFromTimeGroup', 0, 0, null);
+    createCustomDateGroup('globalStatsDateToDateGroup', currentDay, currentMonth, currentYear, null);
+    createCustomTimeGroup('globalStatsDateToTimeGroup', 23, 59, null);
 }
