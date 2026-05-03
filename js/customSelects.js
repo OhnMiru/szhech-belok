@@ -283,6 +283,7 @@ function initCustomStatsDateTimeSelects() {
 
 function initCustomGlobalStatsDateTimeSelects() {
     // Можно добавить позже по аналогии
+}
 
 // ========== СЕЛЕКТОРЫ ДЛЯ ТИПОВ ТОВАРОВ ==========
 
@@ -371,7 +372,6 @@ async function initEditTypeSelector(selectedType) {
     const container = document.getElementById('editTypeContainer');
     if (!container) return;
     
-    // Загружаем типы, если ещё не загружены
     if (!window.merchTypesLoaded) {
         await loadMerchTypesConfig();
     }
@@ -380,10 +380,8 @@ async function initEditTypeSelector(selectedType) {
     const options = types.map(type => ({ value: type, label: type }));
     
     const handleSelect = (value, label) => {
-        // Обновляем скрытый select
         const hiddenSelect = document.getElementById('editType');
         if (hiddenSelect) hiddenSelect.value = value;
-        // Обновляем поля атрибутов
         if (typeof onEditTypeChange === 'function') {
             onEditTypeChange();
         }
@@ -397,7 +395,6 @@ async function initAddTypeSelector() {
     const container = document.getElementById('addItemTypeContainer');
     if (!container) return;
     
-    // Загружаем типы, если ещё не загружены
     if (!window.merchTypesLoaded) {
         await loadMerchTypesConfig();
     }
@@ -406,13 +403,10 @@ async function initAddTypeSelector() {
     const options = types.map(type => ({ value: type, label: type }));
     
     const handleSelect = (value, label) => {
-        // Обновляем скрытый select
         const hiddenSelect = document.getElementById('addItemType');
         if (hiddenSelect) hiddenSelect.value = value;
-        // Показываем, что тип выбран, скрываем поле нового типа
         const newTypeInput = document.getElementById('addItemNewType');
         if (newTypeInput) newTypeInput.style.display = 'none';
-        // Обновляем поля атрибутов
         if (typeof onAddTypeChange === 'function') {
             onAddTypeChange();
         }
@@ -421,17 +415,148 @@ async function initAddTypeSelector() {
     createCustomSelectForOptions('addItemTypeContainer', options, '', handleSelect);
 }
 
-// Обновить значение селектора типа в редактировании (если нужно программно)
+// Обновить значение селектора типа в редактировании
 function updateEditTypeSelector(value) {
     const container = document.getElementById('editTypeContainer');
     if (!container) return;
     
     const trigger = container.querySelector('div[style*="cursor: pointer"]');
-    if (trigger) {
+    if (trigger && trigger.childNodes[0]) {
         trigger.childNodes[0].textContent = value;
     }
     
     const hiddenSelect = document.getElementById('editType');
     if (hiddenSelect) hiddenSelect.value = value;
 }
+
+// ========== СЕЛЕКТОРЫ ДЛЯ АТРИБУТОВ ==========
+
+// Создать кастомный селектор для атрибутов
+function createCustomAttributeSelect(containerId, options, selectedValue, onSelect) {
+    let container = document.getElementById(containerId);
+    if (!container) return null;
+    
+    container.innerHTML = '';
+    container.style.display = 'inline-block';
+    container.style.width = '100%';
+    
+    const selectedOption = options.find(opt => opt.value == selectedValue);
+    let displayText = selectedOption ? selectedOption.label : 'Не выбран';
+    
+    const customSelect = document.createElement('div');
+    customSelect.style.position = 'relative';
+    customSelect.style.display = 'inline-block';
+    customSelect.style.width = '100%';
+    
+    const trigger = document.createElement('div');
+    trigger.style.cssText = 'background: var(--badge-bg); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 28px 8px 16px; font-size: 13px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); display: block;';
+    trigger.textContent = displayText;
+    
+    const arrow = document.createElement('span');
+    arrow.style.cssText = 'position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--text-secondary);';
+    arrow.textContent = '▼';
+    trigger.appendChild(arrow);
+    
+    const dropdown = document.createElement('div');
+    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 1000; display: none; max-height: 250px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow);';
+    
+    options.forEach(opt => {
+        const optionDiv = document.createElement('div');
+        optionDiv.style.cssText = 'padding: 10px 16px; cursor: pointer; transition: background 0.1s; font-size: 13px; color: var(--text-primary);';
+        optionDiv.textContent = opt.label;
+        optionDiv.dataset.value = opt.value;
+        
+        if (opt.value == selectedValue) {
+            optionDiv.style.background = 'var(--badge-bg)';
+            optionDiv.style.fontWeight = 'bold';
+        }
+        
+        optionDiv.addEventListener('click', () => {
+            trigger.childNodes[0].textContent = opt.label;
+            dropdown.style.display = 'none';
+            if (onSelect) onSelect(opt.value, opt.label);
+        });
+        
+        optionDiv.addEventListener('mouseenter', () => {
+            optionDiv.style.background = 'var(--badge-bg)';
+        });
+        optionDiv.addEventListener('mouseleave', () => {
+            if (opt.value != selectedValue) {
+                optionDiv.style.background = '';
+            }
+        });
+        
+        dropdown.appendChild(optionDiv);
+    });
+    
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.style.display === 'block';
+        document.querySelectorAll('[class*="dropdown"]').forEach(d => {
+            if (d !== dropdown) d.style.display = 'none';
+        });
+        dropdown.style.display = isOpen ? 'none' : 'block';
+    });
+    
+    customSelect.appendChild(trigger);
+    customSelect.appendChild(dropdown);
+    container.appendChild(customSelect);
+    
+    document.addEventListener('click', (e) => {
+        if (!customSelect.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+    
+    return { trigger, dropdown, customSelect };
+}
+
+// Инициализация кастомных селекторов для атрибутов (редактирование)
+function initEditAttributeSelects(attr1Value, attr2Value, attr1Options, attr2Options) {
+    if (attr1Options && attr1Options.length > 0) {
+        const container1 = document.getElementById('edit_attr1_container');
+        if (container1) {
+            const options = attr1Options.map(val => ({ value: val, label: val }));
+            createCustomAttributeSelect('edit_attr1_container', options, attr1Value, (value) => {
+                const hiddenSelect = document.getElementById('edit_attr1');
+                if (hiddenSelect) hiddenSelect.value = value;
+            });
+        }
+    }
+    
+    if (attr2Options && attr2Options.length > 0) {
+        const container2 = document.getElementById('edit_attr2_container');
+        if (container2) {
+            const options = attr2Options.map(val => ({ value: val, label: val }));
+            createCustomAttributeSelect('edit_attr2_container', options, attr2Value, (value) => {
+                const hiddenSelect = document.getElementById('edit_attr2');
+                if (hiddenSelect) hiddenSelect.value = value;
+            });
+        }
+    }
+}
+
+// Инициализация кастомных селекторов для атрибутов (добавление)
+function initAddAttributeSelects(attr1Options, attr2Options) {
+    if (attr1Options && attr1Options.length > 0) {
+        const container1 = document.getElementById('add_attr1_container');
+        if (container1) {
+            const options = attr1Options.map(val => ({ value: val, label: val }));
+            createCustomAttributeSelect('add_attr1_container', options, '', (value) => {
+                const hiddenSelect = document.getElementById('add_attr1');
+                if (hiddenSelect) hiddenSelect.value = value;
+            });
+        }
+    }
+    
+    if (attr2Options && attr2Options.length > 0) {
+        const container2 = document.getElementById('add_attr2_container');
+        if (container2) {
+            const options = attr2Options.map(val => ({ value: val, label: val }));
+            createCustomAttributeSelect('add_attr2_container', options, '', (value) => {
+                const hiddenSelect = document.getElementById('add_attr2');
+                if (hiddenSelect) hiddenSelect.value = value;
+            });
+        }
+    }
 }
