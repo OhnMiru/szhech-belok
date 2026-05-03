@@ -1,40 +1,53 @@
 // ========== КАСТОМНЫЕ СЕЛЕКТОРЫ ==========
 
 // Создать кастомный селектор (компактный режим)
-function createCustomSelect(containerId, options, selectedValue, onSelect, placeholder = '') {
-    const container = document.getElementById(containerId);
-    if (!container) return null;
+function createCustomSelect(containerId, options, selectedValue, onSelect) {
+    let container = document.getElementById(containerId);
+    
+    // Если контейнер не существует, создаём его
+    if (!container) {
+        container = document.createElement('div');
+        container.id = containerId;
+        container.style.display = 'inline-block';
+        // Находим родительский элемент, куда вставить
+        const parent = document.getElementById(containerId.replace(/_[^_]+$/, ''));
+        if (parent) {
+            parent.appendChild(container);
+        } else {
+            return null;
+        }
+    }
     
     container.innerHTML = '';
     
     const selectedOption = options.find(opt => opt.value == selectedValue);
-    let displayText = selectedOption ? selectedOption.label : (placeholder || options[0]?.label || 'Выберите');
+    let displayText = selectedOption ? selectedOption.label : options[0]?.label || 'Выберите';
     
     const customSelect = document.createElement('div');
     customSelect.className = 'custom-select';
     customSelect.style.position = 'relative';
     customSelect.style.display = 'inline-block';
     customSelect.style.width = 'auto';
-    customSelect.style.minWidth = '60px';
+    customSelect.style.minWidth = '50px';
     
     const trigger = document.createElement('div');
     trigger.className = 'custom-select-trigger';
-    trigger.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 30px; padding: 6px 24px 6px 10px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); position: relative; display: inline-block;';
+    trigger.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 30px; padding: 4px 20px 4px 8px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); position: relative; display: inline-block;';
     trigger.textContent = displayText;
     
     const arrow = document.createElement('span');
-    arrow.style.cssText = 'position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 8px; color: var(--text-secondary);';
+    arrow.style.cssText = 'position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 7px; color: var(--text-secondary);';
     arrow.textContent = '▼';
     trigger.appendChild(arrow);
     
     const dropdown = document.createElement('div');
     dropdown.className = 'custom-select-dropdown';
-    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 1000; display: none; max-height: 250px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow); min-width: 120px;';
+    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 1000; display: none; max-height: 200px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow); min-width: 100px;';
     
     options.forEach(opt => {
         const optionDiv = document.createElement('div');
         optionDiv.className = 'custom-select-option';
-        optionDiv.style.cssText = 'padding: 8px 12px; cursor: pointer; transition: background 0.1s; font-size: 12px; color: var(--text-primary); white-space: nowrap;';
+        optionDiv.style.cssText = 'padding: 6px 12px; cursor: pointer; transition: background 0.1s; font-size: 12px; color: var(--text-primary); white-space: nowrap;';
         optionDiv.textContent = opt.label;
         optionDiv.dataset.value = opt.value;
         
@@ -85,19 +98,26 @@ function createCustomSelect(containerId, options, selectedValue, onSelect, place
 
 // Создать группу кастомных селекторов для даты
 function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onDateChange) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+    let container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container not found:', containerId);
+        return;
+    }
     
     container.innerHTML = '';
     container.style.display = 'inline-flex';
     container.style.alignItems = 'center';
-    container.style.gap = '2px';
+    container.style.gap = '4px';
     
+    // Дни
     const daysOptions = [];
     for (let i = 1; i <= 31; i++) {
         daysOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
+    
     createCustomSelect(containerId + '_day', daysOptions, dayValue, (value) => {
+        const hiddenSelect = document.getElementById('dateFromDay');
+        if (hiddenSelect) hiddenSelect.value = value;
         if (onDateChange) onDateChange('day', value);
     });
     
@@ -106,12 +126,15 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     sep1.style.color = 'var(--text-muted)';
     container.appendChild(sep1);
     
-    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    // Месяцы
+    const monthNames = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
     const monthsOptions = [];
     for (let i = 0; i < 12; i++) {
         monthsOptions.push({ value: i + 1, label: monthNames[i] });
     }
     createCustomSelect(containerId + '_month', monthsOptions, monthValue, (value) => {
+        const hiddenSelect = document.getElementById('dateFromMonth');
+        if (hiddenSelect) hiddenSelect.value = value;
         if (onDateChange) onDateChange('month', value);
     });
     
@@ -120,31 +143,40 @@ function createCustomDateGroup(containerId, dayValue, monthValue, yearValue, onD
     sep2.style.color = 'var(--text-muted)';
     container.appendChild(sep2);
     
+    // Годы
     const currentYear = new Date().getFullYear();
     const yearsOptions = [];
     for (let i = currentYear - 2; i <= currentYear + 2; i++) {
         yearsOptions.push({ value: i, label: i.toString() });
     }
     createCustomSelect(containerId + '_year', yearsOptions, yearValue, (value) => {
+        const hiddenSelect = document.getElementById('dateFromYear');
+        if (hiddenSelect) hiddenSelect.value = value;
         if (onDateChange) onDateChange('year', value);
     });
 }
 
 // Создать группу кастомных селекторов для времени
 function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+    let container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container not found:', containerId);
+        return;
+    }
     
     container.innerHTML = '';
     container.style.display = 'inline-flex';
     container.style.alignItems = 'center';
-    container.style.gap = '2px';
+    container.style.gap = '4px';
     
+    // Часы
     const hoursOptions = [];
     for (let i = 0; i <= 23; i++) {
         hoursOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
     createCustomSelect(containerId + '_hour', hoursOptions, hourValue, (value) => {
+        const hiddenSelect = document.getElementById('timeFromHour');
+        if (hiddenSelect) hiddenSelect.value = value;
         if (onTimeChange) onTimeChange('hour', value);
     });
     
@@ -153,11 +185,14 @@ function createCustomTimeGroup(containerId, hourValue, minuteValue, onTimeChange
     sep.style.color = 'var(--text-muted)';
     container.appendChild(sep);
     
+    // Минуты
     const minutesOptions = [];
     for (let i = 0; i <= 59; i++) {
         minutesOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
     createCustomSelect(containerId + '_minute', minutesOptions, minuteValue, (value) => {
+        const hiddenSelect = document.getElementById('timeFromMinute');
+        if (hiddenSelect) hiddenSelect.value = value;
         if (onTimeChange) onTimeChange('minute', value);
     });
 }
@@ -170,31 +205,23 @@ function initCustomDateTimeSelects() {
     const currentYear = now.getFullYear();
     
     createCustomDateGroup('dateFromDateGroup', currentDay, currentMonth, currentYear, (type, value) => {
-        const hiddenSelect = document.getElementById('dateFrom' + (type === 'day' ? 'Day' : type === 'month' ? 'Month' : 'Year'));
-        if (hiddenSelect) hiddenSelect.value = value;
         if (typeof renderHistoryList === 'function') renderHistoryList();
     });
     
     createCustomTimeGroup('dateFromTimeGroup', 0, 0, (type, value) => {
-        const hiddenSelect = document.getElementById(type === 'hour' ? 'timeFromHour' : 'timeFromMinute');
-        if (hiddenSelect) hiddenSelect.value = value;
         if (typeof renderHistoryList === 'function') renderHistoryList();
     });
     
     createCustomDateGroup('dateToDateGroup', currentDay, currentMonth, currentYear, (type, value) => {
-        const hiddenSelect = document.getElementById('dateTo' + (type === 'day' ? 'Day' : type === 'month' ? 'Month' : 'Year'));
-        if (hiddenSelect) hiddenSelect.value = value;
         if (typeof renderHistoryList === 'function') renderHistoryList();
     });
     
     createCustomTimeGroup('dateToTimeGroup', 23, 59, (type, value) => {
-        const hiddenSelect = document.getElementById(type === 'hour' ? 'timeToHour' : 'timeToMinute');
-        if (hiddenSelect) hiddenSelect.value = value;
         if (typeof renderHistoryList === 'function') renderHistoryList();
     });
 }
 
-// Инициализация кастомных селекторов для статистики
+// Инициализация для статистики (аналогично)
 function initCustomStatsDateTimeSelects() {
     const now = new Date();
     const currentDay = now.getDate();
@@ -203,30 +230,13 @@ function initCustomStatsDateTimeSelects() {
     const oneMonthAgo = new Date(now);
     oneMonthAgo.setMonth(now.getMonth() - 1);
     
-    createCustomDateGroup('statsDateFromDateGroup', oneMonthAgo.getDate(), oneMonthAgo.getMonth() + 1, oneMonthAgo.getFullYear(), (type, value) => {
-        const hiddenSelect = document.getElementById('statsDateFrom' + (type === 'day' ? 'Day' : type === 'month' ? 'Month' : 'Year'));
-        if (hiddenSelect) hiddenSelect.value = value;
-        if (typeof renderStats === 'function') renderStats();
-    });
-    createCustomTimeGroup('statsDateFromTimeGroup', 0, 0, (type, value) => {
-        const hiddenSelect = document.getElementById(type === 'hour' ? 'statsTimeFromHour' : 'statsTimeFromMinute');
-        if (hiddenSelect) hiddenSelect.value = value;
-        if (typeof renderStats === 'function') renderStats();
-    });
-    
-    createCustomDateGroup('statsDateToDateGroup', currentDay, currentMonth, currentYear, (type, value) => {
-        const hiddenSelect = document.getElementById('statsDateTo' + (type === 'day' ? 'Day' : type === 'month' ? 'Month' : 'Year'));
-        if (hiddenSelect) hiddenSelect.value = value;
-        if (typeof renderStats === 'function') renderStats();
-    });
-    createCustomTimeGroup('statsDateToTimeGroup', 23, 59, (type, value) => {
-        const hiddenSelect = document.getElementById(type === 'hour' ? 'statsTimeToHour' : 'statsTimeToMinute');
-        if (hiddenSelect) hiddenSelect.value = value;
-        if (typeof renderStats === 'function') renderStats();
-    });
+    // Создаём временные функции для обновления скрытых селекторов статистики
+    createCustomDateGroup('statsDateFromDateGroup', oneMonthAgo.getDate(), oneMonthAgo.getMonth() + 1, oneMonthAgo.getFullYear(), null);
+    createCustomTimeGroup('statsDateFromTimeGroup', 0, 0, null);
+    createCustomDateGroup('statsDateToDateGroup', currentDay, currentMonth, currentYear, null);
+    createCustomTimeGroup('statsDateToTimeGroup', 23, 59, null);
 }
 
-// Инициализация кастомных селекторов для глобальной статистики
 function initCustomGlobalStatsDateTimeSelects() {
     const now = new Date();
     const currentDay = now.getDate();
@@ -235,21 +245,8 @@ function initCustomGlobalStatsDateTimeSelects() {
     const oneMonthAgo = new Date(now);
     oneMonthAgo.setMonth(now.getMonth() - 1);
     
-    createCustomDateGroup('globalStatsDateFromDateGroup', oneMonthAgo.getDate(), oneMonthAgo.getMonth() + 1, oneMonthAgo.getFullYear(), (type, value) => {
-        const hiddenSelect = document.getElementById('globalStatsDateFrom' + (type === 'day' ? 'Day' : type === 'month' ? 'Month' : 'Year'));
-        if (hiddenSelect) hiddenSelect.value = value;
-    });
-    createCustomTimeGroup('globalStatsDateFromTimeGroup', 0, 0, (type, value) => {
-        const hiddenSelect = document.getElementById(type === 'hour' ? 'globalStatsTimeFromHour' : 'globalStatsTimeFromMinute');
-        if (hiddenSelect) hiddenSelect.value = value;
-    });
-    
-    createCustomDateGroup('globalStatsDateToDateGroup', currentDay, currentMonth, currentYear, (type, value) => {
-        const hiddenSelect = document.getElementById('globalStatsDateTo' + (type === 'day' ? 'Day' : type === 'month' ? 'Month' : 'Year'));
-        if (hiddenSelect) hiddenSelect.value = value;
-    });
-    createCustomTimeGroup('globalStatsDateToTimeGroup', 23, 59, (type, value) => {
-        const hiddenSelect = document.getElementById(type === 'hour' ? 'globalStatsTimeToHour' : 'globalStatsTimeToMinute');
-        if (hiddenSelect) hiddenSelect.value = value;
-    });
+    createCustomDateGroup('globalStatsDateFromDateGroup', oneMonthAgo.getDate(), oneMonthAgo.getMonth() + 1, oneMonthAgo.getFullYear(), null);
+    createCustomTimeGroup('globalStatsDateFromTimeGroup', 0, 0, null);
+    createCustomDateGroup('globalStatsDateToDateGroup', currentDay, currentMonth, currentYear, null);
+    createCustomTimeGroup('globalStatsDateToTimeGroup', 23, 59, null);
 }
