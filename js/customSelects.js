@@ -390,7 +390,7 @@ async function initEditTypeSelector(selectedType) {
     createCustomSelectForOptions('editTypeContainer', options, selectedType, handleSelect);
 }
 
-// Инициализация селектора типа в добавлении (ИСПРАВЛЕНА)
+// Инициализация селектора типа в добавлении (ИСПРАВЛЕНА - правильный порядок)
 async function initAddTypeSelector() {
     const container = document.getElementById('addItemTypeContainer');
     if (!container) return;
@@ -403,17 +403,25 @@ async function initAddTypeSelector() {
     const options = types.map(type => ({ value: type, label: type }));
     
     const handleSelect = (value, label) => {
+        // СНАЧАЛА устанавливаем значение в скрытое поле
         const hiddenSelect = document.getElementById('addItemType');
         if (hiddenSelect) hiddenSelect.value = value;
+        
         const newTypeInput = document.getElementById('addItemNewType');
         if (newTypeInput) newTypeInput.style.display = 'none';
+        
+        // ПОТОМ вызываем onAddTypeChange (из editing.js)
         if (typeof onAddTypeChange === 'function') {
             onAddTypeChange();
         }
-        // ВАЖНО: вызываем onTypeSelectChange для отображения атрибутов
-        if (typeof onTypeSelectChange === 'function') {
-            onTypeSelectChange();
-        }
+        
+        // И наконец вызываем onTypeSelectChange (из ui.js) для отображения атрибутов
+        // делаем с небольшой задержкой, чтобы hiddenSelect уже точно имел значение
+        setTimeout(() => {
+            if (typeof onTypeSelectChange === 'function') {
+                onTypeSelectChange();
+            }
+        }, 10);
     };
     
     createCustomSelectForOptions('addItemTypeContainer', options, '', handleSelect);
