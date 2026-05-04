@@ -155,10 +155,30 @@ function updateSelectedProductsDisplay() {
     else {
         const productNames = Array.from(selectedProducts).map(id => {
             const card = originalCardsData.find(c => c.id === id);
-            return card ? `${card.type} ${card.name}` : id;
+            if (!card) return id;
+            return getProductDisplayName(card);
         }).join(', ');
         container.innerHTML = `<div class="selected-count">📦 Выбрано товаров: ${count}<br>${productNames}</div>`;
     }
+}
+
+// НОВАЯ ФУНКЦИЯ: получает отображаемое имя товара с атрибутами
+function getProductDisplayName(card) {
+    const type = card.type || "";
+    const name = card.name || "";
+    const attr1 = card.attribute1 || "";
+    const attr2 = card.attribute2 || "";
+    
+    let baseName = `${type} ${name}`;
+    
+    if (attr1 || attr2) {
+        const parts = [];
+        if (attr1) parts.push(attr1);
+        if (attr2) parts.push(attr2);
+        baseName += ` (${parts.join(" | ")})`;
+    }
+    
+    return baseName;
 }
 
 function renderProductMultiSelect(preserveScroll = false) {
@@ -171,7 +191,7 @@ function renderProductMultiSelect(preserveScroll = false) {
     let html = '<div class="multi-select-container">';
     originalCardsData.forEach(card => {
         const isSelected = selectedProducts.has(card.id);
-        const displayName = `${card.type} ${card.name}`;
+        const displayName = getProductDisplayName(card);
         html += `<div class="multi-select-item ${isSelected ? 'selected' : ''}" onclick="toggleProductSelection(${card.id})">
                     <span class="multi-select-item-label">${escapeHtml(displayName)}</span>
                     ${isSelected ? '<span class="selected-mark">✓</span>' : ''}
@@ -302,9 +322,9 @@ function renderRulesList() {
                 if (rule.condition && rule.condition.productIds && Array.isArray(rule.condition.productIds)) {
                     const productNames = rule.condition.productIds.map(id => {
                         const card = originalCardsData.find(c => c.id === id);
-                        return card ? `${card.type} ${card.name}` : id;
+                        return card ? getProductDisplayName(card) : id;
                     }).join(', ');
-                    conditionText = `Товары: ${productNames.length > 30 ? productNames.substring(0, 30) + '...' : productNames}, от ${rule.condition.minQty} шт`;
+                    conditionText = `Товары: ${productNames.length > 40 ? productNames.substring(0, 40) + '...' : productNames}, от ${rule.condition.minQty} шт`;
                 } else {
                     conditionText = `⚠️ Ошибка в правиле (товары)`;
                 }
@@ -361,7 +381,7 @@ function checkRulesForCart() {
         const id = parseInt(idStr);
         const card = originalCardsData.find(c => c.id === id);
         if (card) {
-            if (!cartInfo[id]) cartInfo[id] = { qty: 0, price: card.price, type: card.type, name: card.name };
+            if (!cartInfo[id]) cartInfo[id] = { qty: 0, price: card.price, type: card.type, name: card.name, attr1: card.attribute1, attr2: card.attribute2 };
             cartInfo[id].qty += qty;
             totalPrice += qty * card.price;
         }
