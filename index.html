@@ -408,15 +408,18 @@
             <div id="add-item-content">
                 <div class="edit-row">
                     <span class="edit-label">Тип</span>
-                    <div style="flex: 1; display: flex; gap: 8px;">
-                        <div id="addItemTypeContainer" style="flex: 2;"></div>
-                        <input type="text" id="addItemNewType" class="edit-input" style="flex: 1; display: none;" placeholder="Новый тип">
-                        <button type="button" id="toggleNewTypeBtn" class="add-cost-btn" style="width: auto; padding: 8px 12px;" onclick="toggleNewTypeInput()">➕</button>
+                    <div style="flex: 1;">
+                        <div id="addItemTypeContainer" style="width: 100%;"></div>
                     </div>
                 </div>
-                
+            
                 <div id="addAttributesContainer"></div>
                 
+                <!-- Скрытые select для хранения значений атрибутов -->
+                <select id="addItemType" style="display: none;"></select>
+                <select id="add_attr1" style="display: none;"></select>
+                <select id="add_attr2" style="display: none;"></select>
+            
                 <div class="edit-row">
                     <span class="edit-label">Название</span>
                     <input type="text" id="addItemName" class="edit-input" placeholder="Название товара">
@@ -444,7 +447,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- Photo View Modal -->
     <div id="photoViewModal" class="modal">
         <div class="modal-content">
