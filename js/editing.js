@@ -37,38 +37,25 @@ function onEditTypeChange() {
     const hiddenSelect = document.getElementById('editType');
     const selectedType = hiddenSelect ? hiddenSelect.value : '';
     if (selectedType) {
-        // Полностью очищаем контейнер атрибутов
         const container = document.getElementById('editAttributesContainer');
         if (container) {
             container.innerHTML = '';
         }
-        // Очищаем скрытые select
         const attr1Select = document.getElementById('edit_attr1');
         const attr2Select = document.getElementById('edit_attr2');
         if (attr1Select) attr1Select.value = '';
         if (attr2Select) attr2Select.value = '';
         
-        // Очищаем также скрытый select для типа, чтобы старые значения не мешали
-        const editTypeHidden = document.getElementById('editType');
-        if (editTypeHidden) {
-            // Не меняем значение, только убеждаемся, что оно актуально
-            console.log('Смена типа на:', selectedType);
-        }
-        
-        // Перерисовываем поля атрибутов с задержкой
-        setTimeout(() => {
-            renderAttributesFields('edit', selectedType);
-        }, 50);
+        renderAttributesFields('edit', selectedType);
     }
 }
 
-// Отрисовка полей атрибутов
+// Отрисовка полей атрибутов (оптимизирована, без задержек)
 function renderAttributesFields(mode, selectedType) {
     const containerId = mode === 'add' ? 'addAttributesContainer' : 'editAttributesContainer';
     const container = document.getElementById(containerId);
     if (!container) return;
     
-    // Полностью очищаем контейнер
     container.innerHTML = '';
     
     if (!selectedType) return;
@@ -81,14 +68,11 @@ function renderAttributesFields(mode, selectedType) {
     const attr2Name = typeConfig.attribute2?.name || '';
     const attr2Values = typeConfig.attribute2?.values || [];
     
-    // При смене типа значения атрибутов всегда пустые
     let currentAttr1 = '';
     let currentAttr2 = '';
     
-    // Только если это загрузка модалки (не смена типа) и тип совпадает
     if (mode === 'edit' && currentEditId) {
         const card = originalCardsData.find(c => c.id === currentEditId);
-        // Проверяем, что тип карточки совпадает с выбранным типом
         if (card && card.type === selectedType) {
             currentAttr1 = card.attribute1 || '';
             currentAttr2 = card.attribute2 || '';
@@ -99,15 +83,13 @@ function renderAttributesFields(mode, selectedType) {
     
     // Атрибут 1
     if (attr1Name && attr1Values.length > 0) {
-        // Создаём скрытый select с правильным выбранным значением
-        const selectedAttr1 = currentAttr1;
         html += `
             <div class="edit-row">
                 <span class="edit-label">${escapeHtml(attr1Name)}</span>
                 <div id="${mode}_attr1_container" style="flex: 1;"></div>
                 <select id="${mode}_attr1" style="display: none;">
                     <option value="">Не выбран</option>
-                    ${attr1Values.map(v => `<option value="${escapeHtml(v)}" ${selectedAttr1 === v ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')}
+                    ${attr1Values.map(v => `<option value="${escapeHtml(v)}" ${currentAttr1 === v ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')}
                 </select>
             </div>
         `;
@@ -115,14 +97,13 @@ function renderAttributesFields(mode, selectedType) {
     
     // Атрибут 2
     if (attr2Name && attr2Values.length > 0) {
-        const selectedAttr2 = currentAttr2;
         html += `
             <div class="edit-row">
                 <span class="edit-label">${escapeHtml(attr2Name)}</span>
                 <div id="${mode}_attr2_container" style="flex: 1;"></div>
                 <select id="${mode}_attr2" style="display: none;">
                     <option value="">Не выбран</option>
-                    ${attr2Values.map(v => `<option value="${escapeHtml(v)}" ${selectedAttr2 === v ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')}
+                    ${attr2Values.map(v => `<option value="${escapeHtml(v)}" ${currentAttr2 === v ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')}
                 </select>
             </div>
         `;
@@ -130,20 +111,16 @@ function renderAttributesFields(mode, selectedType) {
     
     container.innerHTML = html;
     
-    // Инициализируем кастомные селекторы после вставки HTML
-    setTimeout(() => {
-        if (mode === 'edit') {
-            if (typeof initEditAttributeSelects === 'function') {
-                initEditAttributeSelects(currentAttr1, currentAttr2, attr1Values, attr2Values);
-            } else {
-                console.warn('initEditAttributeSelects not defined');
-            }
-        } else {
-            if (typeof initAddAttributeSelects === 'function') {
-                initAddAttributeSelects(attr1Values, attr2Values);
-            }
+    // Инициализируем кастомные селекторы немедленно
+    if (mode === 'edit') {
+        if (typeof initEditAttributeSelects === 'function') {
+            initEditAttributeSelects(currentAttr1, currentAttr2, attr1Values, attr2Values);
         }
-    }, 100);
+    } else {
+        if (typeof initAddAttributeSelects === 'function') {
+            initAddAttributeSelects(attr1Values, attr2Values);
+        }
+    }
 }
 
 // Получить значения атрибутов из формы (добавление)
@@ -447,3 +424,4 @@ window.onEditTypeChange = onEditTypeChange;
 window.renderAttributesOnCard = renderAttributesOnCard;
 window.loadTypesToSelector = loadTypesToSelector;
 window.addNewItem = addNewItem;
+window.renderAttributesFields = renderAttributesFields;
