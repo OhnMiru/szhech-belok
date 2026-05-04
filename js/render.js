@@ -190,58 +190,76 @@ function updateCardInDOM(cardId, updatedData) {
     }
 }
 
-// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ ==========
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С КОММЕНТАРИЯМИ (ОПТИМИЗИРОВАНЫ) ==========
 
 async function showCommentModal(itemId, itemName) {
-    // Получаем модальное окно из HTML (оно уже есть)
     const modal = document.getElementById('commentModal');
     if (!modal) return;
     
-    // Получаем элементы внутри модального окна
     const commentItemName = document.getElementById('commentItemName');
     const commentTextarea = document.getElementById('commentText');
+    const lastUpdatedEl = document.getElementById('commentLastUpdated');
     
-    // Получаем текущий комментарий
-    let currentComment = "";
-    if (commentsCache.has(itemId) && commentsCache.get(itemId).comment) {
-        currentComment = commentsCache.get(itemId).comment;
-    } else if (isOnline) {
-        const commentData = await getComment(itemId);
-        if (commentData && commentData.comment) {
-            currentComment = commentData.comment;
-        }
-    }
+    // Показываем модальное окно сразу
+    modal.style.display = 'block';
     
-    // Заполняем данные (БЕЗ ID в скобках)
+    // Показываем индикатор загрузки
     if (commentItemName) {
         commentItemName.innerHTML = `📦 ${escapeHtml(itemName)}`;
     }
-    
     if (commentTextarea) {
-        commentTextarea.value = currentComment;
+        commentTextarea.value = 'Загрузка комментария...';
+        commentTextarea.disabled = true;
     }
-    
-    const lastUpdated = commentsCache.has(itemId) && commentsCache.get(itemId).lastUpdated 
-        ? new Date(commentsCache.get(itemId).lastUpdated).toLocaleString('ru-RU')
-        : null;
-    const lastUpdatedEl = document.getElementById('commentLastUpdated');
     if (lastUpdatedEl) {
-        lastUpdatedEl.innerHTML = lastUpdated ? `Последнее изменение: ${lastUpdated}` : '';
+        lastUpdatedEl.innerHTML = '';
     }
     
-    // Сохраняем itemId в атрибут модального окна
+    // Получаем текущий комментарий (из кеша или с сервера)
+    let currentComment = "";
+    let lastUpdated = null;
+    
+    // Сначала пробуем из кеша
+    if (commentsCache.has(itemId) && commentsCache.get(itemId).comment !== undefined) {
+        currentComment = commentsCache.get(itemId).comment || "";
+        lastUpdated = commentsCache.get(itemId).lastUpdated || null;
+    }
+    
+    // Если в кеше нет, грузим с сервера
+    if (!currentComment && window.isOnline) {
+        try {
+            const commentData = await getComment(itemId);
+            if (commentData && commentData.comment) {
+                currentComment = commentData.comment;
+                lastUpdated = commentData.lastUpdated;
+                commentsCache.set(itemId, { comment: currentComment, lastUpdated: lastUpdated });
+                if (typeof saveCommentsToLocal === 'function') saveCommentsToLocal();
+            }
+        } catch(e) {
+            console.error("Error loading comment:", e);
+        }
+    }
+    
+    // Заполняем данные
+    if (commentItemName) {
+        commentItemName.innerHTML = `📦 ${escapeHtml(itemName)}`;
+    }
+    if (commentTextarea) {
+        commentTextarea.value = currentComment || '';
+        commentTextarea.disabled = false;
+    }
+    if (lastUpdatedEl) {
+        lastUpdatedEl.innerHTML = lastUpdated ? `Последнее изменение: ${new Date(lastUpdated).toLocaleString('ru-RU')}` : '';
+    }
+    
     modal.setAttribute('data-item-id', itemId);
     modal.setAttribute('data-item-name', itemName);
-    
-    // Показываем модальное окно 
-    modal.style.display = 'block';
 }
 
 function closeCommentModal() {
     const modal = document.getElementById('commentModal');
     if (modal) {
         modal.style.display = 'none';
-        // Очищаем текстовое поле для следующего открытия
         const commentTextarea = document.getElementById('commentText');
         if (commentTextarea) {
             commentTextarea.value = '';
@@ -258,7 +276,20 @@ async function saveCommentAndClose() {
     
     if (isNaN(itemId)) return;
     
+    // Показываем индикатор сохранения
+    const saveBtn = document.querySelector('#commentModal .edit-save-btn');
+    const originalText = saveBtn?.textContent;
+    if (saveBtn) {
+        saveBtn.textContent = '⏳ Сохранение...';
+        saveBtn.disabled = true;
+    }
+    
     const success = await saveComment(itemId, commentText);
+    
+    if (saveBtn) {
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+    }
     
     if (success) {
         updateCommentIndicators();
