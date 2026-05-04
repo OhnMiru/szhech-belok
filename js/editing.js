@@ -25,18 +25,67 @@ async function loadTypesToSelector(selectorId, selectedType = "") {
 
 // Динамическое обновление полей атрибутов при выборе типа (добавление)
 function onAddTypeChange() {
-    const hiddenSelect = document.getElementById('addItemType');
-    const selectedType = hiddenSelect ? hiddenSelect.value : '';
-    if (selectedType) {
+    // Пытаемся получить тип из hidden select
+    let hiddenSelect = document.getElementById('addItemType');
+    let selectedType = hiddenSelect ? hiddenSelect.value : '';
+    
+    // Если hidden select пуст, пробуем получить из кастомного селектора
+    if (!selectedType || selectedType === '') {
+        const container = document.getElementById('addItemTypeContainer');
+        if (container) {
+            const trigger = container.querySelector('div[style*="cursor: pointer"]');
+            if (trigger && trigger.childNodes && trigger.childNodes[0]) {
+                const triggerText = trigger.childNodes[0].textContent.trim();
+                if (triggerText && triggerText !== 'Выберите тип') {
+                    selectedType = triggerText;
+                    // Обновляем hidden select
+                    if (hiddenSelect) {
+                        hiddenSelect.value = selectedType;
+                    }
+                }
+            }
+        }
+    }
+    
+    console.log('onAddTypeChange: selectedType =', selectedType);
+    
+    if (selectedType && selectedType !== 'Выберите тип' && selectedType !== '') {
+        const container = document.getElementById('addAttributesContainer');
+        if (container) {
+            container.innerHTML = '';
+        }
+        const attr1Select = document.getElementById('add_attr1');
+        const attr2Select = document.getElementById('add_attr2');
+        if (attr1Select) attr1Select.value = '';
+        if (attr2Select) attr2Select.value = '';
+        
         renderAttributesFields('add', selectedType);
     }
 }
 
 // Динамическое обновление полей атрибутов при выборе типа (редактирование)
 function onEditTypeChange() {
-    const hiddenSelect = document.getElementById('editType');
-    const selectedType = hiddenSelect ? hiddenSelect.value : '';
-    if (selectedType) {
+    let hiddenSelect = document.getElementById('editType');
+    let selectedType = hiddenSelect ? hiddenSelect.value : '';
+    
+    // Если hidden select пуст, пробуем получить из кастомного селектора
+    if (!selectedType || selectedType === '') {
+        const container = document.getElementById('editTypeContainer');
+        if (container) {
+            const trigger = container.querySelector('div[style*="cursor: pointer"]');
+            if (trigger && trigger.childNodes && trigger.childNodes[0]) {
+                const triggerText = trigger.childNodes[0].textContent.trim();
+                if (triggerText && triggerText !== 'Выберите тип') {
+                    selectedType = triggerText;
+                    if (hiddenSelect) {
+                        hiddenSelect.value = selectedType;
+                    }
+                }
+            }
+        }
+    }
+    
+    if (selectedType && selectedType !== 'Выберите тип' && selectedType !== '') {
         const container = document.getElementById('editAttributesContainer');
         if (container) {
             container.innerHTML = '';
@@ -50,7 +99,7 @@ function onEditTypeChange() {
     }
 }
 
-// Отрисовка полей атрибутов (оптимизирована, без задержек)
+// Отрисовка полей атрибутов
 function renderAttributesFields(mode, selectedType) {
     const containerId = mode === 'add' ? 'addAttributesContainer' : 'editAttributesContainer';
     const container = document.getElementById(containerId);
@@ -58,10 +107,18 @@ function renderAttributesFields(mode, selectedType) {
     
     container.innerHTML = '';
     
-    if (!selectedType) return;
+    if (!selectedType) {
+        console.log("renderAttributesFields: no selectedType");
+        return;
+    }
+    
+    console.log("renderAttributesFields called with mode:", mode, "selectedType:", selectedType);
     
     const typeConfig = getTypeConfigFromCache(selectedType);
-    if (!typeConfig) return;
+    if (!typeConfig) {
+        console.log("No config found for type:", selectedType);
+        return;
+    }
     
     const attr1Name = typeConfig.attribute1?.name || '';
     const attr1Values = typeConfig.attribute1?.values || [];
@@ -111,7 +168,7 @@ function renderAttributesFields(mode, selectedType) {
     
     container.innerHTML = html;
     
-    // Инициализируем кастомные селекторы немедленно
+    // Инициализируем кастомные селекторы
     if (mode === 'edit') {
         if (typeof initEditAttributeSelects === 'function') {
             initEditAttributeSelects(currentAttr1, currentAttr2, attr1Values, attr2Values);
@@ -345,8 +402,24 @@ async function addNewItem() {
             return;
         }
     } else {
-        showToast("Выберите тип товара", false);
-        return;
+        // Пробуем получить из кастомного селектора
+        const container = document.getElementById('addItemTypeContainer');
+        if (container) {
+            const trigger = container.querySelector('div[style*="cursor: pointer"]');
+            if (trigger && trigger.childNodes[0]) {
+                type = trigger.childNodes[0].textContent.trim();
+                if (!type || type === "Выберите тип") {
+                    showToast("Выберите тип товара", false);
+                    return;
+                }
+            } else {
+                showToast("Выберите тип товара", false);
+                return;
+            }
+        } else {
+            showToast("Выберите тип товара", false);
+            return;
+        }
     }
     
     const name = document.getElementById('addItemName').value.trim();
