@@ -21,6 +21,12 @@ async function openAddItemModal() {
     document.getElementById('addItemPrice').value = '0';
     document.getElementById('addItemCost').value = '0';
     
+    // Очищаем скрытые select атрибутов
+    const attr1Select = document.getElementById('add_attr1');
+    const attr2Select = document.getElementById('add_attr2');
+    if (attr1Select) attr1Select.value = '';
+    if (attr2Select) attr2Select.value = '';
+    
     const modal = document.getElementById('addItemModal');
     if (modal) modal.style.display = 'block';
 }
@@ -37,9 +43,14 @@ function closeAddItemModal() {
 function onTypeSelectChange() {
     const hiddenSelect = document.getElementById('addItemType');
     const selectedType = hiddenSelect ? hiddenSelect.value : '';
+    console.log('onTypeSelectChange вызван, выбран тип:', selectedType);
     
     if (selectedType) {
-        renderAttributesFields('add', selectedType);
+        if (typeof renderAttributesFields === 'function') {
+            renderAttributesFields('add', selectedType);
+        } else {
+            console.error('renderAttributesFields не определена!');
+        }
     }
 }
 
