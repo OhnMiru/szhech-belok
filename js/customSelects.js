@@ -390,7 +390,7 @@ async function initEditTypeSelector(selectedType) {
     createCustomSelectForOptions('editTypeContainer', options, selectedType, handleSelect);
 }
 
-// Инициализация селектора типа в добавлении
+// Инициализация селектора типа в добавлении (ИСПРАВЛЕНА)
 async function initAddTypeSelector() {
     const container = document.getElementById('addItemTypeContainer');
     if (!container) return;
@@ -409,6 +409,10 @@ async function initAddTypeSelector() {
         if (newTypeInput) newTypeInput.style.display = 'none';
         if (typeof onAddTypeChange === 'function') {
             onAddTypeChange();
+        }
+        // ВАЖНО: вызываем onTypeSelectChange для отображения атрибутов
+        if (typeof onTypeSelectChange === 'function') {
+            onTypeSelectChange();
         }
     };
     
