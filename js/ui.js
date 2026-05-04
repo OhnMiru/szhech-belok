@@ -2,50 +2,25 @@
 
 // Инициализация модалки добавления товара с загрузкой типов
 async function openAddItemModal() {
-    // Загружаем конфигурацию типов, если ещё не загружена
     if (!window.merchTypesLoaded) {
         await loadMerchTypesConfig();
     }
     
-    // Инициализируем кастомный селектор для типа товара
     if (typeof initAddTypeSelector === 'function') {
         await initAddTypeSelector();
-    } else {
-        // Запасной вариант: обычный select
-        const typeSelect = document.getElementById('addItemType');
-        if (typeSelect) {
-            typeSelect.innerHTML = '<option value="">Выберите тип</option>';
-            const types = getAllMerchTypes();
-            for (const type of types) {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                typeSelect.appendChild(option);
-            }
-        }
     }
     
-    // Очищаем контейнер атрибутов
     const attributesContainer = document.getElementById('addAttributesContainer');
     if (attributesContainer) {
         attributesContainer.innerHTML = '';
     }
     
-    // Очищаем остальные поля
     document.getElementById('addItemName').value = '';
     document.getElementById('addItemTotal').value = '0';
     document.getElementById('addItemStock').value = '0';
     document.getElementById('addItemPrice').value = '0';
     document.getElementById('addItemCost').value = '0';
     
-    // Скрываем поле нового типа
-    const newTypeInput = document.getElementById('addItemNewType');
-    if (newTypeInput) {
-        newTypeInput.style.display = 'none';
-        newTypeInput.value = '';
-    }
-    
-    // Показываем модальное окно
     const modal = document.getElementById('addItemModal');
     if (modal) modal.style.display = 'block';
 }
@@ -53,120 +28,33 @@ async function openAddItemModal() {
 function closeAddItemModal() {
     const modal = document.getElementById('addItemModal');
     if (modal) modal.style.display = 'none';
-    // Очищаем контейнер атрибутов
     const attributesContainer = document.getElementById('addAttributesContainer');
     if (attributesContainer) {
         attributesContainer.innerHTML = '';
     }
 }
 
-function toggleNewTypeInput() {
-    const typeSelect = document.getElementById('addItemType');
-    const newTypeInput = document.getElementById('addItemNewType');
-    const toggleBtn = document.getElementById('toggleNewTypeBtn');
-    
-    // Если кастомный селектор активен, работаем с ним
-    const typeContainer = document.getElementById('addItemTypeContainer');
-    const isCustomSelectActive = typeContainer && typeContainer.children.length > 0;
-    
-    if (!isCustomSelectActive || typeSelect.style.display !== 'none') {
-        // Режим с обычным select
-        if (typeSelect.style.display !== 'none') {
-            typeSelect.style.display = 'none';
-            newTypeInput.style.display = 'flex';
-            toggleBtn.textContent = '📋';
-            newTypeInput.focus();
-            // Очищаем поля атрибутов, так как новый тип
-            const attributesContainer = document.getElementById('addAttributesContainer');
-            if (attributesContainer) {
-                attributesContainer.innerHTML = '';
-            }
-        } else {
-            typeSelect.style.display = 'flex';
-            newTypeInput.style.display = 'none';
-            newTypeInput.value = '';
-            toggleBtn.textContent = '➕';
-            // Восстанавливаем атрибуты для выбранного типа
-            const selectedType = typeSelect.value;
-            if (selectedType) {
-                renderAttributesFields('add', selectedType);
-            }
-        }
-    } else {
-        // Режим с кастомным селектором — нужно показать поле для нового типа
-        const customSelect = typeContainer.querySelector('div[style*="position: relative"]');
-        if (customSelect) {
-            customSelect.style.display = 'none';
-            newTypeInput.style.display = 'flex';
-            toggleBtn.textContent = '📋';
-            newTypeInput.focus();
-        } else {
-            if (typeSelect) typeSelect.style.display = 'flex';
-            newTypeInput.style.display = 'none';
-            newTypeInput.value = '';
-            toggleBtn.textContent = '➕';
-            // Пересоздаём кастомный селектор
-            if (typeof initAddTypeSelector === 'function') {
-                initAddTypeSelector();
-            }
-        }
-    }
-}
-
 function onTypeSelectChange() {
-    // Для кастомного селектора значение хранится в скрытом select
     const hiddenSelect = document.getElementById('addItemType');
     const selectedType = hiddenSelect ? hiddenSelect.value : '';
     
-    if (selectedType === "") {
-        // Если выбран "Выберите тип", показываем поле для нового типа
-        const typeContainer = document.getElementById('addItemTypeContainer');
-        const newTypeInput = document.getElementById('addItemNewType');
-        const toggleBtn = document.getElementById('toggleNewTypeBtn');
-        
-        if (typeContainer && typeContainer.children.length > 0) {
-            const customSelect = typeContainer.querySelector('div[style*="position: relative"]');
-            if (customSelect) customSelect.style.display = 'none';
-        }
-        if (newTypeInput) newTypeInput.style.display = 'flex';
-        if (toggleBtn) toggleBtn.textContent = '📋';
-        if (newTypeInput) newTypeInput.focus();
-        
-        // Очищаем поля атрибутов
-        const attributesContainer = document.getElementById('addAttributesContainer');
-        if (attributesContainer) {
-            attributesContainer.innerHTML = '';
-        }
-    } else {
-        // Отрисовываем поля атрибутов для выбранного типа
+    if (selectedType) {
         renderAttributesFields('add', selectedType);
     }
 }
 
-// ОБНОВЛЕНА: добавлена поддержка атрибутов
 async function addNewItem() {
     let type = '';
-    
-    // Пробуем получить тип из кастомного селектора
     const hiddenSelect = document.getElementById('addItemType');
     const typeContainer = document.getElementById('addItemTypeContainer');
-    const newTypeInput = document.getElementById('addItemNewType');
-    const isNewTypeVisible = newTypeInput && newTypeInput.style.display !== 'none';
     
-    if (isNewTypeVisible) {
-        type = newTypeInput.value.trim();
-        if (type === "") {
-            showToast("Введите тип товара", false);
-            return;
-        }
-    } else if (hiddenSelect && hiddenSelect.value) {
+    if (hiddenSelect && hiddenSelect.value) {
         type = hiddenSelect.value;
         if (type === "") {
             showToast("Выберите тип товара", false);
             return;
         }
     } else if (typeContainer && typeContainer.children.length > 0) {
-        // Получаем значение из кастомного селектора
         const trigger = typeContainer.querySelector('div[style*="cursor: pointer"]');
         if (trigger) {
             type = trigger.childNodes[0]?.textContent.trim() || '';
@@ -210,7 +98,6 @@ async function addNewItem() {
         return;
     }
     
-    // Получаем значения атрибутов
     let attribute1 = '';
     let attribute2 = '';
     const attr1Select = document.getElementById('add_attr1');
@@ -266,7 +153,6 @@ function showHistory() {
         resetHistoryFilters(); 
         renderHistoryList(); 
         modal.style.display = 'block'; 
-        // Инициализируем кастомные селекторы даты/времени
         if (typeof initCustomDateTimeSelects === 'function') {
             setTimeout(() => initCustomDateTimeSelects(), 50);
         }
@@ -604,18 +490,16 @@ function closeInstructionsModal() {
     }
 }
 
-// ========== ЭКСПОРТ ФУНКЦИЙ (БЕЗ КОММЕНТАРИЕВ — ОНИ В RENDER.JS) ==========
+// ========== ЭКСПОРТ ФУНКЦИЙ ==========
 
 window.openInstructionsModal = openInstructionsModal;
 window.closeInstructionsModal = closeInstructionsModal;
-// Функции комментариев удалены из ui.js, используются из render.js
 window.handleAddSupply = handleAddSupply;
 window.openSupportModal = openSupportModal;
 window.closeSupportModal = closeSupportModal;
 window.sendSupportRequest = sendSupportRequest;
 window.openAddItemModal = openAddItemModal;
 window.closeAddItemModal = closeAddItemModal;
-window.toggleNewTypeInput = toggleNewTypeInput;
 window.onTypeSelectChange = onTypeSelectChange;
 window.addNewItem = addNewItem;
 
