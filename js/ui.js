@@ -124,11 +124,26 @@ async function addNewItem() {
 // ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ (С КАСТОМНЫМ СЕЛЕКТОРОМ) ==========
 
 let supplyProductSelectValue = '';
+let supplyDropdownInstance = null;
+
+// Получить отображаемое имя товара для селектора поставки
+function getProductDisplayNameForSupply(product) {
+    let displayText = `${product.type} ${product.name}`;
+    if (product.attribute1) displayText += ` | ${product.attribute1}`;
+    if (product.attribute2) displayText += ` | ${product.attribute2}`;
+    displayText += ` (остаток: ${product.stock} шт)`;
+    return displayText;
+}
 
 // Создать кастомный селектор для выбора товара в поставке
 function initSupplyProductSelect() {
     const container = document.getElementById('supplyProductSelect');
     if (!container) return;
+    
+    // Закрываем предыдущий дропдаун если есть
+    if (supplyDropdownInstance) {
+        supplyDropdownInstance.remove();
+    }
     
     // Очищаем контейнер
     container.innerHTML = '';
@@ -142,30 +157,34 @@ function initSupplyProductSelect() {
         return aStr.localeCompare(bStr, 'ru');
     });
     
-    // Создаём опции для кастомного селектора
+    if (sortedProducts.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Нет доступных товаров</div>';
+        return;
+    }
+    
+    // Создаём опции для кастомного селектора (только товары, без "Выберите товар" в списке)
     const options = sortedProducts.map(product => ({
         value: product.id,
         label: getProductDisplayNameForSupply(product)
     }));
     
-    if (options.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Нет доступных товаров</div>';
-        return;
-    }
-    
-    // Добавляем опцию "Выберите товар" в начало
-    options.unshift({ value: '', label: '📦 Выберите товар' });
-    
     const customSelect = document.createElement('div');
+    customSelect.className = 'supply-custom-select';
     customSelect.style.position = 'relative';
     customSelect.style.display = 'inline-block';
     customSelect.style.width = '100%';
     
     const trigger = document.createElement('div');
+    trigger.className = 'supply-custom-select-trigger';
     trigger.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 30px; padding: 10px 32px 10px 16px; font-size: 14px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); display: block;';
     
-    const selectedOption = options.find(opt => opt.value == supplyProductSelectValue);
-    trigger.textContent = selectedOption ? selectedOption.label : '📦 Выберите товар';
+    // Если есть выбранное значение, показываем его, иначе "Выберите товар"
+    if (supplyProductSelectValue) {
+        const selectedOption = options.find(opt => opt.value == supplyProductSelectValue);
+        trigger.textContent = selectedOption ? selectedOption.label : '📦 Выберите товар';
+    } else {
+        trigger.textContent = '📦 Выберите товар';
+    }
     
     const arrow = document.createElement('span');
     arrow.style.cssText = 'position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--text-secondary);';
@@ -173,10 +192,12 @@ function initSupplyProductSelect() {
     trigger.appendChild(arrow);
     
     const dropdown = document.createElement('div');
-    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 1000; display: none; max-height: 250px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow);';
+    dropdown.className = 'supply-custom-select-dropdown';
+    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 10000; display: none; max-height: 250px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow);';
     
     options.forEach(opt => {
         const optionDiv = document.createElement('div');
+        optionDiv.className = 'supply-select-option';
         optionDiv.style.cssText = 'padding: 10px 16px; cursor: pointer; transition: background 0.1s; font-size: 13px; color: var(--text-primary); border-bottom: 1px solid var(--border-color);';
         optionDiv.textContent = opt.label;
         optionDiv.dataset.value = opt.value;
@@ -186,30 +207,28 @@ function initSupplyProductSelect() {
             optionDiv.style.fontWeight = 'bold';
         }
         
-        // Для опции "Выберите товар" делаем небольшое отличие
-        if (opt.value === '') {
-            optionDiv.style.color = 'var(--text-muted)';
-            optionDiv.style.fontStyle = 'italic';
-        }
-        
-        optionDiv.addEventListener('click', () => {
-            if (opt.value === '') {
-                trigger.textContent = '📦 Выберите товар';
-                supplyProductSelectValue = '';
-            } else {
-                trigger.textContent = opt.label;
-                supplyProductSelectValue = opt.value;
-            }
+        optionDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            trigger.textContent = opt.label;
+            supplyProductSelectValue = opt.value;
             dropdown.style.display = 'none';
+            
+            // Обновляем стиль выбранного элемента
+            document.querySelectorAll('.supply-select-option').forEach(optDiv => {
+                optDiv.style.background = '';
+                optDiv.style.fontWeight = 'normal';
+            });
+            optionDiv.style.background = 'var(--badge-bg)';
+            optionDiv.style.fontWeight = 'bold';
         });
         
         optionDiv.addEventListener('mouseenter', () => {
-            if (opt.value !== supplyProductSelectValue) {
+            if (opt.value != supplyProductSelectValue) {
                 optionDiv.style.background = 'var(--badge-bg)';
             }
         });
         optionDiv.addEventListener('mouseleave', () => {
-            if (opt.value !== supplyProductSelectValue) {
+            if (opt.value != supplyProductSelectValue) {
                 optionDiv.style.background = '';
             }
         });
@@ -231,26 +250,23 @@ function initSupplyProductSelect() {
     customSelect.appendChild(dropdown);
     container.appendChild(customSelect);
     
+    supplyDropdownInstance = customSelect;
+    
     // Закрытие при клике вне
-    document.addEventListener('click', (e) => {
+    const closeHandler = (e) => {
         if (!customSelect.contains(e.target)) {
             dropdown.style.display = 'none';
         }
-    });
-}
-
-// Получить отображаемое имя товара для селектора поставки
-function getProductDisplayNameForSupply(product) {
-    let displayText = `${product.type} ${product.name}`;
-    if (product.attribute1) displayText += ` | ${product.attribute1}`;
-    if (product.attribute2) displayText += ` | ${product.attribute2}`;
-    displayText += ` (остаток: ${product.stock} шт)`;
-    return displayText;
+    };
+    document.removeEventListener('click', closeHandler);
+    document.addEventListener('click', closeHandler);
 }
 
 function openSupplyModal() {
     // Инициализируем кастомный селектор
-    initSupplyProductSelect();
+    setTimeout(() => {
+        initSupplyProductSelect();
+    }, 50);
     
     const quantityInput = document.getElementById('supplyQuantity');
     if (quantityInput) quantityInput.value = '1';
