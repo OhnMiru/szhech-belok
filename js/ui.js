@@ -121,6 +121,177 @@ async function addNewItem() {
     closeAddItemModal();
 }
 
+// ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ (С КАСТОМНЫМ СЕЛЕКТОРОМ) ==========
+
+let supplyProductSelectValue = '';
+
+// Создать кастомный селектор для выбора товара в поставке
+function initSupplyProductSelect() {
+    const container = document.getElementById('supplyProductSelect');
+    if (!container) return;
+    
+    // Очищаем контейнер
+    container.innerHTML = '';
+    container.style.display = 'block';
+    container.style.width = '100%';
+    
+    // Получаем отсортированный список товаров
+    const sortedProducts = [...originalCardsData].sort((a, b) => {
+        const aStr = `${a.type} ${a.name}`;
+        const bStr = `${b.type} ${b.name}`;
+        return aStr.localeCompare(bStr, 'ru');
+    });
+    
+    // Создаём опции для кастомного селектора
+    const options = sortedProducts.map(product => ({
+        value: product.id,
+        label: getProductDisplayNameForSupply(product)
+    }));
+    
+    if (options.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Нет доступных товаров</div>';
+        return;
+    }
+    
+    // Добавляем опцию "Выберите товар" в начало
+    options.unshift({ value: '', label: '📦 Выберите товар' });
+    
+    const customSelect = document.createElement('div');
+    customSelect.style.position = 'relative';
+    customSelect.style.display = 'inline-block';
+    customSelect.style.width = '100%';
+    
+    const trigger = document.createElement('div');
+    trigger.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 30px; padding: 10px 32px 10px 16px; font-size: 14px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); display: block;';
+    
+    const selectedOption = options.find(opt => opt.value == supplyProductSelectValue);
+    trigger.textContent = selectedOption ? selectedOption.label : '📦 Выберите товар';
+    
+    const arrow = document.createElement('span');
+    arrow.style.cssText = 'position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--text-secondary);';
+    arrow.textContent = '▼';
+    trigger.appendChild(arrow);
+    
+    const dropdown = document.createElement('div');
+    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 1000; display: none; max-height: 250px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow);';
+    
+    options.forEach(opt => {
+        const optionDiv = document.createElement('div');
+        optionDiv.style.cssText = 'padding: 10px 16px; cursor: pointer; transition: background 0.1s; font-size: 13px; color: var(--text-primary); border-bottom: 1px solid var(--border-color);';
+        optionDiv.textContent = opt.label;
+        optionDiv.dataset.value = opt.value;
+        
+        if (opt.value == supplyProductSelectValue) {
+            optionDiv.style.background = 'var(--badge-bg)';
+            optionDiv.style.fontWeight = 'bold';
+        }
+        
+        // Для опции "Выберите товар" делаем небольшое отличие
+        if (opt.value === '') {
+            optionDiv.style.color = 'var(--text-muted)';
+            optionDiv.style.fontStyle = 'italic';
+        }
+        
+        optionDiv.addEventListener('click', () => {
+            if (opt.value === '') {
+                trigger.textContent = '📦 Выберите товар';
+                supplyProductSelectValue = '';
+            } else {
+                trigger.textContent = opt.label;
+                supplyProductSelectValue = opt.value;
+            }
+            dropdown.style.display = 'none';
+        });
+        
+        optionDiv.addEventListener('mouseenter', () => {
+            if (opt.value !== supplyProductSelectValue) {
+                optionDiv.style.background = 'var(--badge-bg)';
+            }
+        });
+        optionDiv.addEventListener('mouseleave', () => {
+            if (opt.value !== supplyProductSelectValue) {
+                optionDiv.style.background = '';
+            }
+        });
+        
+        dropdown.appendChild(optionDiv);
+    });
+    
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.style.display === 'block';
+        // Закрываем все другие дропдауны
+        document.querySelectorAll('.supply-custom-select-dropdown').forEach(d => {
+            if (d !== dropdown) d.style.display = 'none';
+        });
+        dropdown.style.display = isOpen ? 'none' : 'block';
+    });
+    
+    customSelect.appendChild(trigger);
+    customSelect.appendChild(dropdown);
+    container.appendChild(customSelect);
+    
+    // Закрытие при клике вне
+    document.addEventListener('click', (e) => {
+        if (!customSelect.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+}
+
+// Получить отображаемое имя товара для селектора поставки
+function getProductDisplayNameForSupply(product) {
+    let displayText = `${product.type} ${product.name}`;
+    if (product.attribute1) displayText += ` | ${product.attribute1}`;
+    if (product.attribute2) displayText += ` | ${product.attribute2}`;
+    displayText += ` (остаток: ${product.stock} шт)`;
+    return displayText;
+}
+
+function openSupplyModal() {
+    // Инициализируем кастомный селектор
+    initSupplyProductSelect();
+    
+    const quantityInput = document.getElementById('supplyQuantity');
+    if (quantityInput) quantityInput.value = '1';
+    
+    const modal = document.getElementById('supplyModal');
+    if (modal) modal.style.display = 'block';
+}
+
+function closeSupplyModal() {
+    const modal = document.getElementById('supplyModal');
+    if (modal) modal.style.display = 'none';
+    // Сбрасываем выбранное значение
+    supplyProductSelectValue = '';
+}
+
+async function handleAddSupply() {
+    const itemId = supplyProductSelectValue;
+    const quantity = parseInt(document.getElementById('supplyQuantity')?.value) || 0;
+    
+    if (!itemId) {
+        showToast("Выберите товар", false);
+        return;
+    }
+    
+    if (quantity < 1) {
+        showToast("Количество должно быть больше 0", false);
+        return;
+    }
+    
+    const product = originalCardsData.find(c => c.id == itemId);
+    if (!product) {
+        showToast("Товар не найден", false);
+        return;
+    }
+    
+    const success = await window.addSupply(parseInt(itemId), quantity);
+    if (success) {
+        closeSupplyModal();
+    }
+}
+
 // ========== ОСТАЛЬНЫЕ UI ФУНКЦИИ ==========
 
 function openRulesModal() {
@@ -370,67 +541,6 @@ function initPhotoUploadInEditModal() {
     }
 }
 
-// ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
-
-function openSupplyModal() {
-    const select = document.getElementById('supplyProductId');
-    if (select) {
-        select.innerHTML = '<option value="">Выберите товар</option>';
-        const sortedProducts = [...originalCardsData].sort((a, b) => {
-            const aStr = `${a.type} ${a.name}`;
-            const bStr = `${b.type} ${b.name}`;
-            return aStr.localeCompare(bStr, 'ru');
-        });
-        for (const product of sortedProducts) {
-            const option = document.createElement('option');
-            option.value = product.id;
-            let displayText = `${product.type} ${product.name}`;
-            if (product.attribute1) displayText += ` | ${product.attribute1}`;
-            if (product.attribute2) displayText += ` | ${product.attribute2}`;
-            option.textContent = `${displayText} (остаток: ${product.stock} шт)`;
-            select.appendChild(option);
-        }
-    }
-    
-    const quantityInput = document.getElementById('supplyQuantity');
-    if (quantityInput) quantityInput.value = '1';
-    
-    const modal = document.getElementById('supplyModal');
-    if (modal) modal.style.display = 'block';
-}
-
-function closeSupplyModal() {
-    const modal = document.getElementById('supplyModal');
-    if (modal) modal.style.display = 'none';
-}
-
-async function handleAddSupply() {
-    const select = document.getElementById('supplyProductId');
-    const itemId = parseInt(select?.value);
-    const quantity = parseInt(document.getElementById('supplyQuantity')?.value) || 0;
-    
-    if (!itemId) {
-        showToast("Выберите товар", false);
-        return;
-    }
-    
-    if (quantity < 1) {
-        showToast("Количество должно быть больше 0", false);
-        return;
-    }
-    
-    const product = originalCardsData.find(c => c.id === itemId);
-    if (!product) {
-        showToast("Товар не найден", false);
-        return;
-    }
-    
-    const success = await window.addSupply(itemId, quantity);
-    if (success) {
-        closeSupplyModal();
-    }
-}
-
 // ========== ФУНКЦИИ ДЛЯ ТЕХПОДДЕРЖКИ ==========
 
 function openSupportModal() {
@@ -513,6 +623,9 @@ window.openAddItemModal = openAddItemModal;
 window.closeAddItemModal = closeAddItemModal;
 window.onTypeSelectChange = onTypeSelectChange;
 window.addNewItem = addNewItem;
+window.openSupplyModal = openSupplyModal;
+window.closeSupplyModal = closeSupplyModal;
+window.initSupplyProductSelect = initSupplyProductSelect;
 
 // Экспортируем функции имперсонации
 window.impersonateUser = typeof impersonateUser !== 'undefined' ? impersonateUser : null;
