@@ -121,7 +121,7 @@ async function addNewItem() {
     closeAddItemModal();
 }
 
-// ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ (С КАСТОМНЫМ СЕЛЕКТОРОМ) ==========
+// ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ (С КАСТОМНЫМ СЕЛЕКТОРОМ И АСИНХРОННЫМ ЗАКРЫТИЕМ) ==========
 
 let supplyProductSelectValue = '';
 let supplyDropdownInstance = null;
@@ -263,6 +263,9 @@ function initSupplyProductSelect() {
 }
 
 function openSupplyModal() {
+    // Сбрасываем предыдущее значение
+    supplyProductSelectValue = '';
+    
     // Инициализируем кастомный селектор
     setTimeout(() => {
         initSupplyProductSelect();
@@ -278,8 +281,6 @@ function openSupplyModal() {
 function closeSupplyModal() {
     const modal = document.getElementById('supplyModal');
     if (modal) modal.style.display = 'none';
-    // Сбрасываем выбранное значение
-    supplyProductSelectValue = '';
 }
 
 async function handleAddSupply() {
@@ -302,9 +303,23 @@ async function handleAddSupply() {
         return;
     }
     
-    const success = await window.addSupply(parseInt(itemId), quantity);
-    if (success) {
-        closeSupplyModal();
+    // Сразу закрываем модальное окно
+    closeSupplyModal();
+    
+    // Показываем уведомление о начале операции
+    showToast(`📦 Добавление поставки для "${product.name}"...`, true);
+    
+    // Выполняем поставку асинхронно в фоне
+    try {
+        const success = await window.addSupply(parseInt(itemId), quantity);
+        if (success) {
+            showToast(`✅ Поставка товара "${product.name}" +${quantity} шт`, true);
+        } else {
+            showToast(`❌ Ошибка при добавлении поставки`, false);
+        }
+    } catch (error) {
+        console.error("Supply error:", error);
+        showToast(`❌ Ошибка при добавлении поставки`, false);
     }
 }
 
