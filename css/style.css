@@ -2566,6 +2566,7 @@ body.dark .extra-cost-amount {
     transition: all 0.2s;
     color: var(--text-primary);
     margin-left: 4px;
+    flex-shrink: 0;
 }
 
 .filter-toggle-btn:hover {
