@@ -13,7 +13,6 @@ let statsAttributeFilterActive = false;
 function openStatsModal() {
     const modal = document.getElementById('statsModal');
     if (modal) {
-        // Инициализируем кастомные селекторы ДО рендера статистики
         initCustomStatsDateTimeSelects();
         renderStats();
         modal.style.display = 'block';
@@ -36,14 +35,12 @@ function initStatsCustomDateGroup(prefix, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
-    // Очищаем контейнер
     container.innerHTML = '';
     container.style.display = 'inline-flex';
     container.style.alignItems = 'center';
     container.style.gap = '6px';
     container.style.flexWrap = 'wrap';
     
-    // Получаем текущие значения из скрытых select
     let dayValue = document.getElementById(`${prefix}Day`)?.value || new Date().getDate();
     let monthValue = document.getElementById(`${prefix}Month`)?.value || (new Date().getMonth() + 1);
     let yearValue = document.getElementById(`${prefix}Year`)?.value || new Date().getFullYear();
@@ -92,7 +89,6 @@ function initStatsCustomDateGroup(prefix, containerId) {
         if (hiddenSelect) hiddenSelect.value = value;
     });
     
-    // Разделитель
     const colonSpan = document.createElement('span');
     colonSpan.textContent = ':';
     colonSpan.style.color = 'var(--text-muted)';
@@ -111,14 +107,12 @@ function initStatsCustomDateGroup(prefix, containerId) {
 }
 
 function createStatsCustomSelect(selectId, options, selectedValue, onSelect) {
-    // Ищем или создаём контейнер для этого селектора
     let container = document.getElementById(selectId);
     if (!container) {
         container = document.createElement('div');
         container.id = selectId;
         container.style.display = 'inline-block';
         container.style.margin = '0 2px';
-        // Находим родительский контейнер (statsDateFromContainer или statsDateToContainer)
         const parentId = selectId.split('_')[0];
         const parent = document.getElementById(parentId + 'Container');
         if (parent) {
@@ -182,7 +176,6 @@ function createStatsCustomSelect(selectId, options, selectedValue, onSelect) {
     trigger.addEventListener('click', (e) => {
         e.stopPropagation();
         const isOpen = dropdown.style.display === 'block';
-        // Закрываем все другие дропдауны
         document.querySelectorAll('.stats-custom-dropdown, [class*="stats_select"] > div > div').forEach(d => {
             if (d !== dropdown && d.parentElement !== customSelect) {
                 d.style.display = 'none';
@@ -195,7 +188,6 @@ function createStatsCustomSelect(selectId, options, selectedValue, onSelect) {
     customSelect.appendChild(dropdown);
     container.appendChild(customSelect);
     
-    // Закрытие при клике вне
     const closeHandler = (e) => {
         if (!customSelect.contains(e.target)) {
             dropdown.style.display = 'none';
@@ -389,7 +381,6 @@ function toggleStatsFilter() {
     if (block) {
         const isVisible = block.style.display !== 'none';
         block.style.display = isVisible ? 'none' : 'block';
-        // При открытии пересоздаём кастомные селекторы
         if (!isVisible) {
             setTimeout(() => {
                 initCustomStatsDateTimeSelects();
@@ -410,9 +401,7 @@ function resetStatsFilter() {
     statsFilterToDate = null;
     statsFilterActive = false;
     
-    // Пересоздаём кастомные селекторы
     initCustomStatsDateTimeSelects();
-    
     renderStats();
 }
 
@@ -467,8 +456,6 @@ function getFilteredSalesHistory() {
     filteredSales = filterSalesByAttributes(filteredSales);
     return filteredSales;
 }
-
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 
 function getAttributeColor(attribute) {
     if (!window.attributeColorCache) window.attributeColorCache = new Map();
@@ -682,8 +669,17 @@ function renderStats() {
         <div class="table-wrapper">
             <table class="detail-table">
                 <thead>
-                    <tr><th>Товар</th><th>Тип</th><th>Характеристики</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
-                </tr>
+                    <tr>
+                        <th>Товар</th>
+                        <th>Тип</th>
+                        <th>Характеристики</th>
+                        <th class="text-right">Продано</th>
+                        <th class="text-right">Остаток</th>
+                        <th class="text-right">Выручка</th>
+                        <th class="text-right">Себест.</th>
+                        <th class="text-right">Прибыль</th>
+                        <th class="text-right">Рентаб.</th>
+                    </tr>
                 </thead>
                 <tbody>`;
     for (const p of productStats) {
@@ -706,15 +702,15 @@ function renderStats() {
         }
         
         html += `<tr>
-            <td>${escapeHtml(p.name)}</td
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
-            <td>${attributesHtml}</td
-            <td class="text-right">${p.soldQty} шт</td
-            <td class="text-right">${p.stock} шт</td
-            <td class="text-right">${formatCurrency(p.revenue)}</td
-            <td class="text-right">${formatCurrency(p.fullCost)}</td
-            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td
-            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td
+            <td>${escapeHtml(p.name)}</td>
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td>${attributesHtml}</td>
+            <td class="text-right">${p.soldQty} шт</td>
+            <td class="text-right">${p.stock} шт</td>
+            <td class="text-right">${formatCurrency(p.revenue)}</td>
+            <td class="text-right">${formatCurrency(p.fullCost)}</td>
+            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td>
+            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td>
         </tr>`;
     }
     html += `</tbody></table></div></div>`;
@@ -724,18 +720,27 @@ function renderStats() {
         <div class="detail-title">🏷️ Детализация по типам мерча</div>
         <div class="table-wrapper">
             <table class="detail-table">
-                <thead><tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Тип</th>
+                        <th class="text-right">Продано</th>
+                        <th class="text-right">Выручка</th>
+                        <th class="text-right">Себест.</th>
+                        <th class="text-right">Прибыль</th>
+                        <th class="text-right">Рентаб.</th>
+                    </tr>
+                </thead>
                 <tbody>`;
     for (const t of sortedTypeDetails) {
         const profitClass = t.profit >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
         html += `<tr>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td
-            <td class="text-right">${formatCurrency(t.revenue)}</td
-            <td class="text-right">${formatCurrency(t.fullCost)}</td
-            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td
-            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td
+            <td class="text-right">${t.soldQty} шт</td>
+            <td class="text-right">${formatCurrency(t.revenue)}</td>
+            <td class="text-right">${formatCurrency(t.fullCost)}</td>
+            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
+            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
         </tr>`;
     }
     html += `</tbody></table></div></div>`;
@@ -749,15 +754,17 @@ function renderStats() {
                 <div style="font-weight: bold; margin-bottom: 8px; color: var(--btn-bg);">${escapeHtml(t.type)}</div>
                 <div class="table-wrapper">
                     <table class="detail-table-small">
-                        <thead><tr><th>Характеристика</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th></tr></thead>
+                        <thead>
+                            <tr><th>Характеристика</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th></tr>
+                        </thead>
                         <tbody>`;
             const sortedAttrs = Object.entries(t.attributeStats).sort((a, b) => b[1].qty - a[1].qty);
             for (const [attr, data] of sortedAttrs) {
                 const attrColor = getAttributeColor(attr);
-                html += `<tr>
+                html += `<td>
                     <td><span class="type-badge" style="background:${attrColor}20; color:${attrColor};">${escapeHtml(attr)}</span></td>
-                    <td class="text-right">${data.qty} шт</td
-                    <td class="text-right">${formatCurrency(data.revenue)}</td
+                    <td class="text-right">${data.qty} шт</td>
+                    <td class="text-right">${formatCurrency(data.revenue)}</td>
                 </tr>`;
             }
             html += `</tbody></table></div></div>`;
@@ -771,15 +778,17 @@ function renderStats() {
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
-                    <thead><td><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th></tr></thead>
+                    <thead>
+                        <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th></tr>
+                    </thead>
                     <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
         const p = topByQty[i]; 
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td>${escapeHtml(p.name)}</td
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
-            <td class="text-right">${p.soldQty} шт</td
+            <td>${escapeHtml(p.name)}</td>
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td class="text-right">${p.soldQty} шт</td>
         </tr>`;
     }
     html += `</tbody></table></div></div>
@@ -787,17 +796,19 @@ function renderStats() {
             <div class="detail-title">🏆 Самые продаваемые типы</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
-                    <thead><tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th></tr></thead>
+                    <thead>
+                        <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th></tr>
+                    </thead>
                     <tbody>`;
     for (let i = 0; i < topTypesByQty.length; i++) { 
         const t = topTypesByQty[i]; 
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td
+            <td class="text-right">${t.soldQty} шт</td>
         </tr>`;
     }
-    html += `</tbody><table></div></div></div>`;
+    html += `</tbody></table></div></div></div>`;
     
     // Расходы и доходы
     html += `<div class="extra-costs-section">
@@ -877,7 +888,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initStatsTypeSelector();
 });
 
-// Экспорт функций
 window.initCustomStatsDateTimeSelects = initCustomStatsDateTimeSelects;
 window.onStatsTypeChange = onStatsTypeChange;
 window.applyStatsAttributeFilter = applyStatsAttributeFilter;
