@@ -4,10 +4,16 @@
 // Вспомогательная функция для получения отображаемого имени товара с атрибутами
 function getCartItemDisplayName(card) {
     if (!card) return "";
-    const parts = [card.type];
-    if (card.attribute1 && card.attribute1.trim()) parts.push(card.attribute1.trim());
-    if (card.attribute2 && card.attribute2.trim()) parts.push(card.attribute2.trim());
-    return parts.join(" | ");
+    let displayName = `${card.type} ${card.name}`;
+    const attr1 = card.attribute1 || "";
+    const attr2 = card.attribute2 || "";
+    if (attr1 || attr2) {
+        const attrs = [];
+        if (attr1) attrs.push(attr1);
+        if (attr2) attrs.push(attr2);
+        displayName += ` (${attrs.join(" | ")})`;
+    }
+    return displayName;
 }
 
 function updateCardBadges() {
@@ -102,7 +108,7 @@ function updateCartUI() {
         html += `</div>`;
     }
     
-    // === 2. Скидки ===
+    // === 2. Скидки (обновлённая вёрстка) ===
     const discountPanelOpenLocal = discountPanelOpen;
     html += `<div class="discount-section" style="margin-bottom: 16px;">
                 <div class="discount-header" onclick="toggleDiscountPanel()">
@@ -111,7 +117,8 @@ function updateCartUI() {
                 </div>
                 <div id="discount-content" class="discount-content" style="display: ${discountPanelOpenLocal ? 'block' : 'none'};">
                     <div class="discount-group">
-                        <div class="discount-row discount-row-1" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                        <!-- Первая строка: тип скидки, сумма, кнопки Товары/Все/Ничего -->
+                        <div class="discount-row discount-row-main" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px;">
                             <div class="discount-custom-select">
                                 <div class="discount-custom-select-trigger" id="itemDiscountSelectTrigger" onclick="event.stopPropagation(); toggleItemDiscountSelect()">%</div>
                                 <div class="discount-custom-select-dropdown" id="itemDiscountSelectDropdown">
@@ -125,18 +132,18 @@ function updateCartUI() {
                                 <button class="discount-step-btn" onclick="changeItemDiscountValue(-1)">−</button>
                                 <button class="discount-step-btn" onclick="changeItemDiscountValue(1)">+</button>
                             </div>
-                        </div>
-                        <div class="discount-row discount-row-2" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; justify-content: flex-start;">
-                            <button class="discount-products-btn" onclick="toggleDiscountProductsList()">Товары</button>
-                            <button class="discount-all-btn" onclick="selectAllProductsForDiscount()">Всё</button>
-                            <button class="discount-none-btn" onclick="selectNoneProductsForDiscount()">Ничего</button>
+                            <div class="discount-products-buttons" style="display: flex; gap: 6px; margin-left: auto;">
+                                <button class="discount-products-btn discount-products-small" onclick="toggleDiscountProductsList()">Товары</button>
+                                <button class="discount-all-btn discount-all-small" onclick="selectAllProductsForDiscount()">Все</button>
+                                <button class="discount-none-btn discount-none-small" onclick="selectNoneProductsForDiscount()">Ничего</button>
+                            </div>
                         </div>
                         <div id="productDiscountList" style="display: none; margin-top: 8px;"></div>
                     </div>
                     <div class="discount-buttons-row" style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-                        <button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()" style="flex: 1; min-width: 70px;">Отмена</button>
-                        <button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()" style="flex: 2; min-width: 100px;">Сбросить скидки</button>
-                        <button class="discount-action-btn apply-btn" onclick="applyItemDiscount()" style="flex: 1; min-width: 70px;">Применить</button>
+                        <button class="discount-action-btn cancel-btn" onclick="closeDiscountPanel()" style="flex: 1; min-width: 70px; font-weight: bold;">Отмена</button>
+                        <button class="discount-action-btn reset-btn" onclick="resetItemDiscounts()" style="flex: 2; min-width: 100px; font-weight: bold;">Сбросить скидки</button>
+                        <button class="discount-action-btn apply-btn" onclick="applyItemDiscount()" style="flex: 1; min-width: 70px; font-weight: bold;">Применить</button>
                     </div>
                 </div>
             </div>`;
@@ -153,7 +160,7 @@ function updateCartUI() {
                 </div>
             </div>`;
     
-    // === 4. Товары в корзине (ОБНОВЛЕНО: с отображением атрибутов) ===
+    // === 4. Товары в корзине (с отображением атрибутов) ===
     let subtotal = 0;
     for (const [idStr, qty] of Object.entries(cart)) { 
         const id = parseInt(idStr); 
@@ -183,7 +190,7 @@ function updateCartUI() {
                 discountText = `<div style="font-size: 11px; color: var(--profit-positive);">Скидка: ${roundedDiscount} ₽</div>`;
             }
         }
-        // Используем новую функцию для отображения имени с атрибутами
+        // Используем обновлённую функцию для отображения имени с атрибутами
         const displayName = getCartItemDisplayName(card);
         html += `<div class="cart-item ${isZero ? 'disabled' : ''}">
                     <div class="cart-item-info">
@@ -320,16 +327,14 @@ function clearCart() {
                 }
             }
         }
+        for (const id in cartBookingMap) {
+            delete cartBookingMap[id];
+        }
     }
     
     cart = {};
     itemDiscounts = {};
     selectedDiscountProducts.clear();
-    if (cartBookingMap) {
-        for (const id in cartBookingMap) {
-            delete cartBookingMap[id];
-        }
-    }
     updateCartUI();
     if (typeof renderBookingsList === 'function') {
         renderBookingsList();
@@ -465,7 +470,6 @@ async function updateStock(id, delta, silent = false) {
     }
 }
 
-// ОБНОВЛЕНА: checkout с поддержкой атрибутов в истории
 async function checkout() {
     const items = Object.entries(cart).filter(([_, qty]) => qty > 0);
     if (items.length === 0) { showToast("Нет товаров для продажи", false); return; }
@@ -554,5 +558,5 @@ async function checkout() {
     showToast(`Продажа на ${roundedTotal} ₽ завершена!`, true);
 }
 
-// Экспортируем новую функцию в глобальную область
+// Экспортируем функцию в глобальную область
 window.getCartItemDisplayName = getCartItemDisplayName;
