@@ -480,12 +480,13 @@ h1 {
     transform: scale(0.96);
 }
 
+/* ========== КАРТОЧКИ ТОВАРОВ (ОБНОВЛЁННЫЕ) ========== */
 .card {
     background: var(--card-bg);
-    border-radius: 14px;
-    margin-bottom: 10px;
-    padding: 10px 12px;
-    box-shadow: 0 1px 4px var(--shadow);
+    border-radius: 20px;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 8px var(--shadow);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -547,102 +548,30 @@ h1 {
     display: inline-block;
     padding: 2px 8px;
     border-radius: 16px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     line-height: 1.3;
     white-space: nowrap;
 }
 
-.name {
-    font-weight: bold;
-    font-size: 22px;
-    color: var(--text-primary);
-    line-height: 1.2;
-    text-decoration: none !important;
-}
-
-.name.clickable {
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.name.clickable:hover {
-    opacity: 0.7;
-}
-
-.stock-row {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 3px;
-}
-
-.stock {
-    font-size: 20px;
-    font-weight: bold;
-    color: var(--stock-color);
-}
-
-.total-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 4px;
-    margin-bottom: 2px;
-}
-
-.total {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-muted);
-}
-
-.price-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 4px;
-    margin-bottom: 8px;
-}
-
-.price {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--price-color);
-}
-
-.price-actions-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-    margin-top: 4px;
-    margin-bottom: 8px;
-    padding: 0;
-}
-
-.action-buttons {
-    display: flex;
-    align-items: center;
+.action-buttons-inline {
+    display: inline-flex;
     gap: 4px;
-    margin: 0;
-    padding: 0;
+    margin-left: 4px;
 }
 
 .edit-icon, .comment-icon {
     background: none;
     border: none;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
     margin: 0;
-    padding: 0;
-    width: 28px;
-    height: 28px;
+    padding: 2px;
+    width: auto;
+    height: auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 20px;
     transition: all 0.2s ease;
     color: var(--text-muted);
     position: relative;
@@ -654,6 +583,7 @@ h1 {
     background: var(--badge-bg);
     color: var(--badge-text);
     transform: scale(1.05);
+    border-radius: 12px;
 }
 
 .comment-icon.has-comment {
@@ -671,59 +601,129 @@ h1 {
     border: 1px solid var(--card-bg);
 }
 
+.sort-handle {
+    cursor: grab;
+    margin-left: 4px;
+    opacity: 0.5;
+    font-size: 14px;
+}
+
+.name-row {
+    margin-bottom: 4px;
+}
+
+.name {
+    font-weight: bold;
+    font-size: 20px;
+    color: var(--text-primary);
+    line-height: 1.2;
+    text-decoration: none !important;
+}
+
+.name.clickable {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.name.clickable:hover {
+    opacity: 0.7;
+}
+
+.stock-row {
+    margin-bottom: 2px;
+}
+
+.stock {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--stock-color);
+}
+
+.total-row {
+    margin-bottom: 2px;
+}
+
+.total {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.price-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+.price {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--price-color);
+}
+
+/* КРУГЛЫЕ КНОПКИ В КАРТОЧКЕ */
 .buttons {
     display: flex;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 10px;
+    margin-top: 8px;
     justify-content: center;
 }
 
 .buttons button {
-    flex: 1;
-    padding: 8px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50% !important;
     border: none;
-    border-radius: 40px;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 18px;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .minus {
     background: var(--minus-bg);
     color: var(--minus-color);
-    border-radius: 40px;
+    border: 1px solid var(--minus-color);
 }
 
 .minus:hover {
     background: var(--minus-color);
     color: white;
+    transform: scale(0.96);
 }
 
 .plus {
     background: var(--plus-bg);
     color: var(--plus-color);
-    border-radius: 40px;
+    border: 1px solid var(--plus-color);
 }
 
 .plus:hover {
     background: var(--plus-color);
     color: white;
+    transform: scale(0.96);
 }
 
 .add-to-cart {
     background: var(--add-to-cart-bg);
-    color: var(--add-to-cart-color);
-    width: 48px;
-    height: 48px;
+    color: white;
     font-size: 20px;
-    border-radius: 50%;
-    margin-left: 8px;
-    box-shadow: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 44px;
+    height: 44px;
 }
+
+.add-to-cart:hover {
+    opacity: 0.85;
+    transform: scale(0.96);
+}
+
+/* ========== КОНЕЦ КАРТОЧЕК ========== */
 
 .refresh-btn,
 .history-btn {
@@ -1478,7 +1478,7 @@ body.dark .history-badge-type-return {
 
 .cart-item-name {
     font-weight: bold;
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-primary);
 }
 
@@ -1879,11 +1879,12 @@ body.dark .extra-cost-amount {
     margin-bottom: 10px;
 }
 
-.discount-row {
+.discount-row-main {
     display: flex;
-    align-items: center;
-    gap: 8px;
     flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
 }
 
 .discount-custom-select {
@@ -1976,86 +1977,14 @@ body.dark .extra-cost-amount {
     transform: scale(0.95);
 }
 
-.discount-buttons-row {
+.discount-products-buttons {
     display: flex;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 6px;
+    margin-left: auto;
 }
 
-.discount-action-btn {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 30px;
-    padding: 5px 8px;
-    font-size: 11px;
-    cursor: pointer;
-    color: #5a3a1a;
-    text-align: center;
-    transition: all 0.2s;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.discount-action-btn:hover {
-    background: rgba(243, 156, 18, 0.1);
-}
-
-.discount-action-btn.cancel-btn {
-    flex: 1;
-    max-width: 90px;
-}
-
-.discount-action-btn.reset-btn {
-    flex: 2;
-}
-
-.discount-action-btn.apply-btn {
-    flex: 1;
-    max-width: 90px;
-}
-
-.discount-products-btn {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 30px;
-    padding: 5px 16px;
-    font-size: 11px;
-    cursor: pointer;
-    color: #5a3a1a;
-    text-align: center;
-    white-space: nowrap;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.discount-products-btn:hover {
-    background: rgba(243, 156, 18, 0.1);
-}
-
-.discount-all-btn {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 30px;
-    padding: 5px 12px;
-    font-size: 11px;
-    cursor: pointer;
-    color: #5a3a1a;
-    text-align: center;
-    white-space: nowrap;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.discount-all-btn:hover {
-    background: rgba(243, 156, 18, 0.1);
-}
-
+.discount-products-btn,
+.discount-all-btn,
 .discount-none-btn {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -2072,8 +2001,46 @@ body.dark .extra-cost-amount {
     justify-content: center;
 }
 
+.discount-products-btn:hover,
+.discount-all-btn:hover,
 .discount-none-btn:hover {
     background: rgba(243, 156, 18, 0.1);
+}
+
+.discount-buttons-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.discount-action-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-primary);
+    text-align: center;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.discount-action-btn:hover {
+    background: rgba(243, 156, 18, 0.1);
+}
+
+.discount-action-btn.cancel-btn {
+    flex: 1;
+}
+
+.discount-action-btn.reset-btn {
+    flex: 2;
+}
+
+.discount-action-btn.apply-btn {
+    flex: 1;
 }
 
 .product-select-list {
@@ -2855,8 +2822,32 @@ body.dark .extra-cost-amount {
     color: var(--btn-bg);
 }
 
+/* ========== АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ========== */
 @media (max-width: 500px) {
-
+    .card {
+        padding: 10px 12px;
+    }
+    
+    .name {
+        font-size: 18px;
+    }
+    
+    .buttons button {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .type-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+    }
+    
+    .edit-icon, .comment-icon {
+        font-size: 12px;
+        padding: 2px;
+    }
+    
     .instructions-section h3 {
         font-size: 14px;
     }
@@ -2890,11 +2881,6 @@ body.dark .extra-cost-amount {
     #stopImpersonateBtn {
         padding: 3px 12px;
         font-size: 11px;
-    }
-
-    .edit-icon, .comment-icon {
-        font-size: 12px;
-        padding: 2px 4px;
     }
     
     .comment-badge {
@@ -3066,10 +3052,6 @@ body.dark .extra-cost-amount {
         font-size: 12px;
     }
     
-    .discount-row-2 {
-        justify-content: flex-start !important;
-    }
-    
     .discount-products-btn,
     .discount-all-btn,
     .discount-none-btn {
@@ -3084,9 +3066,15 @@ body.dark .extra-cost-amount {
         gap: 10px;
     }
     
-    .discount-row:first-child {
+    .discount-row-main {
         flex-wrap: wrap;
         gap: 8px;
+    }
+    
+    .discount-products-buttons {
+        margin-left: 0 !important;
+        width: 100%;
+        justify-content: flex-start;
     }
     
     .discount-buttons-row {
@@ -3098,14 +3086,14 @@ body.dark .extra-cost-amount {
     .discount-action-btn.apply-btn {
         flex: 1;
         max-width: none;
-        font-size: 10px;
-        padding: 6px 0;
+        font-size: 12px;
+        padding: 8px 0;
     }
     
     .discount-action-btn.reset-btn {
         flex: 2;
-        font-size: 10px;
-        padding: 6px 0;
+        font-size: 12px;
+        padding: 8px 0;
     }
     
     .two-columns {
@@ -3215,6 +3203,20 @@ body.dark .extra-cost-amount {
     .filter-toggle-btn {
         width: 32px;
         height: 32px;
+        font-size: 16px;
+    }
+    
+    .cart-item-name {
+        font-size: 13px;
+    }
+    
+    .cart-item-price {
+        font-size: 11px;
+    }
+    
+    .cart-qty-btn {
+        width: 28px;
+        height: 28px;
         font-size: 16px;
     }
 }
