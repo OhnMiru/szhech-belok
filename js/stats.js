@@ -1135,7 +1135,7 @@ function renderStats() {
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td>${escapeHtml(p.name)}</td
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td
         </tr>`;
     }
