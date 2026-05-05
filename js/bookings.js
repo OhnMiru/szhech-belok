@@ -74,6 +74,39 @@ function saveBookings() {
     syncFullBookingsToServer();
 }
 
+// Получить отображаемое имя товара с атрибутами для селектора бронирования
+function getBookingProductDisplayName(card) {
+    let displayText = `${card.type} ${card.name}`;
+    const attr1 = card.attribute1 || "";
+    const attr2 = card.attribute2 || "";
+    if (attr1 || attr2) {
+        const attrs = [];
+        if (attr1) attrs.push(attr1);
+        if (attr2) attrs.push(attr2);
+        displayText += ` (${attrs.join(" | ")})`;
+    }
+    displayText += ` — ${card.price} ₽, в наличии: ${card.stock} шт`;
+    return displayText;
+}
+
+// Получить отображаемое имя товара с атрибутами для таблицы деталей бронирования
+function getBookingItemDisplayName(item) {
+    let displayText = item.name;
+    // Пытаемся найти карточку, чтобы получить атрибуты
+    const card = originalCardsData.find(c => c.id === item.id);
+    if (card) {
+        const attr1 = card.attribute1 || "";
+        const attr2 = card.attribute2 || "";
+        if (attr1 || attr2) {
+            const attrs = [];
+            if (attr1) attrs.push(attr1);
+            if (attr2) attrs.push(attr2);
+            displayText += ` (${attrs.join(" | ")})`;
+        }
+    }
+    return displayText;
+}
+
 function addBooking(nickname, items) {
     const booking = {
         id: Date.now() + Math.random(),
@@ -85,7 +118,9 @@ function addBooking(nickname, items) {
             type: item.type,
             qty: item.qty,
             price: item.price,
-            cost: item.cost || 0
+            cost: item.cost || 0,
+            attribute1: item.attribute1 || "",
+            attribute2: item.attribute2 || ""
         })),
         status: "active"
     };
@@ -296,21 +331,34 @@ function renderBookingsList() {
                 <div class="table-wrapper">
                     <table class="detail-table-small" style="width: 100%;">
                         <thead>
-                            <tr><th>Товар</th><th>Тип</th><th class="text-right">Кол-во</th><th class="text-right">Цена</th><th class="text-right">Сумма</th>
+                            <tr><th>Товар</th><th>Тип</th><th>Характеристики</th><th class="text-right">Кол-во</th><th class="text-right">Цена</th><th class="text-right">Сумма</th>
                         </thead>
                         <tbody>`;
             for (const item of booking.items) {
                 const sum = item.price * item.qty;
+                // Формируем атрибуты для отображения
+                let attributesText = "";
+                const attr1 = item.attribute1 || "";
+                const attr2 = item.attribute2 || "";
+                if (attr1 || attr2) {
+                    const attrs = [];
+                    if (attr1) attrs.push(attr1);
+                    if (attr2) attrs.push(attr2);
+                    attributesText = attrs.join(" | ");
+                } else {
+                    attributesText = "—";
+                }
                 html += `<tr>
                             <td>${escapeHtml(item.name)}</td>
                             <td><span class="type-badge" style="background:${getTypeColor(item.type)}20; color:${getTypeColor(item.type)};">${escapeHtml(item.type)}</span></td>
+                            <td style="font-size: 11px; color: var(--text-muted);">${escapeHtml(attributesText)}</td>
                             <td class="text-right">${item.qty} шт</td>
                             <td class="text-right">${item.price} ₽</td>
                             <td class="text-right">${sum} ₽</td>
                         </tr>`;
             }
             html += `<tr style="border-top: 2px solid var(--border-color); font-weight: bold;">
-                        <td colspan="4" class="text-right">Итого:</td>
+                        <td colspan="5" class="text-right">Итого:</td>
                         <td class="text-right">${total} ₽</td>
                       </tr>`;
             html += `</tbody>
@@ -341,13 +389,12 @@ function renderBookingProductSelect() {
     let html = '';
     originalCardsData.forEach(card => {
         if (card.stock > 0) {
-            const displayName = `${card.type} ${card.name}`;
+            const displayName = getBookingProductDisplayName(card);
             const product = currentBookingProducts.get(card.id);
             const qtyInCart = product?.qty || 0;
-            html += `<div class="product-select-item" onclick="toggleBookingProduct(${card.id}, '${escapeHtml(card.name)}', '${escapeHtml(card.type)}', ${card.price}, ${card.cost || 0})" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border-color);">
+            html += `<div class="product-select-item" onclick="toggleBookingProduct(${card.id}, '${escapeHtml(card.name)}', '${escapeHtml(card.type)}', ${card.price}, ${card.cost || 0}, '${escapeHtml(card.attribute1 || "")}', '${escapeHtml(card.attribute2 || "")}')" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border-color);">
                         <div style="flex: 1;">
                             <div style="color: var(--text-primary);">${escapeHtml(displayName)}</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">В наличии: ${card.stock} шт, цена: ${card.price} ₽</div>
                         </div>
                         ${qtyInCart > 0 ? `<div style="display: flex; align-items: center; gap: 8px;">
                             <button class="cart-qty-btn" onclick="event.stopPropagation(); changeBookingProductQty(${card.id}, -1)" style="width: 28px; height: 28px; background: var(--badge-bg); color: var(--text-primary);">−</button>
@@ -384,13 +431,21 @@ function toggleBookingProductSelect() {
     }
 }
 
-function toggleBookingProduct(id, name, type, price, cost) {
+function toggleBookingProduct(id, name, type, price, cost, attribute1, attribute2) {
     if (currentBookingProducts.has(id)) {
         currentBookingProducts.delete(id);
     } else {
         const card = originalCardsData.find(c => c.id === id);
         if (card && card.stock > 0) {
-            currentBookingProducts.set(id, { qty: 1, name: name, type: type, price: price, cost: cost });
+            currentBookingProducts.set(id, { 
+                qty: 1, 
+                name: name, 
+                type: type, 
+                price: price, 
+                cost: cost,
+                attribute1: attribute1,
+                attribute2: attribute2
+            });
         } else {
             showToast("Товар временно недоступен", false);
             return;
@@ -429,7 +484,14 @@ function renderSelectedBookingProducts() {
     
     let html = '<div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">Выбранные товары:</div>';
     for (const [id, product] of currentBookingProducts) {
-        const displayName = `${product.type} ${product.name}`;
+        // Формируем отображаемое имя с атрибутами
+        let displayName = `${product.type} ${product.name}`;
+        if (product.attribute1 || product.attribute2) {
+            const attrs = [];
+            if (product.attribute1) attrs.push(product.attribute1);
+            if (product.attribute2) attrs.push(product.attribute2);
+            displayName += ` (${attrs.join(" | ")})`;
+        }
         html += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
                     <span style="color: var(--text-primary);">${escapeHtml(displayName)}</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -459,7 +521,7 @@ function createBooking() {
     
     const items = [];
     for (const [id, product] of currentBookingProducts) {
-        const card = originalCardsData.find(c => c.id === id);
+        const card = originalCardsData.find(c => c.id == id);
         if (card && product.qty <= card.stock) {
             items.push({
                 id: id,
@@ -467,7 +529,9 @@ function createBooking() {
                 type: product.type,
                 qty: product.qty,
                 price: product.price,
-                cost: product.cost
+                cost: product.cost,
+                attribute1: product.attribute1 || "",
+                attribute2: product.attribute2 || ""
             });
         } else {
             showToast(`Недостаточно товара "${product.name}"`, false);
@@ -539,3 +603,5 @@ window.viewBookingDetails = viewBookingDetails;
 window.toggleBookingProductSelect = toggleBookingProductSelect;
 window.toggleBookingProduct = toggleBookingProduct;
 window.changeBookingProductQty = changeBookingProductQty;
+window.getBookingProductDisplayName = getBookingProductDisplayName;
+window.getBookingItemDisplayName = getBookingItemDisplayName;
