@@ -13,6 +13,8 @@ let statsAttributeFilterActive = false;
 function openStatsModal() {
     const modal = document.getElementById('statsModal');
     if (modal) {
+        // Инициализируем кастомные селекторы ДО рендера статистики
+        initCustomStatsDateTimeSelects();
         renderStats();
         modal.style.display = 'block';
     }
@@ -23,156 +25,184 @@ function closeStatsModal() {
     if (modal) modal.style.display = 'none'; 
 }
 
-// ========== ИНИЦИАЛИЗАЦИЯ СЕЛЕКТОРОВ ДАТЫ/ВРЕМЕНИ (нативные, как в истории) ==========
+// ========== КАСТОМНЫЕ СЕЛЕКТОРЫ ДЛЯ ДАТЫ/ВРЕМЕНИ ==========
 
-function initStatsDateTimeSelects() {
+function initCustomStatsDateTimeSelects() {
+    initStatsCustomDateGroup('statsDateFrom', 'statsDateFromContainer');
+    initStatsCustomDateGroup('statsDateTo', 'statsDateToContainer');
+}
+
+function initStatsCustomDateGroup(prefix, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Очищаем контейнер
+    container.innerHTML = '';
+    container.style.display = 'inline-flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '6px';
+    container.style.flexWrap = 'wrap';
+    
+    // Получаем текущие значения из скрытых select
+    let dayValue = document.getElementById(`${prefix}Day`)?.value || new Date().getDate();
+    let monthValue = document.getElementById(`${prefix}Month`)?.value || (new Date().getMonth() + 1);
+    let yearValue = document.getElementById(`${prefix}Year`)?.value || new Date().getFullYear();
+    let hourValue = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`)?.value || (prefix === 'statsDateFrom' ? 0 : 23);
+    let minuteValue = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`)?.value || (prefix === 'statsDateFrom' ? 0 : 59);
+    
+    // День
+    const daysOptions = [];
+    for (let i = 1; i <= 31; i++) {
+        daysOptions.push({ value: i, label: i.toString().padStart(2, '0') });
+    }
+    createStatsCustomSelect(`${prefix}_day_select`, daysOptions, dayValue, (value) => {
+        const hiddenSelect = document.getElementById(`${prefix}Day`);
+        if (hiddenSelect) hiddenSelect.value = value;
+    });
+    
+    // Месяц
+    const monthNames = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const monthOptions = [];
+    for (let i = 0; i < 12; i++) {
+        monthOptions.push({ value: i + 1, label: monthNames[i] });
+    }
+    createStatsCustomSelect(`${prefix}_month_select`, monthOptions, monthValue, (value) => {
+        const hiddenSelect = document.getElementById(`${prefix}Month`);
+        if (hiddenSelect) hiddenSelect.value = value;
+    });
+    
+    // Год
     const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let i = currentYear - 2; i <= currentYear + 2; i++) years.push(i);
-    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-    
-    // Заполняем select для дней
-    ['statsDateFromDay', 'statsDateToDay'].forEach(id => {
-        const select = document.getElementById(id);
-        if (select) {
-            select.innerHTML = '';
-            for (let i = 1; i <= 31; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = i.toString().padStart(2, '0');
-                select.appendChild(option);
-            }
-        }
-    });
-    
-    // Заполняем select для месяцев
-    ['statsDateFromMonth', 'statsDateToMonth'].forEach(id => {
-        const select = document.getElementById(id);
-        if (select) {
-            select.innerHTML = '';
-            for (let i = 0; i < 12; i++) {
-                const option = document.createElement('option');
-                option.value = i + 1;
-                option.textContent = monthNames[i];
-                select.appendChild(option);
-            }
-        }
-    });
-    
-    // Заполняем select для годов
-    ['statsDateFromYear', 'statsDateToYear'].forEach(id => {
-        const select = document.getElementById(id);
-        if (select) {
-            select.innerHTML = '';
-            for (const year of years) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                select.appendChild(option);
-            }
-            if (select.id.includes('To')) {
-                select.value = currentYear;
-            } else {
-                select.value = currentYear - 1;
-            }
-        }
-    });
-    
-    // Заполняем select для часов
-    ['statsTimeFromHour', 'statsTimeToHour'].forEach(id => {
-        const select = document.getElementById(id);
-        if (select) {
-            select.innerHTML = '';
-            for (let i = 0; i <= 23; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = i.toString().padStart(2, '0');
-                select.appendChild(option);
-            }
-            if (select.id.includes('From')) {
-                select.value = 0;
-            } else {
-                select.value = 23;
-            }
-        }
-    });
-    
-    // Заполняем select для минут
-    ['statsTimeFromMinute', 'statsTimeToMinute'].forEach(id => {
-        const select = document.getElementById(id);
-        if (select) {
-            select.innerHTML = '';
-            for (let i = 0; i <= 59; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = i.toString().padStart(2, '0');
-                select.appendChild(option);
-            }
-            if (select.id.includes('From')) {
-                select.value = 0;
-            } else {
-                select.value = 59;
-            }
-        }
-    });
-}
-
-function getStatsDateTimeFromSelects(prefix) {
-    const day = document.getElementById(`${prefix}Day`)?.value;
-    const month = document.getElementById(`${prefix}Month`)?.value;
-    const year = document.getElementById(`${prefix}Year`)?.value;
-    const hour = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`)?.value;
-    const minute = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`)?.value;
-    
-    if (day && month && year && hour && minute) {
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+    const yearOptions = [];
+    for (let i = currentYear - 2; i <= currentYear + 2; i++) {
+        yearOptions.push({ value: i, label: i.toString() });
     }
-    return null;
-}
-
-function toggleStatsFilter() {
-    const block = document.getElementById('statsFilterBlock');
-    if (block) {
-        const isVisible = block.style.display !== 'none';
-        block.style.display = isVisible ? 'none' : 'block';
+    createStatsCustomSelect(`${prefix}_year_select`, yearOptions, yearValue, (value) => {
+        const hiddenSelect = document.getElementById(`${prefix}Year`);
+        if (hiddenSelect) hiddenSelect.value = value;
+    });
+    
+    // Часы
+    const hourOptions = [];
+    for (let i = 0; i <= 23; i++) {
+        hourOptions.push({ value: i, label: i.toString().padStart(2, '0') });
     }
+    createStatsCustomSelect(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}_hour_select`, hourOptions, hourValue, (value) => {
+        const hiddenSelect = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`);
+        if (hiddenSelect) hiddenSelect.value = value;
+    });
+    
+    // Разделитель
+    const colonSpan = document.createElement('span');
+    colonSpan.textContent = ':';
+    colonSpan.style.color = 'var(--text-muted)';
+    colonSpan.style.fontSize = '12px';
+    container.appendChild(colonSpan);
+    
+    // Минуты
+    const minuteOptions = [];
+    for (let i = 0; i <= 59; i++) {
+        minuteOptions.push({ value: i, label: i.toString().padStart(2, '0') });
+    }
+    createStatsCustomSelect(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}_minute_select`, minuteOptions, minuteValue, (value) => {
+        const hiddenSelect = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`);
+        if (hiddenSelect) hiddenSelect.value = value;
+    });
 }
 
-function resetStatsFilter() {
-    const now = new Date();
-    const fromDate = new Date(now);
-    fromDate.setDate(now.getDate() - 30);
+function createStatsCustomSelect(selectId, options, selectedValue, onSelect) {
+    // Ищем или создаём контейнер для этого селектора
+    let container = document.getElementById(selectId);
+    if (!container) {
+        container = document.createElement('div');
+        container.id = selectId;
+        container.style.display = 'inline-block';
+        container.style.margin = '0 2px';
+        // Находим родительский контейнер (statsDateFromContainer или statsDateToContainer)
+        const parentId = selectId.split('_')[0];
+        const parent = document.getElementById(parentId + 'Container');
+        if (parent) {
+            parent.appendChild(container);
+        } else {
+            return;
+        }
+    }
     
-    setStatsDateTimeValues('statsDateFrom', fromDate);
-    setStatsDateTimeValues('statsDateTo', now);
+    container.innerHTML = '';
     
-    statsFilterFromDate = null;
-    statsFilterToDate = null;
-    statsFilterActive = false;
+    const selectedOption = options.find(opt => opt.value == selectedValue);
+    let displayText = selectedOption ? selectedOption.label : options[0]?.label || '--';
     
-    renderStats();
-}
-
-function setStatsDateTimeValues(prefix, date) {
-    if (!date) return;
-    const day = document.getElementById(`${prefix}Day`);
-    const month = document.getElementById(`${prefix}Month`);
-    const year = document.getElementById(`${prefix}Year`);
-    const hour = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`);
-    const minute = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`);
+    const customSelect = document.createElement('div');
+    customSelect.style.position = 'relative';
+    customSelect.style.display = 'inline-block';
     
-    if (day) day.value = date.getDate();
-    if (month) month.value = date.getMonth() + 1;
-    if (year) year.value = date.getFullYear();
-    if (hour) hour.value = date.getHours();
-    if (minute) minute.value = date.getMinutes();
-}
-
-function applyStatsFilter() {
-    statsFilterFromDate = getStatsDateTimeFromSelects('statsDateFrom');
-    statsFilterToDate = getStatsDateTimeFromSelects('statsDateTo');
-    statsFilterActive = true;
-    renderStats();
+    const trigger = document.createElement('div');
+    trigger.style.cssText = 'background: var(--badge-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 4px 20px 4px 10px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-primary); display: inline-block; font-family: monospace; min-width: 45px; text-align: center;';
+    trigger.textContent = displayText;
+    
+    const arrow = document.createElement('span');
+    arrow.style.cssText = 'position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 8px; color: var(--text-secondary);';
+    arrow.textContent = '▼';
+    trigger.appendChild(arrow);
+    
+    const dropdown = document.createElement('div');
+    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; z-index: 1100; display: none; max-height: 150px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow); min-width: 55px;';
+    
+    options.forEach(opt => {
+        const optionDiv = document.createElement('div');
+        optionDiv.style.cssText = 'padding: 6px 10px; cursor: pointer; transition: background 0.1s; font-size: 12px; color: var(--text-primary); white-space: nowrap; text-align: center;';
+        optionDiv.textContent = opt.label;
+        optionDiv.dataset.value = opt.value;
+        
+        if (opt.value == selectedValue) {
+            optionDiv.style.background = 'var(--badge-bg)';
+            optionDiv.style.fontWeight = 'bold';
+        }
+        
+        optionDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            trigger.textContent = opt.label;
+            dropdown.style.display = 'none';
+            if (onSelect) onSelect(opt.value);
+        });
+        
+        optionDiv.addEventListener('mouseenter', () => {
+            optionDiv.style.background = 'var(--badge-bg)';
+        });
+        optionDiv.addEventListener('mouseleave', () => {
+            if (opt.value != selectedValue) {
+                optionDiv.style.background = '';
+            }
+        });
+        
+        dropdown.appendChild(optionDiv);
+    });
+    
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.style.display === 'block';
+        // Закрываем все другие дропдауны
+        document.querySelectorAll('.stats-custom-dropdown, [class*="stats_select"] > div > div').forEach(d => {
+            if (d !== dropdown && d.parentElement !== customSelect) {
+                d.style.display = 'none';
+            }
+        });
+        dropdown.style.display = isOpen ? 'none' : 'block';
+    });
+    
+    customSelect.appendChild(trigger);
+    customSelect.appendChild(dropdown);
+    container.appendChild(customSelect);
+    
+    // Закрытие при клике вне
+    const closeHandler = (e) => {
+        if (!customSelect.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    };
+    document.removeEventListener('click', closeHandler);
+    document.addEventListener('click', closeHandler);
 }
 
 // ========== ФИЛЬТРЫ ПО ХАРАКТЕРИСТИКАМ ==========
@@ -180,13 +210,14 @@ function applyStatsFilter() {
 function initStatsTypeSelector() {
     const container = document.getElementById('statsAttributeFilters');
     if (!container) return;
+    if (container.querySelector('.stats-attribute-filters-initialized')) return;
     
     const types = getAllMerchTypes();
     let html = `
         <div class="stats-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px;">
             <div style="font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">🔍 Фильтр по характеристикам</div>
             <div class="filter-row" style="margin-bottom: 8px;">
-                <select id="statsTypeSelect" class="edit-input" style="flex: 1;" onchange="onStatsTypeChange()">
+                <select id="statsTypeSelect" class="edit-input" style="flex: 1;">
                     <option value="">Все типы</option>
     `;
     for (const type of types) {
@@ -197,8 +228,8 @@ function initStatsTypeSelector() {
             </div>
             <div id="statsValueCheckboxesContainer" style="display: none; margin-bottom: 8px;"></div>
             <div id="statsAttributeFilterButtons" style="display: none; gap: 8px; margin-top: 8px;">
-                <button class="edit-save-btn" onclick="applyStatsAttributeFilter()" style="padding: 6px 16px;">Применить</button>
-                <button class="edit-cancel-btn" onclick="resetStatsAttributeFilter()" style="padding: 6px 16px;">Сбросить</button>
+                <button class="edit-save-btn" id="applyStatsAttrFilterBtn" style="padding: 6px 16px;">Применить</button>
+                <button class="edit-cancel-btn" id="resetStatsAttrFilterBtn" style="padding: 6px 16px;">Сбросить</button>
             </div>
         </div>
     `;
@@ -206,6 +237,19 @@ function initStatsTypeSelector() {
     const filterBlock = document.getElementById('statsFilterBlock');
     if (filterBlock && !document.getElementById('statsAttributeFilters')) {
         filterBlock.insertAdjacentHTML('afterend', html);
+        
+        const typeSelect = document.getElementById('statsTypeSelect');
+        if (typeSelect) {
+            typeSelect.addEventListener('change', onStatsTypeChange);
+        }
+        const applyBtn = document.getElementById('applyStatsAttrFilterBtn');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', applyStatsAttributeFilter);
+        }
+        const resetBtn = document.getElementById('resetStatsAttrFilterBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', resetStatsAttributeFilter);
+        }
     }
 }
 
@@ -248,12 +292,12 @@ function onStatsTypeChange() {
     let valuesHtml = `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Выберите характеристики:</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
         <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px;">
-            <input type="checkbox" class="stats-value-checkbox" data-value="__all__" checked onchange="onStatsValueChange('__all__', this.checked)"> Все
+            <input type="checkbox" class="stats-value-checkbox" data-value="__all__" checked> Все
         </label>`;
     
     for (const value of values) {
         valuesHtml += `<label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px;">
-            <input type="checkbox" class="stats-value-checkbox" data-value="${escapeHtml(value)}" onchange="onStatsValueChange('${escapeHtml(value)}', this.checked)"> ${escapeHtml(value)}
+            <input type="checkbox" class="stats-value-checkbox" data-value="${escapeHtml(value)}"> ${escapeHtml(value)}
         </label>`;
     }
     valuesHtml += `</div>`;
@@ -261,10 +305,18 @@ function onStatsTypeChange() {
     if (valueContainer) {
         valueContainer.innerHTML = valuesHtml;
         valueContainer.style.display = 'block';
+        
+        document.querySelectorAll('.stats-value-checkbox').forEach(cb => {
+            cb.removeEventListener('change', onStatsValueChangeWrapper);
+            cb.addEventListener('change', onStatsValueChangeWrapper);
+        });
     }
 }
 
-function onStatsValueChange(value, isChecked) {
+function onStatsValueChangeWrapper(e) {
+    const value = e.target.dataset.value;
+    const isChecked = e.target.checked;
+    
     if (value === '__all__') {
         if (isChecked) {
             statsSelectedValues = [];
@@ -330,7 +382,77 @@ function filterSalesByAttributes(sales) {
     return filtered;
 }
 
-// ========== ОСНОВНАЯ ФУНКЦИЯ СТАТИСТИКИ ==========
+// ========== ФУНКЦИИ ФИЛЬТРА ПО ВРЕМЕНИ ==========
+
+function toggleStatsFilter() {
+    const block = document.getElementById('statsFilterBlock');
+    if (block) {
+        const isVisible = block.style.display !== 'none';
+        block.style.display = isVisible ? 'none' : 'block';
+        // При открытии пересоздаём кастомные селекторы
+        if (!isVisible) {
+            setTimeout(() => {
+                initCustomStatsDateTimeSelects();
+            }, 10);
+        }
+    }
+}
+
+function resetStatsFilter() {
+    const now = new Date();
+    const fromDate = new Date(now);
+    fromDate.setDate(now.getDate() - 30);
+    
+    setStatsDateTimeValues('statsDateFrom', fromDate);
+    setStatsDateTimeValues('statsDateTo', now);
+    
+    statsFilterFromDate = null;
+    statsFilterToDate = null;
+    statsFilterActive = false;
+    
+    // Пересоздаём кастомные селекторы
+    initCustomStatsDateTimeSelects();
+    
+    renderStats();
+}
+
+function setStatsDateTimeValues(prefix, date) {
+    if (!date) return;
+    const day = document.getElementById(`${prefix}Day`);
+    const month = document.getElementById(`${prefix}Month`);
+    const year = document.getElementById(`${prefix}Year`);
+    const hour = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`);
+    const minute = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`);
+    
+    if (day) day.value = date.getDate();
+    if (month) month.value = date.getMonth() + 1;
+    if (year) year.value = date.getFullYear();
+    if (hour) hour.value = date.getHours();
+    if (minute) minute.value = date.getMinutes();
+}
+
+function applyStatsFilter() {
+    const fromDay = document.getElementById('statsDateFromDay')?.value;
+    const fromMonth = document.getElementById('statsDateFromMonth')?.value;
+    const fromYear = document.getElementById('statsDateFromYear')?.value;
+    const fromHour = document.getElementById('statsTimeFromHour')?.value;
+    const fromMinute = document.getElementById('statsTimeFromMinute')?.value;
+    
+    const toDay = document.getElementById('statsDateToDay')?.value;
+    const toMonth = document.getElementById('statsDateToMonth')?.value;
+    const toYear = document.getElementById('statsDateToYear')?.value;
+    const toHour = document.getElementById('statsTimeToHour')?.value;
+    const toMinute = document.getElementById('statsTimeToMinute')?.value;
+    
+    if (fromDay && fromMonth && fromYear && fromHour && fromMinute) {
+        statsFilterFromDate = new Date(parseInt(fromYear), parseInt(fromMonth) - 1, parseInt(fromDay), parseInt(fromHour), parseInt(fromMinute));
+    }
+    if (toDay && toMonth && toYear && toHour && toMinute) {
+        statsFilterToDate = new Date(parseInt(toYear), parseInt(toMonth) - 1, parseInt(toDay), parseInt(toHour), parseInt(toMinute));
+    }
+    statsFilterActive = true;
+    renderStats();
+}
 
 function getFilteredSalesHistory() {
     let filteredSales = salesHistory.filter(entry => !entry.isReturn && !entry.hidden);
@@ -346,6 +468,8 @@ function getFilteredSalesHistory() {
     return filteredSales;
 }
 
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+
 function getAttributeColor(attribute) {
     if (!window.attributeColorCache) window.attributeColorCache = new Map();
     const colorPalette = ['#e67e22', '#f39c12', '#2ecc71', '#3498db', '#9b59b6', '#e74c3c', '#1abc9c', '#f1c40f', '#e67e22', '#95a5a6'];
@@ -355,6 +479,8 @@ function getAttributeColor(attribute) {
     }
     return window.attributeColorCache.get(attribute);
 }
+
+// ========== ОСНОВНАЯ ФУНКЦИЯ СТАТИСТИКИ ==========
 
 function renderStats() {
     const container = document.getElementById('stats-content');
@@ -556,7 +682,8 @@ function renderStats() {
         <div class="table-wrapper">
             <table class="detail-table">
                 <thead>
-                    <tr><th>Товар</th><th>Тип</th><th>Характеристики</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr>
+                    <tr><th>Товар</th><th>Тип</th><th>Характеристики</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
+                </tr>
                 </thead>
                 <tbody>`;
     for (const p of productStats) {
@@ -579,15 +706,15 @@ function renderStats() {
         }
         
         html += `<tr>
-            <td>${escapeHtml(p.name)}</td>
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
-            <td>${attributesHtml}</td>
-            <td class="text-right">${p.soldQty} шт</td>
-            <td class="text-right">${p.stock} шт</td>
-            <td class="text-right">${formatCurrency(p.revenue)}</td>
-            <td class="text-right">${formatCurrency(p.fullCost)}</td>
-            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td>
-            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td>
+            <td>${escapeHtml(p.name)}</td
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
+            <td>${attributesHtml}</td
+            <td class="text-right">${p.soldQty} шт</td
+            <td class="text-right">${p.stock} шт</td
+            <td class="text-right">${formatCurrency(p.revenue)}</td
+            <td class="text-right">${formatCurrency(p.fullCost)}</td
+            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td
+            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td
         </tr>`;
     }
     html += `</tbody></table></div></div>`;
@@ -604,11 +731,11 @@ function renderStats() {
         const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
         html += `<tr>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td>
-            <td class="text-right">${formatCurrency(t.revenue)}</td>
-            <td class="text-right">${formatCurrency(t.fullCost)}</td>
-            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
-            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
+            <td class="text-right">${t.soldQty} шт</td
+            <td class="text-right">${formatCurrency(t.revenue)}</td
+            <td class="text-right">${formatCurrency(t.fullCost)}</td
+            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td
+            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td
         </tr>`;
     }
     html += `</tbody></table></div></div>`;
@@ -629,8 +756,8 @@ function renderStats() {
                 const attrColor = getAttributeColor(attr);
                 html += `<tr>
                     <td><span class="type-badge" style="background:${attrColor}20; color:${attrColor};">${escapeHtml(attr)}</span></td>
-                    <td class="text-right">${data.qty} шт</td>
-                    <td class="text-right">${formatCurrency(data.revenue)}</td>
+                    <td class="text-right">${data.qty} шт</td
+                    <td class="text-right">${formatCurrency(data.revenue)}</td
                 </tr>`;
             }
             html += `</tbody></table></div></div>`;
@@ -644,15 +771,15 @@ function renderStats() {
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
-                    <thead><tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th></tr></thead>
+                    <thead><td><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th></tr></thead>
                     <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
         const p = topByQty[i]; 
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td>${escapeHtml(p.name)}</td>
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
-            <td class="text-right">${p.soldQty} шт</td>
+            <td>${escapeHtml(p.name)}</td
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
+            <td class="text-right">${p.soldQty} шт</td
         </tr>`;
     }
     html += `</tbody></table></div></div>
@@ -667,10 +794,10 @@ function renderStats() {
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td>
+            <td class="text-right">${t.soldQty} шт</td
         </tr>`;
     }
-    html += `</tbody></table></div></div></div>`;
+    html += `</tbody><table></div></div></div>`;
     
     // Расходы и доходы
     html += `<div class="extra-costs-section">
@@ -745,15 +872,13 @@ function addExtraIncomeFromModal() {
     renderStats();
 }
 
-// Инициализация при загрузке
+// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
-    initStatsDateTimeSelects();
     initStatsTypeSelector();
 });
 
-// Экспорт
-window.initStatsDateTimeSelects = initStatsDateTimeSelects;
+// Экспорт функций
+window.initCustomStatsDateTimeSelects = initCustomStatsDateTimeSelects;
 window.onStatsTypeChange = onStatsTypeChange;
-window.onStatsValueChange = onStatsValueChange;
 window.applyStatsAttributeFilter = applyStatsAttributeFilter;
 window.resetStatsAttributeFilter = resetStatsAttributeFilter;
