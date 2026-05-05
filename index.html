@@ -223,35 +223,13 @@
                     <div class="history-filter-left">
                         <div class="custom-datetime" id="statsDatetimeFromContainer">
                             <span class="datetime-label">с</span>
-                            <div class="datetime-group">
-                                <select id="statsDateFromDay" class="datetime-select"></select>
-                                <span class="datetime-sep"> </span>
-                                <select id="statsDateFromMonth" class="datetime-select"></select>
-                                <span class="datetime-sep"> </span>
-                                <select id="statsDateFromYear" class="datetime-select"></select>
-                            </div>
-                            <div class="datetime-group">
-                                <select id="statsTimeFromHour" class="datetime-select"></select>
-                                <span class="datetime-sep">:</span>
-                                <select id="statsTimeFromMinute" class="datetime-select"></select>
-                            </div>
+                            <div id="statsDateFromContainer" style="display: inline-flex; align-items: center;"></div>
                         </div>
                     </div>
                     <div class="history-filter-left" style="margin-top: 8px;">
                         <div class="custom-datetime" id="statsDatetimeToContainer">
                             <span class="datetime-label">по</span>
-                            <div class="datetime-group">
-                                <select id="statsDateToDay" class="datetime-select"></select>
-                                <span class="datetime-sep"> </span>
-                                <select id="statsDateToMonth" class="datetime-select"></select>
-                                <span class="datetime-sep"> </span>
-                                <select id="statsDateToYear" class="datetime-select"></select>
-                            </div>
-                            <div class="datetime-group">
-                                <select id="statsTimeToHour" class="datetime-select"></select>
-                                <span class="datetime-sep">:</span>
-                                <select id="statsTimeToMinute" class="datetime-select"></select>
-                            </div>
+                            <div id="statsDateToContainer" style="display: inline-flex; align-items: center;"></div>
                         </div>
                     </div>
                     <div class="history-filter-reset-row" style="justify-content: flex-end; gap: 8px; margin-top: 8px;">
@@ -279,35 +257,13 @@
                     <div class="history-filter-left">
                         <div class="custom-datetime" id="globalStatsDatetimeFromContainer">
                             <span class="datetime-label">с</span>
-                            <div class="datetime-group">
-                                <select id="globalStatsDateFromDay" class="datetime-select"></select>
-                                <span class="datetime-sep"> </span>
-                                <select id="globalStatsDateFromMonth" class="datetime-select"></select>
-                                <span class="datetime-sep"> </span>
-                                <select id="globalStatsDateFromYear" class="datetime-select"></select>
-                            </div>
-                            <div class="datetime-group">
-                                <select id="globalStatsTimeFromHour" class="datetime-select"></select>
-                                <span class="datetime-sep">:</span>
-                                <select id="globalStatsTimeFromMinute" class="datetime-select"></select>
-                            </div>
+                            <div id="globalStatsDateFromContainer" style="display: inline-flex; align-items: center;"></div>
                         </div>
                     </div>
                     <div class="history-filter-left" style="margin-top: 8px;">
                         <div class="custom-datetime" id="globalStatsDatetimeToContainer">
                             <span class="datetime-label">по</span>
-                            <div class="datetime-group">
-                                <select id="globalStatsDateToDay" class="datetime-select"></select>
-                                <span class="datetime-sep"> </span>
-                                <select id="globalStatsDateToMonth" class="datetime-select"></select>
-                                <span class="datetime-sep"> </span>
-                                <select id="globalStatsDateToYear" class="datetime-select"></select>
-                            </div>
-                            <div class="datetime-group">
-                                <select id="globalStatsTimeToHour" class="datetime-select"></select>
-                                <span class="datetime-sep">:</span>
-                                <select id="globalStatsTimeToMinute" class="datetime-select"></select>
-                            </div>
+                            <div id="globalStatsDateToContainer" style="display: inline-flex; align-items: center;"></div>
                         </div>
                     </div>
                     <div class="history-filter-reset-row" style="justify-content: flex-end; gap: 8px; margin-top: 8px;">
@@ -569,6 +525,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Скрытые select для хранения значений даты/времени статистики -->
+    <select id="statsDateFromDay" style="display: none;"></select>
+    <select id="statsDateFromMonth" style="display: none;"></select>
+    <select id="statsDateFromYear" style="display: none;"></select>
+    <select id="statsTimeFromHour" style="display: none;"></select>
+    <select id="statsTimeFromMinute" style="display: none;"></select>
+    <select id="statsDateToDay" style="display: none;"></select>
+    <select id="statsDateToMonth" style="display: none;"></select>
+    <select id="statsDateToYear" style="display: none;"></select>
+    <select id="statsTimeToHour" style="display: none;"></select>
+    <select id="statsTimeToMinute" style="display: none;"></select>
+
+    <!-- Скрытые select для хранения даты/времени глобальной статистики -->
+    <select id="globalStatsDateFromDay" style="display: none;"></select>
+    <select id="globalStatsDateFromMonth" style="display: none;"></select>
+    <select id="globalStatsDateFromYear" style="display: none;"></select>
+    <select id="globalStatsTimeFromHour" style="display: none;"></select>
+    <select id="globalStatsTimeFromMinute" style="display: none;"></select>
+    <select id="globalStatsDateToDay" style="display: none;"></select>
+    <select id="globalStatsDateToMonth" style="display: none;"></select>
+    <select id="globalStatsDateToYear" style="display: none;"></select>
+    <select id="globalStatsTimeToHour" style="display: none;"></select>
+    <select id="globalStatsTimeToMinute" style="display: none;"></select>
 
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
