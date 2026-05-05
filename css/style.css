@@ -2553,7 +2553,7 @@ body.dark .extra-cost-amount {
 }
 
 .filter-toggle-btn {
-    background: var(--badge-bg);
+    background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 30px;
     width: 36px;
@@ -2565,6 +2565,7 @@ body.dark .extra-cost-amount {
     justify-content: center;
     transition: all 0.2s;
     color: var(--text-primary);
+    margin-left: 4px;
 }
 
 .filter-toggle-btn:hover {
