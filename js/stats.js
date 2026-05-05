@@ -15,11 +15,6 @@ function openStatsModal() {
     if (modal) {
         renderStats();
         modal.style.display = 'block';
-        setTimeout(() => {
-            if (typeof initCustomStatsDateTimeSelects === 'function') {
-                initCustomStatsDateTimeSelects();
-            }
-        }, 50);
     }
 }
 
@@ -28,183 +23,156 @@ function closeStatsModal() {
     if (modal) modal.style.display = 'none'; 
 }
 
-// ========== КАСТОМНЫЕ СЕЛЕКТОРЫ ДЛЯ ДАТЫ/ВРЕМЕНИ ==========
+// ========== ИНИЦИАЛИЗАЦИЯ СЕЛЕКТОРОВ ДАТЫ/ВРЕМЕНИ (нативные, как в истории) ==========
 
-function initCustomStatsDateTimeSelects() {
-    initStatsCustomDateGroup('statsDateFrom', 'statsDateFromContainer');
-    initStatsCustomDateGroup('statsDateTo', 'statsDateToContainer');
-}
-
-function initStatsCustomDateGroup(prefix, containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    container.innerHTML = '';
-    container.style.display = 'inline-flex';
-    container.style.alignItems = 'center';
-    container.style.gap = '6px';
-    container.style.backgroundColor = 'transparent';
-    container.style.padding = '0';
-    container.style.border = 'none';
-    
-    let dayValue = document.getElementById(`${prefix}Day`)?.value || new Date().getDate();
-    let monthValue = document.getElementById(`${prefix}Month`)?.value || (new Date().getMonth() + 1);
-    let yearValue = document.getElementById(`${prefix}Year`)?.value || new Date().getFullYear();
-    let hourValue = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`)?.value || (prefix === 'statsDateFrom' ? 0 : 23);
-    let minuteValue = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`)?.value || (prefix === 'statsDateFrom' ? 0 : 59);
-    
-    // День
-    const daysOptions = [];
-    for (let i = 1; i <= 31; i++) {
-        daysOptions.push({ value: i, label: i.toString().padStart(2, '0') });
-    }
-    createStatsCustomSelect(`${prefix}_day`, daysOptions, dayValue, (value) => {
-        const hiddenSelect = document.getElementById(`${prefix}Day`);
-        if (hiddenSelect) hiddenSelect.value = value;
-    });
-    
-    container.appendChild(document.createTextNode(' '));
-    
-    // Месяц
-    const monthNames = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-    const monthOptions = [];
-    for (let i = 0; i < 12; i++) {
-        monthOptions.push({ value: i + 1, label: monthNames[i] });
-    }
-    createStatsCustomSelect(`${prefix}_month`, monthOptions, monthValue, (value) => {
-        const hiddenSelect = document.getElementById(`${prefix}Month`);
-        if (hiddenSelect) hiddenSelect.value = value;
-    });
-    
-    container.appendChild(document.createTextNode(' '));
-    
-    // Год
+function initStatsDateTimeSelects() {
     const currentYear = new Date().getFullYear();
-    const yearOptions = [];
-    for (let i = currentYear - 2; i <= currentYear + 2; i++) {
-        yearOptions.push({ value: i, label: i.toString() });
-    }
-    createStatsCustomSelect(`${prefix}_year`, yearOptions, yearValue, (value) => {
-        const hiddenSelect = document.getElementById(`${prefix}Year`);
-        if (hiddenSelect) hiddenSelect.value = value;
+    const years = [];
+    for (let i = currentYear - 2; i <= currentYear + 2; i++) years.push(i);
+    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    
+    // Заполняем select для дней
+    ['statsDateFromDay', 'statsDateToDay'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 1; i <= 31; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                select.appendChild(option);
+            }
+        }
     });
     
-    container.appendChild(document.createTextNode(' '));
-    
-    // Часы
-    const hourOptions = [];
-    for (let i = 0; i <= 23; i++) {
-        hourOptions.push({ value: i, label: i.toString().padStart(2, '0') });
-    }
-    createStatsCustomSelect(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}_hour`, hourOptions, hourValue, (value) => {
-        const hiddenSelect = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`);
-        if (hiddenSelect) hiddenSelect.value = value;
+    // Заполняем select для месяцев
+    ['statsDateFromMonth', 'statsDateToMonth'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 0; i < 12; i++) {
+                const option = document.createElement('option');
+                option.value = i + 1;
+                option.textContent = monthNames[i];
+                select.appendChild(option);
+            }
+        }
     });
     
-    container.appendChild(document.createTextNode(':'));
+    // Заполняем select для годов
+    ['statsDateFromYear', 'statsDateToYear'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (const year of years) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                select.appendChild(option);
+            }
+            if (select.id.includes('To')) {
+                select.value = currentYear;
+            } else {
+                select.value = currentYear - 1;
+            }
+        }
+    });
     
-    // Минуты
-    const minuteOptions = [];
-    for (let i = 0; i <= 59; i++) {
-        minuteOptions.push({ value: i, label: i.toString().padStart(2, '0') });
-    }
-    createStatsCustomSelect(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}_minute`, minuteOptions, minuteValue, (value) => {
-        const hiddenSelect = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`);
-        if (hiddenSelect) hiddenSelect.value = value;
+    // Заполняем select для часов
+    ['statsTimeFromHour', 'statsTimeToHour'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 0; i <= 23; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                select.appendChild(option);
+            }
+            if (select.id.includes('From')) {
+                select.value = 0;
+            } else {
+                select.value = 23;
+            }
+        }
+    });
+    
+    // Заполняем select для минут
+    ['statsTimeFromMinute', 'statsTimeToMinute'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '';
+            for (let i = 0; i <= 59; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                select.appendChild(option);
+            }
+            if (select.id.includes('From')) {
+                select.value = 0;
+            } else {
+                select.value = 59;
+            }
+        }
     });
 }
 
-function createStatsCustomSelect(selectId, options, selectedValue, onSelect) {
-    let container = document.getElementById(selectId);
-    if (!container) {
-        container = document.createElement('div');
-        container.id = selectId;
-        container.style.display = 'inline-block';
-        const parent = document.getElementById(selectId.split('_')[0] + 'Container');
-        if (parent) {
-            parent.appendChild(container);
-        } else {
-            document.body.appendChild(container);
-        }
+function getStatsDateTimeFromSelects(prefix) {
+    const day = document.getElementById(`${prefix}Day`)?.value;
+    const month = document.getElementById(`${prefix}Month`)?.value;
+    const year = document.getElementById(`${prefix}Year`)?.value;
+    const hour = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`)?.value;
+    const minute = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`)?.value;
+    
+    if (day && month && year && hour && minute) {
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
     }
+    return null;
+}
+
+function toggleStatsFilter() {
+    const block = document.getElementById('statsFilterBlock');
+    if (block) {
+        const isVisible = block.style.display !== 'none';
+        block.style.display = isVisible ? 'none' : 'block';
+    }
+}
+
+function resetStatsFilter() {
+    const now = new Date();
+    const fromDate = new Date(now);
+    fromDate.setDate(now.getDate() - 30);
     
-    container.innerHTML = '';
-    container.style.display = 'inline-block';
-    container.style.margin = '0 2px';
+    setStatsDateTimeValues('statsDateFrom', fromDate);
+    setStatsDateTimeValues('statsDateTo', now);
     
-    const selectedOption = options.find(opt => opt.value == selectedValue);
-    let displayText = selectedOption ? selectedOption.label : options[0]?.label || 'Выберите';
+    statsFilterFromDate = null;
+    statsFilterToDate = null;
+    statsFilterActive = false;
     
-    const customSelect = document.createElement('div');
-    customSelect.style.position = 'relative';
-    customSelect.style.display = 'inline-block';
+    renderStats();
+}
+
+function setStatsDateTimeValues(prefix, date) {
+    if (!date) return;
+    const day = document.getElementById(`${prefix}Day`);
+    const month = document.getElementById(`${prefix}Month`);
+    const year = document.getElementById(`${prefix}Year`);
+    const hour = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`);
+    const minute = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`);
     
-    const trigger = document.createElement('div');
-    trigger.style.cssText = 'background: var(--badge-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 4px 20px 4px 10px; font-size: 11px; cursor: pointer; white-space: nowrap; color: var(--text-primary); display: inline-block; font-family: monospace; min-width: 40px; text-align: center;';
-    trigger.textContent = displayText;
-    
-    const arrow = document.createElement('span');
-    arrow.style.cssText = 'position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 8px; color: var(--text-secondary);';
-    arrow.textContent = '▼';
-    trigger.appendChild(arrow);
-    
-    const dropdown = document.createElement('div');
-    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; z-index: 1100; display: none; max-height: 150px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow); min-width: 50px;';
-    
-    options.forEach(opt => {
-        const optionDiv = document.createElement('div');
-        optionDiv.style.cssText = 'padding: 6px 10px; cursor: pointer; transition: background 0.1s; font-size: 11px; color: var(--text-primary); white-space: nowrap;';
-        optionDiv.textContent = opt.label;
-        optionDiv.dataset.value = opt.value;
-        
-        if (opt.value == selectedValue) {
-            optionDiv.style.background = 'var(--badge-bg)';
-            optionDiv.style.fontWeight = 'bold';
-        }
-        
-        optionDiv.addEventListener('click', (e) => {
-            e.stopPropagation();
-            trigger.childNodes[0].textContent = opt.label;
-            dropdown.style.display = 'none';
-            if (onSelect) onSelect(opt.value, opt.label);
-        });
-        
-        optionDiv.addEventListener('mouseenter', () => {
-            optionDiv.style.background = 'var(--badge-bg)';
-        });
-        optionDiv.addEventListener('mouseleave', () => {
-            if (opt.value != selectedValue) {
-                optionDiv.style.background = '';
-            }
-        });
-        
-        dropdown.appendChild(optionDiv);
-    });
-    
-    trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = dropdown.style.display === 'block';
-        document.querySelectorAll('.stats-custom-dropdown, [style*="position: absolute"] > div').forEach(d => {
-            if (d !== dropdown && d.parentElement !== customSelect) {
-                d.style.display = 'none';
-            }
-        });
-        dropdown.style.display = isOpen ? 'none' : 'block';
-    });
-    
-    customSelect.appendChild(trigger);
-    customSelect.appendChild(dropdown);
-    container.appendChild(customSelect);
-    
-    const closeHandler = (e) => {
-        if (!customSelect.contains(e.target)) {
-            dropdown.style.display = 'none';
-        }
-    };
-    setTimeout(() => {
-        document.removeEventListener('click', closeHandler);
-        document.addEventListener('click', closeHandler);
-    }, 100);
+    if (day) day.value = date.getDate();
+    if (month) month.value = date.getMonth() + 1;
+    if (year) year.value = date.getFullYear();
+    if (hour) hour.value = date.getHours();
+    if (minute) minute.value = date.getMinutes();
+}
+
+function applyStatsFilter() {
+    statsFilterFromDate = getStatsDateTimeFromSelects('statsDateFrom');
+    statsFilterToDate = getStatsDateTimeFromSelects('statsDateTo');
+    statsFilterActive = true;
+    renderStats();
 }
 
 // ========== ФИЛЬТРЫ ПО ХАРАКТЕРИСТИКАМ ==========
@@ -212,14 +180,13 @@ function createStatsCustomSelect(selectId, options, selectedValue, onSelect) {
 function initStatsTypeSelector() {
     const container = document.getElementById('statsAttributeFilters');
     if (!container) return;
-    if (container.querySelector('.stats-attribute-filters-initialized')) return;
     
     const types = getAllMerchTypes();
     let html = `
         <div class="stats-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px;">
             <div style="font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">🔍 Фильтр по характеристикам</div>
             <div class="filter-row" style="margin-bottom: 8px;">
-                <select id="statsTypeSelect" class="edit-input" style="flex: 1;">
+                <select id="statsTypeSelect" class="edit-input" style="flex: 1;" onchange="onStatsTypeChange()">
                     <option value="">Все типы</option>
     `;
     for (const type of types) {
@@ -230,8 +197,8 @@ function initStatsTypeSelector() {
             </div>
             <div id="statsValueCheckboxesContainer" style="display: none; margin-bottom: 8px;"></div>
             <div id="statsAttributeFilterButtons" style="display: none; gap: 8px; margin-top: 8px;">
-                <button class="edit-save-btn" id="applyStatsAttrFilterBtn" style="padding: 6px 16px;">Применить</button>
-                <button class="edit-cancel-btn" id="resetStatsAttrFilterBtn" style="padding: 6px 16px;">Сбросить</button>
+                <button class="edit-save-btn" onclick="applyStatsAttributeFilter()" style="padding: 6px 16px;">Применить</button>
+                <button class="edit-cancel-btn" onclick="resetStatsAttributeFilter()" style="padding: 6px 16px;">Сбросить</button>
             </div>
         </div>
     `;
@@ -239,19 +206,6 @@ function initStatsTypeSelector() {
     const filterBlock = document.getElementById('statsFilterBlock');
     if (filterBlock && !document.getElementById('statsAttributeFilters')) {
         filterBlock.insertAdjacentHTML('afterend', html);
-        
-        const typeSelect = document.getElementById('statsTypeSelect');
-        if (typeSelect) {
-            typeSelect.addEventListener('change', onStatsTypeChange);
-        }
-        const applyBtn = document.getElementById('applyStatsAttrFilterBtn');
-        if (applyBtn) {
-            applyBtn.addEventListener('click', applyStatsAttributeFilter);
-        }
-        const resetBtn = document.getElementById('resetStatsAttrFilterBtn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', resetStatsAttributeFilter);
-        }
     }
 }
 
@@ -267,6 +221,7 @@ function onStatsTypeChange() {
         if (valueContainer) valueContainer.style.display = 'none';
         if (buttonsContainer) buttonsContainer.style.display = 'none';
         statsSelectedValues = [];
+        renderStats();
         return;
     }
     
@@ -284,6 +239,7 @@ function onStatsTypeChange() {
         if (valueContainer) valueContainer.style.display = 'none';
         if (buttonsContainer) buttonsContainer.style.display = 'none';
         statsSelectedValues = [];
+        renderStats();
         return;
     }
     
@@ -292,12 +248,12 @@ function onStatsTypeChange() {
     let valuesHtml = `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Выберите характеристики:</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
         <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px;">
-            <input type="checkbox" class="stats-value-checkbox" data-value="__all__" checked> Все
+            <input type="checkbox" class="stats-value-checkbox" data-value="__all__" checked onchange="onStatsValueChange('__all__', this.checked)"> Все
         </label>`;
     
     for (const value of values) {
         valuesHtml += `<label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px;">
-            <input type="checkbox" class="stats-value-checkbox" data-value="${escapeHtml(value)}"> ${escapeHtml(value)}
+            <input type="checkbox" class="stats-value-checkbox" data-value="${escapeHtml(value)}" onchange="onStatsValueChange('${escapeHtml(value)}', this.checked)"> ${escapeHtml(value)}
         </label>`;
     }
     valuesHtml += `</div>`;
@@ -305,18 +261,10 @@ function onStatsTypeChange() {
     if (valueContainer) {
         valueContainer.innerHTML = valuesHtml;
         valueContainer.style.display = 'block';
-        
-        document.querySelectorAll('.stats-value-checkbox').forEach(cb => {
-            cb.removeEventListener('change', onStatsValueChangeWrapper);
-            cb.addEventListener('change', onStatsValueChangeWrapper);
-        });
     }
 }
 
-function onStatsValueChangeWrapper(e) {
-    const value = e.target.dataset.value;
-    const isChecked = e.target.checked;
-    
+function onStatsValueChange(value, isChecked) {
     if (value === '__all__') {
         if (isChecked) {
             statsSelectedValues = [];
@@ -337,11 +285,10 @@ function onStatsValueChangeWrapper(e) {
             }
         }
     }
+    renderStats();
 }
 
 function applyStatsAttributeFilter() {
-    const typeSelect = document.getElementById('statsTypeSelect');
-    statsSelectedType = typeSelect?.value || "";
     statsAttributeFilterActive = !!(statsSelectedType && statsSelectedValues.length > 0);
     renderStats();
 }
@@ -383,81 +330,7 @@ function filterSalesByAttributes(sales) {
     return filtered;
 }
 
-// ========== ОСНОВНЫЕ ФУНКЦИИ СТАТИСТИКИ ==========
-
-function getStatsDateTimeFromSelects(prefix) {
-    const day = document.getElementById(`${prefix}Day`)?.value;
-    const month = document.getElementById(`${prefix}Month`)?.value;
-    const year = document.getElementById(`${prefix}Year`)?.value;
-    const hour = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Hour`)?.value;
-    const minute = document.getElementById(`statsTime${prefix === 'statsDateFrom' ? 'From' : 'To'}Minute`)?.value;
-    
-    if (day && month && year && hour && minute) {
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
-    }
-    return null;
-}
-
-function toggleStatsFilter() {
-    const block = document.getElementById('statsFilterBlock');
-    if (block) {
-        const isVisible = block.style.display !== 'none';
-        block.style.display = isVisible ? 'none' : 'block';
-        if (!isVisible) {
-            setTimeout(() => {
-                if (typeof initCustomStatsDateTimeSelects === 'function') {
-                    initCustomStatsDateTimeSelects();
-                }
-                initStatsTypeSelector();
-            }, 50);
-        }
-    }
-}
-
-function resetStatsFilter() {
-    const now = new Date();
-    const fromDate = new Date(now);
-    fromDate.setDate(now.getDate() - 30);
-    
-    const fromDay = document.getElementById('statsDateFromDay');
-    const fromMonth = document.getElementById('statsDateFromMonth');
-    const fromYear = document.getElementById('statsDateFromYear');
-    const fromHour = document.getElementById('statsTimeFromHour');
-    const fromMinute = document.getElementById('statsTimeFromMinute');
-    if (fromDay) fromDay.value = fromDate.getDate();
-    if (fromMonth) fromMonth.value = fromDate.getMonth() + 1;
-    if (fromYear) fromYear.value = fromDate.getFullYear();
-    if (fromHour) fromHour.value = 0;
-    if (fromMinute) fromMinute.value = 0;
-    
-    const toDay = document.getElementById('statsDateToDay');
-    const toMonth = document.getElementById('statsDateToMonth');
-    const toYear = document.getElementById('statsDateToYear');
-    const toHour = document.getElementById('statsTimeToHour');
-    const toMinute = document.getElementById('statsTimeToMinute');
-    if (toDay) toDay.value = now.getDate();
-    if (toMonth) toMonth.value = now.getMonth() + 1;
-    if (toYear) toYear.value = now.getFullYear();
-    if (toHour) toHour.value = 23;
-    if (toMinute) toMinute.value = 59;
-    
-    statsFilterFromDate = null;
-    statsFilterToDate = null;
-    statsFilterActive = false;
-    
-    if (typeof initCustomStatsDateTimeSelects === 'function') {
-        initCustomStatsDateTimeSelects();
-    }
-    
-    renderStats();
-}
-
-function applyStatsFilter() {
-    statsFilterFromDate = getStatsDateTimeFromSelects('statsDateFrom');
-    statsFilterToDate = getStatsDateTimeFromSelects('statsDateTo');
-    statsFilterActive = true;
-    renderStats();
-}
+// ========== ОСНОВНАЯ ФУНКЦИЯ СТАТИСТИКИ ==========
 
 function getFilteredSalesHistory() {
     let filteredSales = salesHistory.filter(entry => !entry.isReturn && !entry.hidden);
@@ -683,8 +556,7 @@ function renderStats() {
         <div class="table-wrapper">
             <table class="detail-table">
                 <thead>
-                    <tr><th>Товар</th><th>Тип</th><th>Характеристики</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
-                </tr>
+                    <tr><th>Товар</th><th>Тип</th><th>Характеристики</th><th class="text-right">Продано</th><th class="text-right">Остаток</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr>
                 </thead>
                 <tbody>`;
     for (const p of productStats) {
@@ -718,20 +590,14 @@ function renderStats() {
             <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td>
         </tr>`;
     }
-    html += `</tbody>
-            </table>
-        </div>
-    </div>`;
+    html += `</tbody></table></div></div>`;
     
     // Детализация по типам мерча
     html += `<div class="detail-section">
         <div class="detail-title">🏷️ Детализация по типам мерча</div>
         <div class="table-wrapper">
             <table class="detail-table">
-                <thead>
-                    <tr><th>Тип</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th>
-                </tr>
-                </thead>
+                <thead><tr><th>Тип</th><th class="text-right">Продано</th><th class="text-right">Выручка</th><th class="text-right">Себест.</th><th class="text-right">Прибыль</th><th class="text-right">Рентаб.</th></tr></thead>
                 <tbody>`;
     for (const t of sortedTypeDetails) {
         const profitClass = t.profit >= 0 ? 'profit-positive' : 'profit-negative';
@@ -745,10 +611,7 @@ function renderStats() {
             <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
         </tr>`;
     }
-    html += `</tbody>
-        </table>
-        </div>
-    </div>`;
+    html += `</tbody></table></div></div>`;
     
     // Детализация по характеристикам
     html += `<div class="detail-section">
@@ -759,10 +622,7 @@ function renderStats() {
                 <div style="font-weight: bold; margin-bottom: 8px; color: var(--btn-bg);">${escapeHtml(t.type)}</div>
                 <div class="table-wrapper">
                     <table class="detail-table-small">
-                        <thead>
-                            <tr><th>Характеристика</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Характеристика</th><th class="text-right">Продано, шт</th><th class="text-right">Выручка</th></tr></thead>
                         <tbody>`;
             const sortedAttrs = Object.entries(t.attributeStats).sort((a, b) => b[1].qty - a[1].qty);
             for (const [attr, data] of sortedAttrs) {
@@ -770,63 +630,47 @@ function renderStats() {
                 html += `<tr>
                     <td><span class="type-badge" style="background:${attrColor}20; color:${attrColor};">${escapeHtml(attr)}</span></td>
                     <td class="text-right">${data.qty} шт</td>
-                    <td class="text-right">${formatCurrency(data.revenue)}</td
+                    <td class="text-right">${formatCurrency(data.revenue)}</td>
                 </tr>`;
             }
-            html += `</tbody>
-                    </table>
-                </div>
-            </div>`;
+            html += `</tbody></table></div></div>`;
         }
     }
     html += `</div>`;
     
-    // Самые продаваемые
+    // Самые продаваемые товары и типы
     html += `<div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
-                    <thead>
-                        <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                    </tr>
-                    </thead>
+                    <thead><tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th></tr></thead>
                     <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
         const p = topByQty[i]; 
         html += `<tr>
-            <td class="text-right"><span class="popular-badge">${i + 1}</span></td
-            <td>${escapeHtml(p.name)}</td
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
-            <td class="text-right">${p.soldQty} шт</td
+            <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
+            <td>${escapeHtml(p.name)}</td>
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td class="text-right">${p.soldQty} шт</td>
         </tr>`;
     }
-    html += `</tbody>
-                </table>
-            </div>
-        </div>
+    html += `</tbody></table></div></div>
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
-                    <thead>
-                        <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th>
-                    </tr>
-                    </thead>
+                    <thead><tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th></tr></thead>
                     <tbody>`;
     for (let i = 0; i < topTypesByQty.length; i++) { 
         const t = topTypesByQty[i]; 
         html += `<tr>
-            <td class="text-right"><span class="popular-badge">${i + 1}</span></td
-            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td
-            <td class="text-right">${t.soldQty} шт</td
+            <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
+            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+            <td class="text-right">${t.soldQty} шт</td>
         </tr>`;
     }
-    html += `</tbody>
-                </table>
-            </div>
-        </div>
-    </div>`;
+    html += `</tbody></table></div></div></div>`;
     
     // Расходы и доходы
     html += `<div class="extra-costs-section">
@@ -901,8 +745,15 @@ function addExtraIncomeFromModal() {
     renderStats();
 }
 
-// Экспорт функций
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    initStatsDateTimeSelects();
+    initStatsTypeSelector();
+});
+
+// Экспорт
+window.initStatsDateTimeSelects = initStatsDateTimeSelects;
 window.onStatsTypeChange = onStatsTypeChange;
+window.onStatsValueChange = onStatsValueChange;
 window.applyStatsAttributeFilter = applyStatsAttributeFilter;
 window.resetStatsAttributeFilter = resetStatsAttributeFilter;
-window.initCustomStatsDateTimeSelects = initCustomStatsDateTimeSelects;
