@@ -1048,18 +1048,15 @@ function renderStats() {
         <div class="profit-card-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${formatPercent(profitMargin)}</div>
         <div class="profit-card-label">📊 Рентабельность</div>
     </div>`;
-    // Детализация по товарам
+    // Детализация по типам мерча
     html += `<div class="detail-section">
-        <div class="detail-title">📦 Детализация по товарам</div>
+        <div class="detail-title">🏷️ Детализация по типам мерча</div>
         <div class="table-wrapper">
             <table class="detail-table">
                 <thead>
                     <tr>
-                        <th>Товар</th>
                         <th>Тип</th>
-                        <th>Характеристики</th>
                         <th class="text-right">Продано</th>
-                        <th class="text-right">Остаток</th>
                         <th class="text-right">Выручка</th>
                         <th class="text-right">Себест.</th>
                         <th class="text-right">Прибыль</th>
@@ -1067,6 +1064,21 @@ function renderStats() {
                     </tr>
                 </thead>
                 <tbody>`;
+    for (const t of sortedTypeDetails) {
+        const profitClass = t.profit >= 0 ? 'profit-positive' : 'profit-negative';
+        const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
+        html += `<tr>
+            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+            <td class="text-right">${t.soldQty} шт</td>
+            <td class="text-right">${formatCurrency(t.revenue)}</td>
+            <td class="text-right">${formatCurrency(t.fullCost)}</td>
+            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
+            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
+        </tr>`;
+    }
+    html += `</tbody>
+            </table>
+        </div>
     for (const p of productStats) {
         const profitClass = p.profit >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = p.margin >= 0 ? 'profit-positive' : 'profit-negative';
@@ -1128,7 +1140,10 @@ function renderStats() {
             <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
         </tr>`;
     }
-    html += `</tbody><tr></div></div>`;
+    html += `</tbody>
+            </table>
+        </div>
+    </div>`;
     
     // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ
     html += `<div class="two-columns">
@@ -1174,8 +1189,8 @@ function renderStats() {
         const t = topTypesByQty[i]; 
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td
-            <td class="text-right">${t.soldQty} шт</td
+            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+            <td class="text-right">${t.soldQty} шт</td>
         </tr>`;
     }
     html += `</tbody>
