@@ -195,6 +195,7 @@ function createStatsCustomSelect(selectId, options, selectedValue, onSelect) {
     document.removeEventListener('click', closeHandler);
     document.addEventListener('click', closeHandler);
 }
+
 // ========== ФИЛЬТРЫ ПО ХАРАКТЕРИСТИКАМ (основной фильтр) ==========
 
 function initStatsTypeSelector() {
@@ -464,6 +465,7 @@ function getAttributeColor(attribute) {
     }
     return window.attributeColorCache.get(attribute);
 }
+
 // ========== СЕЛЕКТОРНАЯ ДЕТАЛИЗАЦИЯ ПО ХАРАКТЕРИСТИКАМ ==========
 
 function initDetailAttributeSelectors() {
@@ -852,6 +854,7 @@ function renderDetailAttributeStats() {
     
     container.innerHTML = html;
 }
+
 // ========== ОСНОВНАЯ ФУНКЦИЯ СТАТИСТИКИ ==========
 
 function renderStats() {
@@ -1048,15 +1051,19 @@ function renderStats() {
         <div class="profit-card-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${formatPercent(profitMargin)}</div>
         <div class="profit-card-label">📊 Рентабельность</div>
     </div>`;
-    // Детализация по типам мерча
+    
+    // Детализация по товарам
     html += `<div class="detail-section">
-        <div class="detail-title">🏷️ Детализация по типам мерча</div>
+        <div class="detail-title">📦 Детализация по товарам</div>
         <div class="table-wrapper">
             <table class="detail-table">
                 <thead>
                     <tr>
+                        <th>Товар</th>
                         <th>Тип</th>
+                        <th>Характеристики</th>
                         <th class="text-right">Продано</th>
+                        <th class="text-right">Остаток</th>
                         <th class="text-right">Выручка</th>
                         <th class="text-right">Себест.</th>
                         <th class="text-right">Прибыль</th>
@@ -1064,21 +1071,6 @@ function renderStats() {
                     </tr>
                 </thead>
                 <tbody>`;
-    for (const t of sortedTypeDetails) {
-        const profitClass = t.profit >= 0 ? 'profit-positive' : 'profit-negative';
-        const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
-        html += `<tr>
-            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td>
-            <td class="text-right">${formatCurrency(t.revenue)}</td>
-            <td class="text-right">${formatCurrency(t.fullCost)}</td>
-            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
-            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
-        </tr>`;
-    }
-    html += `</tbody>
-            </table>
-        </div>
     for (const p of productStats) {
         const profitClass = p.profit >= 0 ? 'profit-positive' : 'profit-negative';
         const marginClass = p.margin >= 0 ? 'profit-positive' : 'profit-negative';
@@ -1110,7 +1102,10 @@ function renderStats() {
             <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td>
         </tr>`;
     }
-    html += `</tbody></table></div></div>`;
+    html += `</tbody>
+            </table>
+        </div>
+    </div>`;
     
     // Детализация по типам мерча
     html += `<div class="detail-section">
@@ -1135,7 +1130,7 @@ function renderStats() {
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
             <td class="text-right">${t.soldQty} шт</td>
             <td class="text-right">${formatCurrency(t.revenue)}</td>
-            <td class="text-right">${formatCurrency(t.fullCost)}</td>
+            <td class="text-right">${formatCurrency(t.fullCost)}<td>
             <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
             <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
         </tr>`;
@@ -1167,7 +1162,7 @@ function renderStats() {
             <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td>
-        </tr>`;
+        <tr>`;
     }
     html += `</tbody>
                 </table>
@@ -1202,6 +1197,7 @@ function renderStats() {
     // СЕЛЕКТОРНАЯ ДЕТАЛИЗАЦИЯ ПО ХАРАКТЕРИСТИКАМ
     html += `<div id="detailAttributeSelectors"></div>`;
     html += `<div id="detailAttributeStatsContainer"></div>`;
+    
     // Расходы и доходы
     html += `<div class="extra-costs-section">
         <div class="detail-title">➕ Дополнительные расходы</div>
