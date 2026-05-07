@@ -205,7 +205,7 @@ function initStatsTypeSelector() {
     
     const types = getAllMerchTypes();
     let html = `
-        <div class="stats-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px;">
+        <div class="stats-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; width: 100%; box-sizing: border-box;">
             <div style="font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">🔍 Фильтр по характеристикам</div>
             <div class="filter-row" style="margin-bottom: 8px;">
                 <select id="statsTypeSelect" class="edit-input" style="flex: 1;">
@@ -502,7 +502,7 @@ function initDetailAttributeSelectors() {
     container.style.display = 'block';
     
     let html = `
-        <div class="detail-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px;">
+        <div class="detail-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; width: 100%; box-sizing: border-box;">
             <div style="font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">🔍 Детализация по характеристикам</div>
             <div class="filter-row" style="margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;">
                 <div id="detailTypeSelectContainer" style="flex: 1; min-width: 150px;"></div>
@@ -837,7 +837,7 @@ function renderDetailAttributeStats() {
     const formatCurrency = (value) => value.toLocaleString('ru-RU') + ' ₽';
     
     let html = `
-        <div class="detail-section">
+        <div class="detail-section" style="width: 100%; box-sizing: border-box;">
             <div class="detail-title">📊 Детализация по характеристикам (тип: ${escapeHtml(detailSelectedType)})</div>
             <div class="table-wrapper">
                 <table class="detail-table">
@@ -1086,7 +1086,7 @@ function renderStats() {
                         <th class="text-right">Себест.</th>
                         <th class="text-right">Прибыль</th>
                         <th class="text-right">Рентаб.</th>
-                    </tr>
+                    </table>
                 </thead>
                 <tbody>`;
     for (const p of productStats) {
@@ -1151,7 +1151,7 @@ function renderStats() {
             <td class="text-right">${formatCurrency(t.fullCost)}</td>
             <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
             <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
-        </td>`;
+        </tr>`;
     }
     html += `</tbody>
             </table>
@@ -1183,7 +1183,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-                </table>
+                <tr>
             </div>
         </div>
         <div class="detail-section">
@@ -1204,10 +1204,10 @@ function renderStats() {
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
             <td class="text-right">${t.soldQty} шт</td>
-        </tr>`;
+        <tr>`;
     }
     html += `</tbody>
-                <td>
+                </table>
             </div>
         </div>
     </div>`;
@@ -1230,7 +1230,7 @@ function renderStats() {
     }
     
     // Расходы и доходы
-    html += `<div class="extra-costs-section">
+    html += `<div class="extra-costs-section" style="width: 100%; box-sizing: border-box;">
         <div class="detail-title">➕ Дополнительные расходы</div>
         <div id="extra-costs-list">`;
     if (extraCosts.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных расходов</div>';
@@ -1249,7 +1249,7 @@ function renderStats() {
             <button class="add-cost-btn" onclick="addExtraCostFromModal()">➕ Добавить</button>
         </div>
     </div>
-    <div class="extra-income-section" style="margin-top: 24px;">
+    <div class="extra-income-section" style="width: 100%; box-sizing: border-box; margin-top: 24px;">
         <div class="detail-title">💵 Дополнительные доходы</div>
         <div id="extra-incomes-list">`;
     if (extraIncomes.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных доходов</div>';
