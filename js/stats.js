@@ -1159,7 +1159,7 @@ function renderStats() {
     </div>`;
     
     // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ
-    html += `<div class="two-columns">
+    html += `<div class="two-columns" style="width: 100%; clear: both;">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
@@ -1183,7 +1183,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-                <tr>
+                </table>
             </div>
         </div>
         <div class="detail-section">
