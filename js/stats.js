@@ -502,7 +502,7 @@ function initDetailAttributeSelectors() {
     container.style.display = 'block';
     
     let html = `
-        <div class="detail-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; width: 100%; box-sizing: border-box;">
+        <div class="detail-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px; width: 100%; clear: both; box-sizing: border-box;">
             <div style="font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">🔍 Детализация по характеристикам</div>
             <div class="filter-row" style="margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;">
                 <div id="detailTypeSelectContainer" style="flex: 1; min-width: 150px;"></div>
@@ -514,7 +514,7 @@ function initDetailAttributeSelectors() {
                 <button id="resetDetailFilterBtn" class="edit-cancel-btn" style="padding: 6px 16px; display: none;" onclick="resetDetailAttributeFilter()">Сбросить</button>
             </div>
         </div>
-        <div id="detailAttributeStatsContainer"></div>
+        <div id="detailAttributeStatsContainer" style="width: 100%; clear: both;"></div>
     `;
     
     container.innerHTML = html;
@@ -837,7 +837,7 @@ function renderDetailAttributeStats() {
     const formatCurrency = (value) => value.toLocaleString('ru-RU') + ' ₽';
     
     let html = `
-        <div class="detail-section" style="width: 100%; box-sizing: border-box;">
+        <div class="detail-section" style="width: 100%; clear: both; box-sizing: border-box;">
             <div class="detail-title">📊 Детализация по характеристикам (тип: ${escapeHtml(detailSelectedType)})</div>
             <div class="table-wrapper">
                 <table class="detail-table">
@@ -848,7 +848,7 @@ function renderDetailAttributeStats() {
                             <th class="text-right">Продано, шт</th>
                             <th class="text-right">Выручка</th>
                             <th class="text-right">Средняя цена</th>
-                        </tr>
+                        </table>
                     </thead>
                     <tbody>`;
     
@@ -1154,7 +1154,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-            </table>
+            <table>
         </div>
     </div>`;
     
@@ -1183,7 +1183,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-                </table>
+                <tr>
             </div>
         </div>
         <div class="detail-section">
@@ -1207,7 +1207,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-                <table>
+                </table>
             </div>
         </div>
     </div>`;
@@ -1225,12 +1225,12 @@ function renderStats() {
     
     // СЕЛЕКТОРНАЯ ДЕТАЛИЗАЦИЯ ПО ХАРАКТЕРИСТИКАМ (показываем только если есть товары с характеристиками)
     if (hasAttributes) {
-        html += `<div id="detailAttributeSelectors"></div>`;
-        html += `<div id="detailAttributeStatsContainer"></div>`;
+        html += `<div id="detailAttributeSelectors" style="width: 100%; clear: both;"></div>`;
+        html += `<div id="detailAttributeStatsContainer" style="width: 100%; clear: both;"></div>`;
     }
     
     // Расходы и доходы
-    html += `<div class="extra-costs-section" style="width: 100%; box-sizing: border-box;">
+    html += `<div class="extra-costs-section" style="width: 100%; clear: both; box-sizing: border-box;">
         <div class="detail-title">➕ Дополнительные расходы</div>
         <div id="extra-costs-list">`;
     if (extraCosts.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных расходов</div>';
@@ -1249,7 +1249,7 @@ function renderStats() {
             <button class="add-cost-btn" onclick="addExtraCostFromModal()">➕ Добавить</button>
         </div>
     </div>
-    <div class="extra-income-section" style="width: 100%; box-sizing: border-box; margin-top: 24px;">
+    <div class="extra-income-section" style="width: 100%; clear: both; box-sizing: border-box; margin-top: 24px;">
         <div class="detail-title">💵 Дополнительные доходы</div>
         <div id="extra-incomes-list">`;
     if (extraIncomes.length === 0) html += '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Нет дополнительных доходов</div>';
