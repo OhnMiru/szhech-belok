@@ -3312,3 +3312,9 @@ body.dark .modal-content {
 #rulesModal .modal-content > div[style*="font-weight: bold"] {
     color: var(--text-primary);
 }
+
+body.dark table,
+body.dark table td,
+body.dark table th {
+    color: var(--text-primary);
+}
