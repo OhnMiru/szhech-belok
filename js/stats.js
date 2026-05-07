@@ -1211,6 +1211,7 @@ function renderStats() {
             </div>
         </div>
     </div>`;
+    html += `</div>
     <div style="clear: both; width: 100%;"></div>`;
     
     // Проверяем, есть ли у пользователя товары с характеристиками 
