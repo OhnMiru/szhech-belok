@@ -1159,8 +1159,8 @@ function renderStats() {
     </div>`;
     
     // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ
-    html += `<div class="two-columns" style="width: 100%; display: flex; gap: 20px; flex-wrap: wrap;">
-        <div class="detail-section" style="flex: 1; min-width: 200px;">
+    html += `<div class="two-columns">
+        <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
@@ -1170,7 +1170,7 @@ function renderStats() {
                             <th>Товар</th>
                             <th>Тип</th>
                             <th class="text-right">Продано, шт</th>
-                        </td>
+                        </tr>
                     </thead>
                     <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
@@ -1183,10 +1183,10 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-                </table>
+                <tr>
             </div>
         </div>
-        <div class="detail-section" style="flex: 1; min-width: 200px;">
+        <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
@@ -1204,7 +1204,7 @@ function renderStats() {
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
             <td class="text-right">${t.soldQty} шт</td>
-        </tr>`;
+        <tr>`;
     }
     html += `</tbody>
                 </table>
