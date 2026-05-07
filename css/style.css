@@ -3242,29 +3242,6 @@ body.dark .extra-cost-amount {
     }
 }
 
-body.dark .stats-card-value,
-body.dark .detail-table td,
-body.dark .detail-table th,
-body.dark .detail-title,
-body.dark .stats-card-label,
-body.dark .extra-cost-name,
-body.dark .extra-cost-amount,
-body.dark .discount-title,
-body.dark .discount-custom-select-trigger,
-body.dark .discount-select-option,
-body.dark .cart-item-name,
-body.dark .cart-item-price,
-body.dark .cart-total,
-body.dark .cart-qty-btn,
-body.dark .edit-label,
-body.dark .edit-input,
-body.dark .discount-action-btn,
-body.dark .discount-products-btn,
-body.dark .discount-all-btn,
-body.dark .discount-none-btn {
-    color: #f5e6c4 !important;
-}
-
 body.dark .stats-card {
     background: var(--card-bg);
 }
