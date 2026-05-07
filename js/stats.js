@@ -1183,7 +1183,7 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-                <tr>
+                </table>
             </div>
         </div>
         <div class="detail-section">
@@ -1204,10 +1204,10 @@ function renderStats() {
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
             <td class="text-right">${t.soldQty} шт</td>
-        <tr>`;
+        </tr>`;
     }
     html += `</tbody>
-                </table>
+                <td>
             </div>
         </div>
     </div>`;
