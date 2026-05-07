@@ -472,16 +472,34 @@ function initDetailAttributeSelectors() {
     const container = document.getElementById('detailAttributeSelectors');
     if (!container) return;
     
-    const allTypes = getAllMerchTypes();
-    const typesWithAttributes = [];
+    // Получаем уникальные типы из originalCardsData
+    const userTypes = new Set();
+    for (const card of originalCardsData) {
+        if (card.type && card.type.trim()) {
+            userTypes.add(card.type);
+        }
+    }
     
-    for (const type of allTypes) {
+    // Фильтруем только типы, у которых есть характеристики
+    const typesWithAttributes = [];
+    for (const type of userTypes) {
         const typeConfig = getTypeConfigFromCache(type);
         if (typeConfig && ((typeConfig.attribute1 && typeConfig.attribute1.values && typeConfig.attribute1.values.length > 0) ||
                           (typeConfig.attribute2 && typeConfig.attribute2.values && typeConfig.attribute2.values.length > 0))) {
             typesWithAttributes.push(type);
         }
     }
+    
+    // Сортируем по алфавиту
+    typesWithAttributes.sort((a, b) => a.localeCompare(b, 'ru'));
+    
+    // Если нет типов с характеристиками - скрываем весь блок
+    if (typesWithAttributes.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'block';
     
     let html = `
         <div class="detail-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px;">
@@ -1130,10 +1148,10 @@ function renderStats() {
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
             <td class="text-right">${t.soldQty} шт</td>
             <td class="text-right">${formatCurrency(t.revenue)}</td>
-            <td class="text-right">${formatCurrency(t.fullCost)}<td>
+            <td class="text-right">${formatCurrency(t.fullCost)}</td>
             <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
             <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
-        </tr>`;
+        </td>`;
     }
     html += `</tbody>
             </table>
@@ -1162,7 +1180,7 @@ function renderStats() {
             <td>${escapeHtml(p.name)}</td>
             <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
             <td class="text-right">${p.soldQty} шт</td>
-        <tr>`;
+        </tr>`;
     }
     html += `</tbody>
                 </table>
@@ -1189,14 +1207,27 @@ function renderStats() {
         </tr>`;
     }
     html += `</tbody>
-                </table>
+                <td>
             </div>
         </div>
     </div>`;
     
-    // СЕЛЕКТОРНАЯ ДЕТАЛИЗАЦИЯ ПО ХАРАКТЕРИСТИКАМ
-    html += `<div id="detailAttributeSelectors"></div>`;
-    html += `<div id="detailAttributeStatsContainer"></div>`;
+    // Проверяем, есть ли у пользователя товары с характеристиками
+    let hasAttributes = false;
+    for (const card of originalCardsData) {
+        const typeConfig = getTypeConfigFromCache(card.type);
+        if (typeConfig && ((typeConfig.attribute1 && typeConfig.attribute1.values && typeConfig.attribute1.values.length > 0) ||
+                          (typeConfig.attribute2 && typeConfig.attribute2.values && typeConfig.attribute2.values.length > 0))) {
+            hasAttributes = true;
+            break;
+        }
+    }
+    
+    // СЕЛЕКТОРНАЯ ДЕТАЛИЗАЦИЯ ПО ХАРАКТЕРИСТИКАМ (показываем только если есть товары с характеристиками)
+    if (hasAttributes) {
+        html += `<div id="detailAttributeSelectors"></div>`;
+        html += `<div id="detailAttributeStatsContainer"></div>`;
+    }
     
     // Расходы и доходы
     html += `<div class="extra-costs-section">
@@ -1240,7 +1271,10 @@ function renderStats() {
     
     container.innerHTML = html;
     
-    initDetailAttributeSelectors();
+    // Инициализируем селекторы только если есть товары с характеристиками
+    if (hasAttributes) {
+        initDetailAttributeSelectors();
+    }
 }
 
 function addExtraCostFromModal() {
