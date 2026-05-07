@@ -76,7 +76,7 @@ function renderCards() {
             <div class="buttons" style="display: flex; gap: 8px; margin-top: 6px;">
                 <button class="minus" data-id="${id}" data-delta="-1">−1</button>
                 <button class="plus" data-id="${id}" data-delta="+1">+1</button>
-                <button class="add-to-cart" data-id="${id}">➕</button>
+                <button class="add-to-cart" data-id="${id}">+</button>
             </div>
         `;
         container.appendChild(cardDiv);
