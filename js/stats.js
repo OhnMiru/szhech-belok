@@ -1177,9 +1177,9 @@ function renderStats() {
         const p = topByQty[i]; 
         html += `<td>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td>${escapeHtml(p.name)}</td
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
-            <td class="text-right">${p.soldQty} шт</td
+            <td>${escapeHtml(p.name)}</td>
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td class="text-right">${p.soldQty} шт</td>
         </tr>`;
     }
     html += `</tbody>
@@ -1202,8 +1202,8 @@ function renderStats() {
         const t = topTypesByQty[i]; 
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td
-            <td class="text-right">${t.soldQty} шт</td
+            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+            <td class="text-right">${t.soldQty} шт</td>
         </tr>`;
     }
     html += `</tbody>
