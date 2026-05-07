@@ -1086,7 +1086,7 @@ function renderStats() {
                         <th class="text-right">Себест.</th>
                         <th class="text-right">Прибыль</th>
                         <th class="text-right">Рентаб.</th>
-                    </table>
+                    </tr>
                 </thead>
                 <tbody>`;
     for (const p of productStats) {
@@ -1109,15 +1109,15 @@ function renderStats() {
         }
         
         html += `<tr>
-            <td>${escapeHtml(p.name)}</td>
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
-            <td>${attributesHtml}</td>
-            <td class="text-right">${p.soldQty} шт</td>
-            <td class="text-right">${p.stock} шт</td>
-            <td class="text-right">${formatCurrency(p.revenue)}</td>
-            <td class="text-right">${formatCurrency(p.fullCost)}</td>
-            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td>
-            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td>
+            <td>${escapeHtml(p.name)}</td
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
+            <td>${attributesHtml}</td
+            <td class="text-right">${p.soldQty} шт</td
+            <td class="text-right">${p.stock} шт</td
+            <td class="text-right">${formatCurrency(p.revenue)}</td
+            <td class="text-right">${formatCurrency(p.fullCost)}</td
+            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td
+            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td
         </tr>`;
     }
     html += `</tbody>
