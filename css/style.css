@@ -3362,3 +3362,11 @@ body.dark table th {
 .profit-card-label {
     color: var(--text-primary);
 }
+
+.history-filters {
+    background: transparent !important;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
