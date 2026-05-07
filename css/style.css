@@ -3286,3 +3286,16 @@ body.dark .filter-toggle-btn:hover {
 body.dark .stats-filter-block {
     background: var(--card-bg);
 }
+
+.refresh-btn,
+.history-btn,
+#rulesButton,
+#statsButton,
+#globalStatsBtn,
+#bookingsButton,
+#supplyButton,
+#addItemButton,
+#impersonateBtn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
