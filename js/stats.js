@@ -1109,15 +1109,15 @@ function renderStats() {
         }
         
         html += `<tr>
-            <td>${escapeHtml(p.name)}</td>
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
-            <td>${attributesHtml}</td>
-            <td class="text-right">${p.soldQty} шт</td>
-            <td class="text-right">${p.stock} шт</td>
-            <td class="text-right">${formatCurrency(p.revenue)}</td>
-            <td class="text-right">${formatCurrency(p.fullCost)}</td>
-            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td>
-            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td>
+            <td>${escapeHtml(p.name)}</td
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
+            <td>${attributesHtml}</td
+            <td class="text-right">${p.soldQty} шт</td
+            <td class="text-right">${p.stock} шт</td
+            <td class="text-right">${formatCurrency(p.revenue)}</td
+            <td class="text-right">${formatCurrency(p.fullCost)}</td
+            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td
+            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td
         </tr>`;
     }
     html += `</tbody>
@@ -1146,19 +1146,19 @@ function renderStats() {
         const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
         html += `<tr>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td>
-            <td class="text-right">${formatCurrency(t.revenue)}</td>
-            <td class="text-right">${formatCurrency(t.fullCost)}</td>
-            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
-            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
+            <td class="text-right">${t.soldQty} шт</td
+            <td class="text-right">${formatCurrency(t.revenue)}</td
+            <td class="text-right">${formatCurrency(t.fullCost)}</td
+            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td
+            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td
         </tr>`;
     }
     html += `</tbody>
-            <table>
+            </table>
         </div>
     </div>`;
     
-    // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ
+    // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ (две колонки через CSS класс)
     html += `<div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
@@ -1177,9 +1177,9 @@ function renderStats() {
         const p = topByQty[i]; 
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td>${escapeHtml(p.name)}</td>
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
-            <td class="text-right">${p.soldQty} шт</td>
+            <td>${escapeHtml(p.name)}</td
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
+            <td class="text-right">${p.soldQty} шт</td
         </tr>`;
     }
     html += `</tbody>
@@ -1202,16 +1202,17 @@ function renderStats() {
         const t = topTypesByQty[i]; 
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td>
+            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td
+            <td class="text-right">${t.soldQty} шт</td
         </tr>`;
     }
     html += `</tbody>
-                </table>
+                <tr>
             </div>
         </div>
     </div>`;
     
+    // Очистка перед следующими блоками
     html += `<div style="clear: both; width: 100%;"></div>`;
     
     // Проверяем, есть ли у пользователя товары с характеристиками 
