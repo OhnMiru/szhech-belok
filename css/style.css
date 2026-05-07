@@ -235,7 +235,7 @@ h1 {
     width: 56px;
     height: 56px;
     border-radius: 28px;
-    background: var(--btn-bg);
+    background: var(--card-bg);
     color: white;
     border: none;
     font-size: 24px;
@@ -248,8 +248,37 @@ h1 {
     transition: transform 0.1s;
 }
 
-.cart-fab:active {
-    transform: scale(0.95);
+.cart-fab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 28px;
+    background: rgba(46, 204, 113, 0.2);
+    pointer-events: none;
+}
+
+.cart-fab:hover::before {
+    background: rgba(46, 204, 113, 0.35);
+}
+
+.cart-fab .cart-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--btn-bg);
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    z-index: 2;
 }
 
 .cart-badge {
