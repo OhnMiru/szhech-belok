@@ -16,8 +16,8 @@
     --price-color: #121212;
     --minus-bg: #ffe6e5;
     --minus-color: #ef4444;
-    --plus-bg: #dcf5e5;
-    --plus-color: #22c55e;
+    --plus-bg: #ffe6e5;
+    --plus-color: #ef4444;
     --add-to-cart-bg: #ef4444;
     --add-to-cart-color: #ef4444;
     --btn-bg: #ef4444;
@@ -54,7 +54,7 @@ body.dark {
     --minus-bg: #222222;
     --minus-color: #ffffff;
     --plus-bg: #222222;
-    --plus-color: #ef4444;
+    --plus-color: #ffffff;
     --add-to-cart-bg: #ef4444;
     --add-to-cart-color: #ef4444;
     --btn-bg: #ef4444;
