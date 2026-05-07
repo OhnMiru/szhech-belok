@@ -3298,4 +3298,5 @@ body.dark .stats-filter-block {
 #impersonateBtn {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
+    color: var(--text-primary);
 }
