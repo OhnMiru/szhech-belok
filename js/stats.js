@@ -391,9 +391,8 @@ function initDetailAttributeSelectors() {
             <div style="font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">🔍 Детализация по характеристикам</div>
             <div class="filter-row" style="margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;">
                 <div id="detailTypeSelectContainer" style="flex: 1; min-width: 150px;"></div>
-                <div id="detailAttributeSelectContainer" style="flex: 2; min-width: 200px; display: none;"></div>
             </div>
-            <div id="detailValueCheckboxesContainer" style="display: none; margin-top: 12px;"></div>
+            <div id="detailAttributesContainer" style="margin-top: 12px; display: none;"></div>
             <div class="filter-row" style="margin-top: 12px; display: flex; gap: 10px; justify-content: flex-end;">
                 <button id="applyDetailFilterBtn" class="edit-save-btn" style="padding: 6px 16px; display: none;" onclick="applyDetailAttributeFilter()">Показать</button>
                 <button id="resetDetailFilterBtn" class="edit-cancel-btn" style="padding: 6px 16px; display: none;" onclick="resetDetailAttributeFilter()">Сбросить</button>
@@ -408,6 +407,7 @@ function initDetailAttributeSelectors() {
     const typeOptions = types.map(t => ({ value: t, label: t }));
     createDetailCustomSelect('detailTypeSelectContainer', typeOptions, '', (value, label) => {
         detailSelectedType = value;
+        detailSelectedAttributes = [];
         onDetailTypeChangeCustom(value);
     });
 }
@@ -493,23 +493,32 @@ function onDetailTypeChangeCustom(selectedType) {
     detailSelectedType = selectedType;
     detailSelectedAttributes = [];
     
-    const attrContainer = document.getElementById('detailAttributeSelectContainer');
+    const attrContainer = document.getElementById('detailAttributesContainer');
     const applyBtn = document.getElementById('applyDetailFilterBtn');
     const resetBtn = document.getElementById('resetDetailFilterBtn');
-    const valueContainer = document.getElementById('detailValueCheckboxesContainer');
+    const statsContainer = document.getElementById('detailAttributeStatsContainer');
     
     if (!selectedType) {
-        if (attrContainer) attrContainer.style.display = 'none';
+        if (attrContainer) {
+            attrContainer.style.display = 'none';
+            attrContainer.innerHTML = '';
+        }
         if (applyBtn) applyBtn.style.display = 'none';
         if (resetBtn) resetBtn.style.display = 'none';
-        if (valueContainer) valueContainer.style.display = 'none';
-        document.getElementById('detailAttributeStatsContainer').innerHTML = '';
+        if (statsContainer) statsContainer.innerHTML = '';
         return;
     }
     
+    // ВСЕГДА показываем кнопки при выборе типа (даже если нет характеристик)
+    if (applyBtn) applyBtn.style.display = 'inline-block';
+    if (resetBtn) resetBtn.style.display = 'inline-block';
+    
     const typeConfig = getTypeConfigFromCache(selectedType);
     if (!typeConfig) {
-        if (attrContainer) attrContainer.style.display = 'none';
+        if (attrContainer) {
+            attrContainer.style.display = 'none';
+            attrContainer.innerHTML = '';
+        }
         return;
     }
     
@@ -523,7 +532,10 @@ function onDetailTypeChangeCustom(selectedType) {
     }
     
     if (attributes.length === 0) {
-        if (attrContainer) attrContainer.style.display = 'none';
+        if (attrContainer) {
+            attrContainer.style.display = 'block';
+            attrContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px;">У выбранного типа нет характеристик</div>';
+        }
         return;
     }
     
@@ -531,12 +543,12 @@ function onDetailTypeChangeCustom(selectedType) {
     if (attrContainer) {
         attrContainer.style.display = 'block';
         
-        let attrsHtml = `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Выберите характеристики для детализации:</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 12px;">`;
+        let attrsHtml = `<div style="font-size: 13px; font-weight: bold; margin-bottom: 10px; color: var(--badge-text);">📋 Выберите характеристики для детализации:</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 16px;">`;
         
         for (const attr of attributes) {
             attrsHtml += `<label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
-                <input type="checkbox" class="detail-attr-checkbox" data-attr-name="${escapeHtml(attr.name)}" data-attr-key="${attr.key}" data-attr-values='${JSON.stringify(attr.values)}'> 
+                <input type="checkbox" class="detail-attr-checkbox" data-attr-name="${escapeHtml(attr.name)}" data-attr-key="${attr.key}" data-attr-values='${JSON.stringify(attr.values)}' style="accent-color: #f39c12; width: 16px; height: 16px;"> 
                 ${escapeHtml(attr.name)}
             </label>`;
         }
@@ -550,9 +562,8 @@ function onDetailTypeChangeCustom(selectedType) {
         });
     }
     
-    if (applyBtn) applyBtn.style.display = 'inline-block';
-    if (resetBtn) resetBtn.style.display = 'inline-block';
-    if (valueContainer) valueContainer.style.display = 'none';
+    // Очищаем статистику при смене типа
+    if (statsContainer) statsContainer.innerHTML = '';
 }
 
 function onDetailAttributeCheckboxChange(e) {
@@ -563,11 +574,13 @@ function onDetailAttributeCheckboxChange(e) {
     
     if (checkbox.checked) {
         // Добавляем атрибут в список выбранных
-        detailSelectedAttributes.push({
-            name: attrName,
-            key: attrKey,
-            values: attrValues
-        });
+        if (!detailSelectedAttributes.find(a => a.name === attrName)) {
+            detailSelectedAttributes.push({
+                name: attrName,
+                key: attrKey,
+                values: attrValues
+            });
+        }
     } else {
         // Удаляем атрибут из списка
         detailSelectedAttributes = detailSelectedAttributes.filter(a => a.name !== attrName);
@@ -582,34 +595,51 @@ function updateDetailValueCheckboxes() {
     if (!valueContainer) return;
     
     if (detailSelectedAttributes.length === 0) {
-        valueContainer.style.display = 'none';
-        valueContainer.innerHTML = '';
+        if (valueContainer.parentNode) valueContainer.parentNode.removeChild(valueContainer);
         return;
     }
     
-    let valuesHtml = `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Выберите значения для отображения (можно выбрать несколько):</div>`;
+    // Проверяем, существует ли контейнер, если нет - создаём
+    let container = document.getElementById('detailValueCheckboxesContainer');
+    if (!container) {
+        const attrContainer = document.getElementById('detailAttributesContainer');
+        if (attrContainer) {
+            const newContainer = document.createElement('div');
+            newContainer.id = 'detailValueCheckboxesContainer';
+            newContainer.style.marginTop = '16px';
+            newContainer.style.padding = '12px';
+            newContainer.style.background = 'var(--card-bg)';
+            newContainer.style.borderRadius = '12px';
+            newContainer.style.border = '1px solid var(--border-color)';
+            attrContainer.appendChild(newContainer);
+            container = newContainer;
+        } else {
+            return;
+        }
+    }
+    
+    let valuesHtml = `<div style="font-size: 13px; font-weight: bold; margin-bottom: 10px; color: var(--badge-text);">🎯 Выберите значения для отображения:</div>`;
     
     for (const attr of detailSelectedAttributes) {
-        valuesHtml += `<div style="margin-top: 12px; padding: 8px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color);">
+        valuesHtml += `<div style="margin-top: 12px; padding: 10px; background: var(--badge-bg); border-radius: 12px;">
             <div style="font-weight: bold; margin-bottom: 8px; color: var(--btn-bg);">${escapeHtml(attr.name)}</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">`;
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">`;
         
         // Добавляем чекбокс "Все"
-        const allValuesId = `attr_all_${attr.name.replace(/\s/g, '_')}`;
-        valuesHtml += `<label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px;">
-            <input type="checkbox" class="detail-all-values-checkbox" data-attr-name="${escapeHtml(attr.name)}" checked> Все
+        valuesHtml += `<label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px;">
+            <input type="checkbox" class="detail-all-values-checkbox" data-attr-name="${escapeHtml(attr.name)}" checked style="accent-color: #f39c12; width: 14px; height: 14px;"> Все
         </label>`;
         
         for (const value of attr.values) {
-            valuesHtml += `<label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px;">
-                <input type="checkbox" class="detail-value-checkbox" data-attr-name="${escapeHtml(attr.name)}" data-value="${escapeHtml(value)}" checked> ${escapeHtml(value)}
+            valuesHtml += `<label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px;">
+                <input type="checkbox" class="detail-value-checkbox" data-attr-name="${escapeHtml(attr.name)}" data-value="${escapeHtml(value)}" checked style="accent-color: #f39c12; width: 14px; height: 14px;"> ${escapeHtml(value)}
             </label>`;
         }
         valuesHtml += `</div></div>`;
     }
     
-    valueContainer.innerHTML = valuesHtml;
-    valueContainer.style.display = 'block';
+    container.innerHTML = valuesHtml;
+    container.style.display = 'block';
     
     // Добавляем обработчики для чекбоксов "Все"
     document.querySelectorAll('.detail-all-values-checkbox').forEach(cb => {
@@ -645,17 +675,22 @@ function resetDetailAttributeFilter() {
         }
     }
     
-    const attrContainer = document.getElementById('detailAttributeSelectContainer');
+    const attrContainer = document.getElementById('detailAttributesContainer');
     const applyBtn = document.getElementById('applyDetailFilterBtn');
     const resetBtn = document.getElementById('resetDetailFilterBtn');
-    const valueContainer = document.getElementById('detailValueCheckboxesContainer');
+    const statsContainer = document.getElementById('detailAttributeStatsContainer');
     
-    if (attrContainer) attrContainer.style.display = 'none';
+    if (attrContainer) {
+        attrContainer.style.display = 'none';
+        attrContainer.innerHTML = '';
+    }
     if (applyBtn) applyBtn.style.display = 'none';
     if (resetBtn) resetBtn.style.display = 'none';
-    if (valueContainer) valueContainer.style.display = 'none';
+    if (statsContainer) statsContainer.innerHTML = '';
     
-    document.getElementById('detailAttributeStatsContainer').innerHTML = '';
+    // Удаляем контейнер с чекбоксами значений
+    const valueContainer = document.getElementById('detailValueCheckboxesContainer');
+    if (valueContainer) valueContainer.remove();
 }
 
 function renderDetailAttributeStats() {
@@ -688,6 +723,10 @@ function renderDetailAttributeStats() {
                 }
                 
                 if (!attributeValue) continue;
+                
+                // Проверяем, выбран ли этот значение в чекбоксах
+                const valueCheckbox = document.querySelector(`.detail-value-checkbox[data-attr-name="${attr.name}"][data-value="${attributeValue}"]`);
+                if (valueCheckbox && !valueCheckbox.checked) continue;
                 
                 const key = `${attr.name}: ${attributeValue}`;
                 if (!attributeStats[key]) {
@@ -731,10 +770,11 @@ function renderDetailAttributeStats() {
     
     for (const stat of sortedStats) {
         const avgPrice = stat.qty > 0 ? stat.revenue / stat.qty : 0;
-        const attrColor = getAttributeColor(stat.value);
+        const attrColor = getAttributeColor(stat.attrName);
+        const valueColor = getAttributeColor(stat.value);
         html += `<tr>
-            <td><span class="type-badge" style="background:${getTypeColor(stat.attrName)}20; color:${getTypeColor(stat.attrName)};">${escapeHtml(stat.attrName)}</span><table>
-            <td><span class="type-badge" style="background:${attrColor}20; color:${attrColor};">${escapeHtml(stat.value)}</span></td>
+            <td><span class="type-badge" style="background:${getTypeColor(stat.attrName)}20; color:${getTypeColor(stat.attrName)};">${escapeHtml(stat.attrName)}</span></td>
+            <td><span class="type-badge" style="background:${valueColor}20; color:${valueColor};">${escapeHtml(stat.value)}</span></td>
             <td class="text-right">${stat.qty} шт</td
             <td class="text-right">${formatCurrency(stat.revenue)}</td
             <td class="text-right">${Math.ceil(avgPrice).toLocaleString()} ₽</td
@@ -1120,14 +1160,19 @@ function renderStats() {
     }
     html += `</tbody></table></div></div>`;
     
-    // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ (возвращаем на место)
+    // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ
     html += `<div class="two-columns">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
                     <thead>
-                        <tr><th>#</th><th>Товар</th><th>Тип</th><th class="text-right">Продано, шт</th></tr>
+                        <tr>
+                            <th>#</th>
+                            <th>Товар</th>
+                            <th>Тип</th>
+                            <th class="text-right">Продано, шт</th>
+                        </tr>
                     </thead>
                     <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
@@ -1135,17 +1180,21 @@ function renderStats() {
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
             <td>${escapeHtml(p.name)}</td
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
             <td class="text-right">${p.soldQty} шт</td
         </tr>`;
     }
-    html += `</tbody></table></div></div>
+    html += `</tbody><td></div></div>
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
                     <thead>
-                        <tr><th>#</th><th>Тип</th><th class="text-right">Продано, шт</th></tr>
+                        <tr>
+                            <th>#</th>
+                            <th>Тип</th>
+                            <th class="text-right">Продано, шт</th>
+                        </tr>
                     </thead>
                     <tbody>`;
     for (let i = 0; i < topTypesByQty.length; i++) { 
