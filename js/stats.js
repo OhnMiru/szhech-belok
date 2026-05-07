@@ -839,9 +839,9 @@ function renderDetailAttributeStats() {
         html += `<tr>
             <td><span class="type-badge" style="background:${getTypeColor(stat.attrName)}20; color:${getTypeColor(stat.attrName)};">${escapeHtml(stat.attrName)}</span></td>
             <td><span class="type-badge" style="background:${valueColor}20; color:${valueColor};">${escapeHtml(stat.value)}</span></td>
-            <td class="text-right">${stat.qty} шт</td
-            <td class="text-right">${formatCurrency(stat.revenue)}</td
-            <td class="text-right">${Math.ceil(avgPrice).toLocaleString()} ₽</td
+            <td class="text-right">${stat.qty} шт</td>
+            <td class="text-right">${formatCurrency(stat.revenue)}</td>
+            <td class="text-right">${Math.ceil(avgPrice).toLocaleString()} ₽</td>
         </tr>`;
     }
     
@@ -1087,15 +1087,15 @@ function renderStats() {
         }
         
         html += `<tr>
-            <td>${escapeHtml(p.name)}</td
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
-            <td>${attributesHtml}</td
-            <td class="text-right">${p.soldQty} шт</td
-            <td class="text-right">${p.stock} шт</td
-            <td class="text-right">${formatCurrency(p.revenue)}</td
-            <td class="text-right">${formatCurrency(p.fullCost)}</td
-            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td
-            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td
+            <td>${escapeHtml(p.name)}</td>
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td>${attributesHtml}</td>
+            <td class="text-right">${p.soldQty} шт</td>
+            <td class="text-right">${p.stock} шт</td>
+            <td class="text-right">${formatCurrency(p.revenue)}</td>
+            <td class="text-right">${formatCurrency(p.fullCost)}</td>
+            <td class="text-right ${profitClass}">${formatCurrency(p.profit)}</td>
+            <td class="text-right ${marginClass}">${formatPercent(p.margin)}</td>
         </tr>`;
     }
     html += `</tbody></table></div></div>`;
@@ -1121,11 +1121,11 @@ function renderStats() {
         const marginClass = t.margin >= 0 ? 'profit-positive' : 'profit-negative';
         html += `<tr>
             <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
-            <td class="text-right">${t.soldQty} шт</td
-            <td class="text-right">${formatCurrency(t.revenue)}</td
-            <td class="text-right">${formatCurrency(t.fullCost)}</td
-            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td
-            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td
+            <td class="text-right">${t.soldQty} шт</td>
+            <td class="text-right">${formatCurrency(t.revenue)}</td>
+            <td class="text-right">${formatCurrency(t.fullCost)}</td>
+            <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td>
+            <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td>
         </tr>`;
     }
     html += `</tbody><tr></div></div>`;
@@ -1149,9 +1149,9 @@ function renderStats() {
         const p = topByQty[i]; 
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td>${escapeHtml(p.name)}</td
-            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td
-            <td class="text-right">${p.soldQty} шт</td
+            <td>${escapeHtml(p.name)}</td>
+            <td><span class="type-badge" style="background:${getTypeColor(p.type)}20; color:${getTypeColor(p.type)};">${escapeHtml(p.type)}</span></td>
+            <td class="text-right">${p.soldQty} шт</td>
         </tr>`;
     }
     html += `</tbody>
