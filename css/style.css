@@ -3318,3 +3318,47 @@ body.dark table td,
 body.dark table th {
     color: var(--text-primary);
 }
+
+/* Блоки статистики (карточки показателей) */
+.stats-card,
+.stats-grid .stats-card {
+    background: var(--badge-bg);  /* такой же фон как у кнопок +1/-1 */
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+}
+
+/* Текст в блоках статистики */
+.stats-card-value,
+.stats-card-label {
+    color: var(--text-primary);
+}
+
+/* Для мобильной версии */
+.profit-mobile-card {
+    background: var(--badge-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+}
+
+.profit-mobile-value,
+.profit-mobile-label {
+    color: var(--text-primary);
+}
+
+/* Отдельная карточка рентабельности */
+.profit-card-single {
+    background: var(--badge-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+}
+
+.profit-card-value,
+.profit-card-label {
+    color: var(--text-primary);
+}
