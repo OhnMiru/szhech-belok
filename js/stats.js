@@ -195,7 +195,6 @@ function createStatsCustomSelect(selectId, options, selectedValue, onSelect) {
     document.removeEventListener('click', closeHandler);
     document.addEventListener('click', closeHandler);
 }
-
 // ========== ФИЛЬТРЫ ПО ХАРАКТЕРИСТИКАМ (основной фильтр) ==========
 
 function initStatsTypeSelector() {
@@ -373,413 +372,6 @@ function filterSalesByAttributes(sales) {
     return filtered;
 }
 
-// ========== СЕЛЕКТОРНАЯ ДЕТАЛИЗАЦИЯ ПО ХАРАКТЕРИСТИКАМ ==========
-
-function initDetailAttributeSelectors() {
-    const container = document.getElementById('detailAttributeSelectors');
-    if (!container) return;
-    
-    // Получаем только типы, у которых есть характеристики
-    const allTypes = getAllMerchTypes();
-    const typesWithAttributes = [];
-    
-    for (const type of allTypes) {
-        const typeConfig = getTypeConfigFromCache(type);
-        if (typeConfig && ((typeConfig.attribute1 && typeConfig.attribute1.values && typeConfig.attribute1.values.length > 0) ||
-                          (typeConfig.attribute2 && typeConfig.attribute2.values && typeConfig.attribute2.values.length > 0))) {
-            typesWithAttributes.push(type);
-        }
-    }
-    
-    let html = `
-        <div class="detail-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px;">
-            <div style="font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">🔍 Детализация по характеристикам</div>
-            <div class="filter-row" style="margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;">
-                <div id="detailTypeSelectContainer" style="flex: 1; min-width: 150px;"></div>
-            </div>
-            <div id="detailAttributesContainer" style="margin-top: 12px; display: none;"></div>
-            <div id="detailValueCheckboxesContainer" style="margin-top: 12px; display: none;"></div>
-            <div class="filter-row" style="margin-top: 12px; display: flex; gap: 10px; justify-content: flex-end;">
-                <button id="applyDetailFilterBtn" class="edit-save-btn" style="padding: 6px 16px; display: none;" onclick="applyDetailAttributeFilter()">Показать</button>
-                <button id="resetDetailFilterBtn" class="edit-cancel-btn" style="padding: 6px 16px; display: none;" onclick="resetDetailAttributeFilter()">Сбросить</button>
-            </div>
-        </div>
-        <div id="detailAttributeStatsContainer"></div>
-    `;
-    
-    container.innerHTML = html;
-    
-    const typeOptions = typesWithAttributes.map(t => ({ value: t, label: t }));
-    createDetailCustomSelect('detailTypeSelectContainer', typeOptions, '', (value, label) => {
-        detailSelectedType = value;
-        detailSelectedAttributes = [];
-        onDetailTypeChangeCustom(value);
-    });
-}
-
-function createDetailCustomSelect(containerId, options, selectedValue, onSelect) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    container.innerHTML = '';
-    container.style.display = 'inline-block';
-    container.style.width = '100%';
-    
-    const selectedOption = options.find(opt => opt.value == selectedValue);
-    let displayText = selectedOption ? selectedOption.label : (options.length > 0 ? '📦 Выберите тип' : '📦 Нет типов с характеристиками');
-    
-    const customSelect = document.createElement('div');
-    customSelect.style.position = 'relative';
-    customSelect.style.display = 'inline-block';
-    customSelect.style.width = '100%';
-    
-    const trigger = document.createElement('div');
-    trigger.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 32px 8px 16px; font-size: 13px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); display: block;';
-    trigger.textContent = displayText;
-    
-    const arrow = document.createElement('span');
-    arrow.style.cssText = 'position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--text-secondary);';
-    arrow.textContent = '▼';
-    trigger.appendChild(arrow);
-    
-    const dropdown = document.createElement('div');
-    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 1000; display: none; max-height: 250px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow);';
-    
-    if (options.length === 0) {
-        const emptyDiv = document.createElement('div');
-        emptyDiv.style.cssText = 'padding: 12px; text-align: center; color: var(--text-muted);';
-        emptyDiv.textContent = 'Нет типов с характеристиками';
-        dropdown.appendChild(emptyDiv);
-    } else {
-        options.forEach(opt => {
-            const optionDiv = document.createElement('div');
-            optionDiv.style.cssText = 'padding: 10px 16px; cursor: pointer; transition: background 0.1s; font-size: 13px; color: var(--text-primary); border-bottom: 1px solid var(--border-color);';
-            optionDiv.textContent = opt.label;
-            optionDiv.dataset.value = opt.value;
-            
-            if (opt.value == selectedValue) {
-                optionDiv.style.background = 'var(--badge-bg)';
-                optionDiv.style.fontWeight = 'bold';
-            }
-            
-            optionDiv.addEventListener('click', () => {
-                trigger.textContent = opt.label;
-                dropdown.style.display = 'none';
-                if (onSelect) onSelect(opt.value, opt.label);
-            });
-            
-            optionDiv.addEventListener('mouseenter', () => {
-                optionDiv.style.background = 'var(--badge-bg)';
-            });
-            optionDiv.addEventListener('mouseleave', () => {
-                if (opt.value != selectedValue) {
-                    optionDiv.style.background = '';
-                }
-            });
-            
-            dropdown.appendChild(optionDiv);
-        });
-    }
-    
-    trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = dropdown.style.display === 'block';
-        document.querySelectorAll('[class*="dropdown"]').forEach(d => {
-            if (d !== dropdown) d.style.display = 'none';
-        });
-        dropdown.style.display = isOpen ? 'none' : 'block';
-    });
-    
-    customSelect.appendChild(trigger);
-    customSelect.appendChild(dropdown);
-    container.appendChild(customSelect);
-    
-    document.addEventListener('click', (e) => {
-        if (!customSelect.contains(e.target)) {
-            dropdown.style.display = 'none';
-        }
-    });
-}
-
-function onDetailTypeChangeCustom(selectedType) {
-    detailSelectedType = selectedType;
-    detailSelectedAttributes = [];
-    
-    const attrContainer = document.getElementById('detailAttributesContainer');
-    const valueContainer = document.getElementById('detailValueCheckboxesContainer');
-    const applyBtn = document.getElementById('applyDetailFilterBtn');
-    const resetBtn = document.getElementById('resetDetailFilterBtn');
-    const statsContainer = document.getElementById('detailAttributeStatsContainer');
-    
-    if (!selectedType) {
-        if (attrContainer) attrContainer.style.display = 'none';
-        if (valueContainer) valueContainer.style.display = 'none';
-        if (applyBtn) applyBtn.style.display = 'none';
-        if (resetBtn) resetBtn.style.display = 'none';
-        if (statsContainer) statsContainer.innerHTML = '';
-        return;
-    }
-    
-    if (applyBtn) applyBtn.style.display = 'inline-block';
-    if (resetBtn) resetBtn.style.display = 'inline-block';
-    
-    const typeConfig = getTypeConfigFromCache(selectedType);
-    if (!typeConfig) {
-        if (attrContainer) {
-            attrContainer.style.display = 'block';
-            attrContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px;">У выбранного типа нет характеристик</div>';
-        }
-        return;
-    }
-    
-    const attributes = [];
-    if (typeConfig.attribute1 && typeConfig.attribute1.values && typeConfig.attribute1.values.length > 0) {
-        attributes.push({ name: typeConfig.attribute1.name, key: 'attr1', values: typeConfig.attribute1.values });
-    }
-    if (typeConfig.attribute2 && typeConfig.attribute2.values && typeConfig.attribute2.values.length > 0) {
-        attributes.push({ name: typeConfig.attribute2.name, key: 'attr2', values: typeConfig.attribute2.values });
-    }
-    
-    if (attributes.length === 0) {
-        if (attrContainer) {
-            attrContainer.style.display = 'block';
-            attrContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px;">У выбранного типа нет характеристик</div>';
-        }
-        return;
-    }
-    
-    // Отображаем чекбоксы для выбора характеристик
-    if (attrContainer) {
-        attrContainer.style.display = 'block';
-        
-        let attrsHtml = `<div style="font-size: 13px; font-weight: bold; margin-bottom: 10px; color: var(--badge-text);">📋 Выберите характеристики для детализации:</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 16px;">`;
-        
-        for (const attr of attributes) {
-            attrsHtml += `<label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
-                <input type="checkbox" class="detail-attr-checkbox" data-attr-name="${escapeHtml(attr.name)}" data-attr-key="${attr.key}" data-attr-values='${JSON.stringify(attr.values)}' style="accent-color: #f39c12; width: 16px; height: 16px;"> 
-                ${escapeHtml(attr.name)}
-            </label>`;
-        }
-        attrsHtml += `</div>`;
-        attrContainer.innerHTML = attrsHtml;
-        
-        document.querySelectorAll('.detail-attr-checkbox').forEach(cb => {
-            cb.removeEventListener('change', onDetailAttributeCheckboxChange);
-            cb.addEventListener('change', onDetailAttributeCheckboxChange);
-        });
-    }
-    
-    // Очищаем контейнер значений и статистику
-    if (valueContainer) {
-        valueContainer.style.display = 'none';
-        valueContainer.innerHTML = '';
-    }
-    if (statsContainer) statsContainer.innerHTML = '';
-}
-
-function onDetailAttributeCheckboxChange(e) {
-    const checkbox = e.target;
-    const attrName = checkbox.dataset.attrName;
-    const attrKey = checkbox.dataset.attrKey;
-    const attrValues = JSON.parse(checkbox.dataset.attrValues);
-    
-    if (checkbox.checked) {
-        if (!detailSelectedAttributes.find(a => a.name === attrName)) {
-            detailSelectedAttributes.push({
-                name: attrName,
-                key: attrKey,
-                values: attrValues
-            });
-        }
-    } else {
-        detailSelectedAttributes = detailSelectedAttributes.filter(a => a.name !== attrName);
-    }
-    
-    // Обновляем отображение чекбоксов значений
-    updateDetailValueCheckboxes();
-}
-
-function updateDetailValueCheckboxes() {
-    const valueContainer = document.getElementById('detailValueCheckboxesContainer');
-    if (!valueContainer) return;
-    
-    if (detailSelectedAttributes.length === 0) {
-        valueContainer.style.display = 'none';
-        valueContainer.innerHTML = '';
-        return;
-    }
-    
-    let valuesHtml = `<div style="font-size: 13px; font-weight: bold; margin-bottom: 10px; color: var(--badge-text);">🎯 Выберите значения для отображения:</div>`;
-    
-    for (const attr of detailSelectedAttributes) {
-        valuesHtml += `<div style="margin-top: 12px; padding: 10px; background: var(--badge-bg); border-radius: 12px;">
-            <div style="font-weight: bold; margin-bottom: 8px; color: var(--btn-bg);">${escapeHtml(attr.name)}</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px;">`;
-        
-        // Чекбокс "Все"
-        valuesHtml += `<label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px;">
-            <input type="checkbox" class="detail-all-values-checkbox" data-attr-name="${escapeHtml(attr.name)}" checked style="accent-color: #f39c12; width: 14px; height: 14px;"> Все
-        </label>`;
-        
-        // Чекбоксы для каждого значения
-        for (const value of attr.values) {
-            valuesHtml += `<label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px;">
-                <input type="checkbox" class="detail-value-checkbox" data-attr-name="${escapeHtml(attr.name)}" data-value="${escapeHtml(value)}" checked style="accent-color: #f39c12; width: 14px; height: 14px;"> ${escapeHtml(value)}
-            </label>`;
-        }
-        valuesHtml += `</div></div>`;
-    }
-    
-    valueContainer.innerHTML = valuesHtml;
-    valueContainer.style.display = 'block';
-    
-    // Обработчик для чекбокса "Все"
-    document.querySelectorAll('.detail-all-values-checkbox').forEach(cb => {
-        cb.onchange = (e) => {
-            const attrName = e.target.dataset.attrName;
-            const isChecked = e.target.checked;
-            document.querySelectorAll(`.detail-value-checkbox[data-attr-name="${attrName}"]`).forEach(vcb => {
-                vcb.checked = isChecked;
-            });
-        };
-    });
-}
-
-function applyDetailAttributeFilter() {
-    if (detailSelectedAttributes.length === 0) {
-        showToast("Выберите хотя бы одну характеристику", false);
-        return;
-    }
-    
-    renderDetailAttributeStats();
-}
-
-function resetDetailAttributeFilter() {
-    detailSelectedType = "";
-    detailSelectedAttributes = [];
-    
-    const typeContainer = document.getElementById('detailTypeSelectContainer');
-    if (typeContainer) {
-        const trigger = typeContainer.querySelector('div[style*="cursor: pointer"]');
-        if (trigger && trigger.childNodes[0]) {
-            trigger.childNodes[0].textContent = '📦 Выберите тип';
-        }
-    }
-    
-    const attrContainer = document.getElementById('detailAttributesContainer');
-    const valueContainer = document.getElementById('detailValueCheckboxesContainer');
-    const applyBtn = document.getElementById('applyDetailFilterBtn');
-    const resetBtn = document.getElementById('resetDetailFilterBtn');
-    const statsContainer = document.getElementById('detailAttributeStatsContainer');
-    
-    if (attrContainer) {
-        attrContainer.style.display = 'none';
-        attrContainer.innerHTML = '';
-    }
-    if (valueContainer) {
-        valueContainer.style.display = 'none';
-        valueContainer.innerHTML = '';
-    }
-    if (applyBtn) applyBtn.style.display = 'none';
-    if (resetBtn) resetBtn.style.display = 'none';
-    if (statsContainer) statsContainer.innerHTML = '';
-}
-
-function renderDetailAttributeStats() {
-    const container = document.getElementById('detailAttributeStatsContainer');
-    if (!container) return;
-    
-    if (!detailSelectedType || detailSelectedAttributes.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Выберите тип и характеристики для детализации</div>';
-        return;
-    }
-    
-    const sales = getFilteredSalesHistory();
-    
-    const attributeStats = {};
-    
-    for (const sale of sales) {
-        for (const item of sale.items) {
-            const card = originalCardsData.find(c => c.id === item.id);
-            if (!card) continue;
-            if (card.type !== detailSelectedType) continue;
-            
-            for (const attr of detailSelectedAttributes) {
-                let attributeValue = "";
-                if (attr.key === 'attr1') {
-                    attributeValue = card.attribute1 || "";
-                } else if (attr.key === 'attr2') {
-                    attributeValue = card.attribute2 || "";
-                }
-                
-                if (!attributeValue) continue;
-                
-                // Проверяем, выбран ли этот значение в чекбоксах
-                const valueCheckbox = document.querySelector(`.detail-value-checkbox[data-attr-name="${attr.name}"][data-value="${attributeValue}"]`);
-                if (valueCheckbox && !valueCheckbox.checked) continue;
-                
-                const key = `${attr.name}: ${attributeValue}`;
-                if (!attributeStats[key]) {
-                    attributeStats[key] = { 
-                        attrName: attr.name, 
-                        value: attributeValue, 
-                        revenue: 0, 
-                        qty: 0 
-                    };
-                }
-                attributeStats[key].revenue += item.qty * item.price;
-                attributeStats[key].qty += item.qty;
-            }
-        }
-    }
-    
-    const sortedStats = Object.values(attributeStats).sort((a, b) => b.qty - a.qty);
-    
-    if (sortedStats.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Нет данных для выбранных характеристик</div>';
-        return;
-    }
-    
-    const formatCurrency = (value) => value.toLocaleString('ru-RU') + ' ₽';
-    
-    let html = `
-        <div class="detail-section">
-            <div class="detail-title">📊 Детализация по характеристикам (тип: ${escapeHtml(detailSelectedType)})</div>
-            <div class="table-wrapper">
-                <table class="detail-table">
-                    <thead>
-                        <tr>
-                            <th>Характеристика</th>
-                            <th>Значение</th>
-                            <th class="text-right">Продано, шт</th>
-                            <th class="text-right">Выручка</th>
-                            <th class="text-right">Средняя цена</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-    
-    for (const stat of sortedStats) {
-        const avgPrice = stat.qty > 0 ? stat.revenue / stat.qty : 0;
-        const attrColor = getAttributeColor(stat.attrName);
-        const valueColor = getAttributeColor(stat.value);
-        html += `<tr>
-            <td><span class="type-badge" style="background:${getTypeColor(stat.attrName)}20; color:${getTypeColor(stat.attrName)};">${escapeHtml(stat.attrName)}</span></td>
-            <td><span class="type-badge" style="background:${valueColor}20; color:${valueColor};">${escapeHtml(stat.value)}</span></td>
-            <td class="text-right">${stat.qty} шт</td
-            <td class="text-right">${formatCurrency(stat.revenue)}</td
-            <td class="text-right">${Math.ceil(avgPrice).toLocaleString()} ₽</td
-        </tr>`;
-    }
-    
-    html += `</tbody>
-            </table>
-        </div>
-    </div>`;
-    
-    container.innerHTML = html;
-}
-
 // ========== ФУНКЦИИ ФИЛЬТРА ПО ВРЕМЕНИ ==========
 
 function toggleStatsFilter() {
@@ -872,7 +464,394 @@ function getAttributeColor(attribute) {
     }
     return window.attributeColorCache.get(attribute);
 }
+// ========== СЕЛЕКТОРНАЯ ДЕТАЛИЗАЦИЯ ПО ХАРАКТЕРИСТИКАМ ==========
 
+function initDetailAttributeSelectors() {
+    const container = document.getElementById('detailAttributeSelectors');
+    if (!container) return;
+    
+    const allTypes = getAllMerchTypes();
+    const typesWithAttributes = [];
+    
+    for (const type of allTypes) {
+        const typeConfig = getTypeConfigFromCache(type);
+        if (typeConfig && ((typeConfig.attribute1 && typeConfig.attribute1.values && typeConfig.attribute1.values.length > 0) ||
+                          (typeConfig.attribute2 && typeConfig.attribute2.values && typeConfig.attribute2.values.length > 0))) {
+            typesWithAttributes.push(type);
+        }
+    }
+    
+    let html = `
+        <div class="detail-attribute-filters" style="background: var(--badge-bg); border-radius: 16px; padding: 12px; margin-bottom: 16px;">
+            <div style="font-weight: bold; margin-bottom: 8px; color: var(--badge-text);">🔍 Детализация по характеристикам</div>
+            <div class="filter-row" style="margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <div id="detailTypeSelectContainer" style="flex: 1; min-width: 150px;"></div>
+            </div>
+            <div id="detailAttributesContainer" style="margin-top: 12px; display: none;"></div>
+            <div id="detailValueCheckboxesContainer" style="margin-top: 12px; display: none;"></div>
+            <div class="filter-row" style="margin-top: 12px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="applyDetailFilterBtn" class="edit-save-btn" style="padding: 6px 16px; display: none;" onclick="applyDetailAttributeFilter()">Показать</button>
+                <button id="resetDetailFilterBtn" class="edit-cancel-btn" style="padding: 6px 16px; display: none;" onclick="resetDetailAttributeFilter()">Сбросить</button>
+            </div>
+        </div>
+        <div id="detailAttributeStatsContainer"></div>
+    `;
+    
+    container.innerHTML = html;
+    
+    const typeOptions = typesWithAttributes.map(t => ({ value: t, label: t }));
+    createDetailCustomSelect('detailTypeSelectContainer', typeOptions, '', (value, label) => {
+        detailSelectedType = value;
+        detailSelectedAttributes = [];
+        onDetailTypeChangeCustom(value);
+    });
+}
+
+function createDetailCustomSelect(containerId, options, selectedValue, onSelect) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    container.style.display = 'inline-block';
+    container.style.width = '100%';
+    
+    let displayText = (options.length > 0) ? '📦 Выберите тип' : '📦 Нет типов с характеристиками';
+    
+    const customSelect = document.createElement('div');
+    customSelect.style.position = 'relative';
+    customSelect.style.display = 'inline-block';
+    customSelect.style.width = '100%';
+    
+    const trigger = document.createElement('div');
+    trigger.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 30px; padding: 8px 32px 8px 16px; font-size: 13px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); display: block;';
+    trigger.textContent = displayText;
+    
+    const arrow = document.createElement('span');
+    arrow.style.cssText = 'position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--text-secondary);';
+    arrow.textContent = '▼';
+    trigger.appendChild(arrow);
+    
+    const dropdown = document.createElement('div');
+    dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 1000; display: none; max-height: 250px; overflow-y: auto; margin-top: 4px; box-shadow: 0 4px 12px var(--shadow);';
+    
+    if (options.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style.cssText = 'padding: 12px; text-align: center; color: var(--text-muted);';
+        emptyDiv.textContent = 'Нет типов с характеристиками';
+        dropdown.appendChild(emptyDiv);
+    } else {
+        options.forEach(opt => {
+            const optionDiv = document.createElement('div');
+            optionDiv.style.cssText = 'padding: 10px 16px; cursor: pointer; transition: background 0.1s; font-size: 13px; color: var(--text-primary); border-bottom: 1px solid var(--border-color);';
+            optionDiv.textContent = opt.label;
+            optionDiv.dataset.value = opt.value;
+            
+            optionDiv.addEventListener('click', () => {
+                trigger.textContent = opt.label;
+                dropdown.style.display = 'none';
+                if (onSelect) onSelect(opt.value, opt.label);
+            });
+            
+            optionDiv.addEventListener('mouseenter', () => {
+                optionDiv.style.background = 'var(--badge-bg)';
+            });
+            optionDiv.addEventListener('mouseleave', () => {
+                optionDiv.style.background = '';
+            });
+            
+            dropdown.appendChild(optionDiv);
+        });
+    }
+    
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.style.display === 'block';
+        document.querySelectorAll('[class*="dropdown"]').forEach(d => {
+            if (d !== dropdown) d.style.display = 'none';
+        });
+        dropdown.style.display = isOpen ? 'none' : 'block';
+    });
+    
+    customSelect.appendChild(trigger);
+    customSelect.appendChild(dropdown);
+    container.appendChild(customSelect);
+    
+    document.addEventListener('click', (e) => {
+        if (!customSelect.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+}
+
+function onDetailTypeChangeCustom(selectedType) {
+    detailSelectedType = selectedType;
+    detailSelectedAttributes = [];
+    
+    const attrContainer = document.getElementById('detailAttributesContainer');
+    const valueContainer = document.getElementById('detailValueCheckboxesContainer');
+    const applyBtn = document.getElementById('applyDetailFilterBtn');
+    const resetBtn = document.getElementById('resetDetailFilterBtn');
+    const statsContainer = document.getElementById('detailAttributeStatsContainer');
+    
+    if (!selectedType) {
+        if (attrContainer) attrContainer.style.display = 'none';
+        if (valueContainer) valueContainer.style.display = 'none';
+        if (applyBtn) applyBtn.style.display = 'none';
+        if (resetBtn) resetBtn.style.display = 'none';
+        if (statsContainer) statsContainer.innerHTML = '';
+        return;
+    }
+    
+    if (applyBtn) applyBtn.style.display = 'inline-block';
+    if (resetBtn) resetBtn.style.display = 'inline-block';
+    
+    const typeConfig = getTypeConfigFromCache(selectedType);
+    if (!typeConfig) {
+        if (attrContainer) {
+            attrContainer.style.display = 'block';
+            attrContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px;">У выбранного типа нет характеристик</div>';
+        }
+        return;
+    }
+    
+    const attributes = [];
+    if (typeConfig.attribute1 && typeConfig.attribute1.values && typeConfig.attribute1.values.length > 0) {
+        attributes.push({ name: typeConfig.attribute1.name, key: 'attr1', values: typeConfig.attribute1.values });
+    }
+    if (typeConfig.attribute2 && typeConfig.attribute2.values && typeConfig.attribute2.values.length > 0) {
+        attributes.push({ name: typeConfig.attribute2.name, key: 'attr2', values: typeConfig.attribute2.values });
+    }
+    
+    if (attributes.length === 0) {
+        if (attrContainer) {
+            attrContainer.style.display = 'block';
+            attrContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px;">У выбранного типа нет характеристик</div>';
+        }
+        return;
+    }
+    
+    if (attrContainer) {
+        attrContainer.style.display = 'block';
+        
+        let attrsHtml = `<div style="font-size: 13px; font-weight: bold; margin-bottom: 10px; color: var(--badge-text);">📋 Выберите характеристики для детализации:</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 16px;">`;
+        
+        for (const attr of attributes) {
+            attrsHtml += `<label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                <input type="checkbox" class="detail-attr-checkbox" data-attr-name="${escapeHtml(attr.name)}" data-attr-key="${attr.key}" data-attr-values='${JSON.stringify(attr.values)}' style="accent-color: #f39c12; width: 16px; height: 16px;"> 
+                ${escapeHtml(attr.name)}
+            </label>`;
+        }
+        attrsHtml += `</div>`;
+        attrContainer.innerHTML = attrsHtml;
+        
+        document.querySelectorAll('.detail-attr-checkbox').forEach(cb => {
+            cb.removeEventListener('change', onDetailAttributeCheckboxChange);
+            cb.addEventListener('change', onDetailAttributeCheckboxChange);
+        });
+    }
+    
+    if (valueContainer) {
+        valueContainer.style.display = 'none';
+        valueContainer.innerHTML = '';
+    }
+    if (statsContainer) statsContainer.innerHTML = '';
+}
+
+function onDetailAttributeCheckboxChange(e) {
+    const checkbox = e.target;
+    const attrName = checkbox.dataset.attrName;
+    const attrKey = checkbox.dataset.attrKey;
+    const attrValues = JSON.parse(checkbox.dataset.attrValues);
+    
+    if (checkbox.checked) {
+        if (!detailSelectedAttributes.find(a => a.name === attrName)) {
+            detailSelectedAttributes.push({
+                name: attrName,
+                key: attrKey,
+                values: attrValues
+            });
+        }
+    } else {
+        detailSelectedAttributes = detailSelectedAttributes.filter(a => a.name !== attrName);
+    }
+    
+    updateDetailValueCheckboxes();
+}
+
+function updateDetailValueCheckboxes() {
+    const valueContainer = document.getElementById('detailValueCheckboxesContainer');
+    if (!valueContainer) return;
+    
+    if (detailSelectedAttributes.length === 0) {
+        valueContainer.style.display = 'none';
+        valueContainer.innerHTML = '';
+        return;
+    }
+    
+    let valuesHtml = `<div style="font-size: 13px; font-weight: bold; margin-bottom: 10px; color: var(--badge-text);">🎯 Выберите значения для отображения:</div>`;
+    
+    for (const attr of detailSelectedAttributes) {
+        valuesHtml += `<div style="margin-top: 12px; padding: 10px; background: var(--badge-bg); border-radius: 12px;">
+            <div style="font-weight: bold; margin-bottom: 8px; color: var(--btn-bg);">${escapeHtml(attr.name)}</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">`;
+        
+        valuesHtml += `<label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px;">
+            <input type="checkbox" class="detail-all-values-checkbox" data-attr-name="${escapeHtml(attr.name)}" checked style="accent-color: #f39c12; width: 14px; height: 14px;"> Все
+        </label>`;
+        
+        for (const value of attr.values) {
+            valuesHtml += `<label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px;">
+                <input type="checkbox" class="detail-value-checkbox" data-attr-name="${escapeHtml(attr.name)}" data-value="${escapeHtml(value)}" checked style="accent-color: #f39c12; width: 14px; height: 14px;"> ${escapeHtml(value)}
+            </label>`;
+        }
+        valuesHtml += `</div></div>`;
+    }
+    
+    valueContainer.innerHTML = valuesHtml;
+    valueContainer.style.display = 'block';
+    
+    document.querySelectorAll('.detail-all-values-checkbox').forEach(cb => {
+        cb.onchange = (e) => {
+            const attrName = e.target.dataset.attrName;
+            const isChecked = e.target.checked;
+            document.querySelectorAll(`.detail-value-checkbox[data-attr-name="${attrName}"]`).forEach(vcb => {
+                vcb.checked = isChecked;
+            });
+        };
+    });
+}
+
+function applyDetailAttributeFilter() {
+    if (detailSelectedAttributes.length === 0) {
+        showToast("Выберите хотя бы одну характеристику", false);
+        return;
+    }
+    renderDetailAttributeStats();
+}
+
+function resetDetailAttributeFilter() {
+    detailSelectedType = "";
+    detailSelectedAttributes = [];
+    
+    const typeContainer = document.getElementById('detailTypeSelectContainer');
+    if (typeContainer) {
+        const trigger = typeContainer.querySelector('div[style*="cursor: pointer"]');
+        if (trigger && trigger.childNodes[0]) {
+            trigger.childNodes[0].textContent = '📦 Выберите тип';
+        }
+    }
+    
+    const attrContainer = document.getElementById('detailAttributesContainer');
+    const valueContainer = document.getElementById('detailValueCheckboxesContainer');
+    const applyBtn = document.getElementById('applyDetailFilterBtn');
+    const resetBtn = document.getElementById('resetDetailFilterBtn');
+    const statsContainer = document.getElementById('detailAttributeStatsContainer');
+    
+    if (attrContainer) {
+        attrContainer.style.display = 'none';
+        attrContainer.innerHTML = '';
+    }
+    if (valueContainer) {
+        valueContainer.style.display = 'none';
+        valueContainer.innerHTML = '';
+    }
+    if (applyBtn) applyBtn.style.display = 'none';
+    if (resetBtn) resetBtn.style.display = 'none';
+    if (statsContainer) statsContainer.innerHTML = '';
+}
+
+function renderDetailAttributeStats() {
+    const container = document.getElementById('detailAttributeStatsContainer');
+    if (!container) return;
+    
+    if (!detailSelectedType || detailSelectedAttributes.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Выберите тип и характеристики для детализации</div>';
+        return;
+    }
+    
+    const sales = getFilteredSalesHistory();
+    const attributeStats = {};
+    
+    for (const sale of sales) {
+        for (const item of sale.items) {
+            const card = originalCardsData.find(c => c.id === item.id);
+            if (!card) continue;
+            if (card.type !== detailSelectedType) continue;
+            
+            for (const attr of detailSelectedAttributes) {
+                let attributeValue = "";
+                if (attr.key === 'attr1') {
+                    attributeValue = card.attribute1 || "";
+                } else if (attr.key === 'attr2') {
+                    attributeValue = card.attribute2 || "";
+                }
+                
+                if (!attributeValue) continue;
+                
+                const valueCheckbox = document.querySelector(`.detail-value-checkbox[data-attr-name="${attr.name}"][data-value="${attributeValue}"]`);
+                if (valueCheckbox && !valueCheckbox.checked) continue;
+                
+                const key = `${attr.name}: ${attributeValue}`;
+                if (!attributeStats[key]) {
+                    attributeStats[key] = { 
+                        attrName: attr.name, 
+                        value: attributeValue, 
+                        revenue: 0, 
+                        qty: 0 
+                    };
+                }
+                attributeStats[key].revenue += item.qty * item.price;
+                attributeStats[key].qty += item.qty;
+            }
+        }
+    }
+    
+    const sortedStats = Object.values(attributeStats).sort((a, b) => b.qty - a.qty);
+    
+    if (sortedStats.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Нет данных для выбранных характеристик</div>';
+        return;
+    }
+    
+    const formatCurrency = (value) => value.toLocaleString('ru-RU') + ' ₽';
+    
+    let html = `
+        <div class="detail-section">
+            <div class="detail-title">📊 Детализация по характеристикам (тип: ${escapeHtml(detailSelectedType)})</div>
+            <div class="table-wrapper">
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>Характеристика</th>
+                            <th>Значение</th>
+                            <th class="text-right">Продано, шт</th>
+                            <th class="text-right">Выручка</th>
+                            <th class="text-right">Средняя цена</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+    
+    for (const stat of sortedStats) {
+        const avgPrice = stat.qty > 0 ? stat.revenue / stat.qty : 0;
+        const attrColor = getAttributeColor(stat.attrName);
+        const valueColor = getAttributeColor(stat.value);
+        html += `<tr>
+            <td><span class="type-badge" style="background:${getTypeColor(stat.attrName)}20; color:${getTypeColor(stat.attrName)};">${escapeHtml(stat.attrName)}</span></td>
+            <td><span class="type-badge" style="background:${valueColor}20; color:${valueColor};">${escapeHtml(stat.value)}</span></td>
+            <td class="text-right">${stat.qty} шт</td
+            <td class="text-right">${formatCurrency(stat.revenue)}</td
+            <td class="text-right">${Math.ceil(avgPrice).toLocaleString()} ₽</td
+        </tr>`;
+    }
+    
+    html += `</tbody>
+            </table>
+        </div>
+    </div>`;
+    
+    container.innerHTML = html;
+}
 // ========== ОСНОВНАЯ ФУНКЦИЯ СТАТИСТИКИ ==========
 
 function renderStats() {
@@ -1036,6 +1015,7 @@ function renderStats() {
     
     let html = filterInfo + attributeFilterInfo;
     
+    // Статистические карточки
     html += `<div class="stats-grid">
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalRevenue)}</div><div class="stats-card-label">💰 Выручка</div></div>
         <div class="stats-card"><div class="stats-card-value">${formatCurrency(totalCostAllGoods)}</div><div class="stats-card-label">📦 Себестоимость всего товара</div></div>
@@ -1068,7 +1048,6 @@ function renderStats() {
         <div class="profit-card-value ${profitMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${formatPercent(profitMargin)}</div>
         <div class="profit-card-label">📊 Рентабельность</div>
     </div>`;
-    
     // Детализация по товарам
     html += `<div class="detail-section">
         <div class="detail-title">📦 Детализация по товарам</div>
@@ -1147,9 +1126,9 @@ function renderStats() {
             <td class="text-right">${formatCurrency(t.fullCost)}</td
             <td class="text-right ${profitClass}">${formatCurrency(t.profit)}</td
             <td class="text-right ${marginClass}">${formatPercent(t.margin)}</td
-        </table>`;
+        </tr>`;
     }
-    html += `</tbody></table></div></div>`;
+    html += `</tbody><tr></div></div>`;
     
     // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ
     html += `<div class="two-columns">
@@ -1195,12 +1174,12 @@ function renderStats() {
         const t = topTypesByQty[i]; 
         html += `<tr>
             <td class="text-right"><span class="popular-badge">${i + 1}</span></td>
-            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td>
+            <td><span class="type-badge" style="background:${getTypeColor(t.type)}20; color:${getTypeColor(t.type)};">${escapeHtml(t.type)}</span></td
             <td class="text-right">${t.soldQty} шт</td
         </tr>`;
     }
     html += `</tbody>
-                <td>
+                </table>
             </div>
         </div>
     </div>`;
@@ -1208,7 +1187,6 @@ function renderStats() {
     // СЕЛЕКТОРНАЯ ДЕТАЛИЗАЦИЯ ПО ХАРАКТЕРИСТИКАМ
     html += `<div id="detailAttributeSelectors"></div>`;
     html += `<div id="detailAttributeStatsContainer"></div>`;
-    
     // Расходы и доходы
     html += `<div class="extra-costs-section">
         <div class="detail-title">➕ Дополнительные расходы</div>
