@@ -1159,7 +1159,7 @@ function renderStats() {
     </div>`;
     
     // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ
-    html += `<div class="two-columns" style="width: 100%; clear: both;">
+    html += `<div class="two-columns" style="width: 100%;">
         <div class="detail-section">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
@@ -1211,8 +1211,9 @@ function renderStats() {
             </div>
         </div>
     </div>`;
+    <div style="clear: both; width: 100%;"></div>`;
     
-    // Проверяем, есть ли у пользователя товары с характеристиками
+    // Проверяем, есть ли у пользователя товары с характеристиками 
     let hasAttributes = false;
     for (const card of originalCardsData) {
         const typeConfig = getTypeConfigFromCache(card.type);
