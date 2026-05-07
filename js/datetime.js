@@ -2,6 +2,10 @@
 
 function initDateTimeSelects() {
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const currentDay = new Date().getDate();
+    const lastYear = currentYear - 1;
+    
     const years = [];
     for (let i = currentYear - 2; i <= currentYear + 2; i++) years.push(i);
     const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -46,7 +50,7 @@ function initDateTimeSelects() {
             if (select.id.includes('To')) {
                 select.value = currentYear;
             } else {
-                select.value = currentYear - 1;
+                select.value = lastYear;  // Для dateFrom ставим прошлый год
             }
         }
     });
@@ -86,6 +90,18 @@ function initDateTimeSelects() {
             }
         }
     });
+    
+    // Устанавливаем день и месяц для dateFrom (текущие день и месяц)
+    const dateFromDay = document.getElementById('dateFromDay');
+    const dateFromMonth = document.getElementById('dateFromMonth');
+    if (dateFromDay) dateFromDay.value = currentDay;
+    if (dateFromMonth) dateFromMonth.value = currentMonth;
+    
+    // Устанавливаем день и месяц для dateTo (текущие день и месяц)
+    const dateToDay = document.getElementById('dateToDay');
+    const dateToMonth = document.getElementById('dateToMonth');
+    if (dateToDay) dateToDay.value = currentDay;
+    if (dateToMonth) dateToMonth.value = currentMonth;
     
     // Инициализируем кастомные селекторы
     if (typeof initCustomDateTimeSelects === 'function') {
