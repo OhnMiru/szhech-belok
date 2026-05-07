@@ -1159,8 +1159,8 @@ function renderStats() {
     </div>`;
     
     // САМЫЕ ПРОДАВАЕМЫЕ ТОВАРЫ И ТИПЫ
-    html += `<div class="two-columns" style="width: 100%;">
-        <div class="detail-section">
+    html += `<div class="two-columns" style="width: 100%; display: flex; gap: 20px; flex-wrap: wrap;">
+        <div class="detail-section" style="flex: 1; min-width: 200px;">
             <div class="detail-title">🏆 Самые продаваемые товары</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
@@ -1170,7 +1170,7 @@ function renderStats() {
                             <th>Товар</th>
                             <th>Тип</th>
                             <th class="text-right">Продано, шт</th>
-                        </tr>
+                        </td>
                     </thead>
                     <tbody>`;
     for (let i = 0; i < topByQty.length; i++) { 
@@ -1186,7 +1186,7 @@ function renderStats() {
                 </table>
             </div>
         </div>
-        <div class="detail-section">
+        <div class="detail-section" style="flex: 1; min-width: 200px;">
             <div class="detail-title">🏆 Самые продаваемые типы</div>
             <div class="table-wrapper">
                 <table class="detail-table-small">
@@ -1211,8 +1211,7 @@ function renderStats() {
             </div>
         </div>
     </div>`;
-    html += `</div>
-    <div style="clear: both; width: 100%;"></div>`;
+    html += `<div style="clear: both; width: 100%;"></div>`;
     
     // Проверяем, есть ли у пользователя товары с характеристиками 
     let hasAttributes = false;
