@@ -3300,3 +3300,38 @@ body.dark .stats-filter-block {
     border: 1px solid var(--select-border);
     color: var(--text-primary);
 }
+
+body.dark .modal-content {
+    background: var(--card-bg);
+}
+
+/* Активное состояние кнопок */
+.refresh-btn:active,
+.history-btn:active,
+#rulesButton:active,
+#statsButton:active,
+#globalStatsBtn:active,
+#bookingsButton:active,
+#supplyButton:active,
+#addItemButton:active,
+#impersonateBtn:active {
+    background: var(--badge-bg) !important;
+}
+
+/* Если есть класс .active у кнопок-фильтров (например в истории) */
+.history-filter-btn.active,
+.rule-type-btn.active,
+.discount-products-btn.active {
+    background: var(--badge-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+/* В правиле */
+#rules-list + div[style*="font-weight: bold"] {
+    color: white !important;
+}
+
+/* Или точнее - найти элемент с текстом "Список правил" */
+#rulesModal .modal-content > div[style*="font-weight: bold"] {
+    color: var(--text-primary);
+}
