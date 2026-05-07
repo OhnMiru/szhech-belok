@@ -1990,7 +1990,7 @@ body.dark .extra-cost-amount {
     padding: 5px 12px;
     font-size: 11px;
     cursor: pointer;
-    color: #5a3a1a;
+    color: var(--text-primary);
     text-align: center;
     white-space: nowrap;
     height: 30px;
