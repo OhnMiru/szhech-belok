@@ -534,61 +534,36 @@ async function deletePhoto(itemId) {
     }
 }
 
-// ========== НОВАЯ ФУНКЦИЯ: СИНХРОНИЗАЦИЯ ИСТОРИИ ПО ЧАСТЯМ ==========
-async function syncFullHistoryChunked(historyData) {
-    if (!window.isOnline) return;
-    if (!historyData || historyData.length === 0) return;
+// ========== СИНХРОНИЗАЦИЯ ИСТОРИИ ЧЕРЕЗ POST (БЕЗ ОГРАНИЧЕНИЯ ДЛИНЫ) ==========
+async function syncFullHistoryPost(historyData) {
+    if (!window.isOnline) return false;
+    if (!historyData || historyData.length === 0) return true;
     
-    // Разбиваем на части по 5 записей
-    const CHUNK_SIZE = 5;
-    const chunks = [];
-    
-    for (let i = 0; i < historyData.length; i += CHUNK_SIZE) {
-        chunks.push(historyData.slice(i, i + CHUNK_SIZE));
-    }
-    
-    console.log(`📦 Синхронизация истории: ${historyData.length} записей, разбито на ${chunks.length} частей`);
-    
-    let successCount = 0;
-    let failCount = 0;
-    
-    for (let i = 0; i < chunks.length; i++) {
-        try {
-            const chunk = chunks[i];
-            const data = encodeURIComponent(JSON.stringify(chunk));
-            
-            // Проверяем длину URL (безопасный лимит ~1800 символов)
-            if (data.length > 1800) {
-                console.warn(`Часть ${i + 1} слишком большая (${data.length} символов), разбиваем дальше`);
-                // Рекурсивно разбиваем эту часть ещё мельче
-                await syncFullHistoryChunked(chunk);
-                continue;
-            }
-            
-            const url = buildApiUrl("syncFullHistory", `&data=${data}`);
-            const response = await fetch(url);
-            const result = await response.json();
-            
-            if (result.success) {
-                successCount++;
-                console.log(`✅ Часть ${i + 1}/${chunks.length} синхронизирована`);
-            } else {
-                failCount++;
-                console.warn(`❌ Ошибка синхронизации части ${i + 1}:`, result.error);
-            }
-            
-            // Небольшая задержка между запросами
-            if (i < chunks.length - 1) {
-                await new Promise(r => setTimeout(r, 200));
-            }
-        } catch(e) {
-            failCount++;
-            console.error(`Ошибка при синхронизации части ${i + 1}:`, e);
+    try {
+        console.log(`📤 POST синхронизация истории: ${historyData.length} записей`);
+        
+        // Отправляем данные через POST (нет ограничения на длину!)
+        const response = await fetch(`${window.CENTRAL_API_URL}?action=syncFullHistory&participant=${window.CURRENT_USER.id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `data=${encodeURIComponent(JSON.stringify(historyData))}${typeof window.getRealUserParam === 'function' ? window.getRealUserParam() : ''}`
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            console.log(`✅ История синхронизирована (${historyData.length} записей) через POST`);
+            return true;
+        } else {
+            console.error("❌ Ошибка синхронизации:", result.error);
+            return false;
         }
+    } catch(e) {
+        console.error("❌ POST синхронизация не удалась:", e);
+        return false;
     }
-    
-    console.log(`📊 Синхронизация истории завершена: успешно ${successCount}, ошибок ${failCount}`);
-    return { success: failCount === 0, successCount, failCount };
 }
 
 // ========== ЭКСПОРТ ФУНКЦИЙ В ГЛОБАЛЬНУЮ ОБЛАСТЬ ==========
@@ -605,7 +580,8 @@ window.addSupply = addSupply;
 window.getPhotoUrl = getPhotoUrl;
 window.uploadPhoto = uploadPhoto;
 window.deletePhoto = deletePhoto;
-window.syncFullHistoryChunked = syncFullHistoryChunked;
+window.syncFullHistoryPost = syncFullHistoryPost;
+window.syncFullHistoryChunked = syncFullHistoryPost; // для обратной совместимости
 
 // Новые функции для работы с типами мерча
 window.loadMerchTypesConfig = loadMerchTypesConfig;
@@ -616,4 +592,4 @@ window.getAllMerchTypes = getAllMerchTypes;
 console.log("✅ api.js загружен, getComment определена:", typeof window.getComment);
 console.log("✅ api.js загружен, loadData определена:", typeof window.loadData);
 console.log("✅ api.js загружен, loadMerchTypesConfig определена:", typeof window.loadMerchTypesConfig);
-console.log("✅ api.js загружен, syncFullHistoryChunked определена:", typeof window.syncFullHistoryChunked);
+console.log("✅ api.js загружен, syncFullHistoryPost определена:", typeof window.syncFullHistoryPost);
