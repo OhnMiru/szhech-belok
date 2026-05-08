@@ -146,13 +146,13 @@ async function loadData(showLoading = true, showProgress = false) {
             }
         } else if (showLoading && !isAutoRefresh) {
             const container = document.getElementById('cards-container');
-            if (container) container.innerHTML = '<div class="loading">Нет данных. Проверьте таблицу и лист "Мерч". 🍌</div>';
+            if (container) container.innerHTML = '<div class="loading">Нет данных. Проверьте таблицу и лист "Мерч".</div>';
         }
     } catch (error) {
         console.error("loadData error:", error);
         if (showLoading && !isAutoRefresh) {
             const container = document.getElementById('cards-container');
-            if (container) container.innerHTML = '<div class="loading">Ошибка загрузки. Проверьте интернет и ссылку. 🍌</div>';
+            if (container) container.innerHTML = '<div class="loading">Ошибка загрузки. Проверьте интернет и ссылку.</div>';
         }
     } finally {
         window.isLoading = false;
