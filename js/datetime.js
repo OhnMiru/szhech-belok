@@ -106,6 +106,14 @@ function initDateTimeSelects() {
     // Инициализируем кастомные селекторы
     if (typeof initCustomDateTimeSelects === 'function') {
         initCustomDateTimeSelects();
+        
+        // ОБНОВЛЯЕМ КАСТОМНЫЕ СЕЛЕКТОРЫ С НУЖНЫМИ ЗНАЧЕНИЯМИ
+        setTimeout(() => {
+            if (typeof updateCustomDateFromValues === 'function') {
+                updateCustomDateFromValues(currentDay, currentMonth, lastYear);
+                updateCustomDateToValues(currentDay, currentMonth, currentYear);
+            }
+        }, 50);
     }
     if (typeof initCustomStatsDateTimeSelects === 'function') {
         initCustomStatsDateTimeSelects();
