@@ -1,5 +1,5 @@
 // ========== НАСТРОЙКА ==========
-var CENTRAL_API_URL = "https://szhech-belochek.pages.dev/api";
+var CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbwcpIH9cgwrQJ44iifU0NG-c2uXHTXLnEFefa5ZvokJChMMij8RzsV49YWzp-i8QksV/exec";
 
 var CURRENT_USER = {
     id: null,
