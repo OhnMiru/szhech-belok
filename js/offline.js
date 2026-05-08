@@ -17,6 +17,9 @@ function loadPendingOperations() {
 // Вспомогательная функция для построения параметров строки запроса из объекта
 function buildParamsFromObject(obj) {
     if (!obj) return "";
+    // Если obj уже строка, возвращаем как есть
+    if (typeof obj === 'string') return obj;
+    
     const parts = [];
     for (const [key, value] of Object.entries(obj)) {
         if (typeof value === 'object') {
@@ -50,15 +53,23 @@ async function processPendingOperations(silent = false) {
                 realUserParam = window.getRealUserParam();
             }
             
+            // Определяем параметры: если params строка, используем как есть, иначе преобразуем
+            let paramsString = "";
+            if (typeof op.params === 'string') {
+                paramsString = op.params;
+            } else {
+                paramsString = buildParamsFromObject(op.params);
+            }
+            
             switch (op.action) {
                 case "addItem":
-                    url = buildApiUrl("addItem", buildParamsFromObject(op.params));
+                    url = buildApiUrl("addItem", paramsString);
                     break;
                 case "updateFullItem":
-                    url = buildApiUrl("updateFullItem", buildParamsFromObject(op.params));
+                    url = buildApiUrl("updateFullItem", paramsString);
                     break;
                 case "update":
-                    url = buildApiUrl("update", buildParamsFromObject(op.params));
+                    url = buildApiUrl("update", paramsString);
                     break;
                 case "syncFullHistory":
                     const historyData = encodeURIComponent(JSON.stringify(op.params));
@@ -85,17 +96,17 @@ async function processPendingOperations(silent = false) {
                     url = buildApiUrl("syncFullRules", `&data=${rulesData}${realUserParam}`);
                     break;
                 case "hideHistoryEntry":
-                    url = buildApiUrl("hideHistoryEntry", `${buildParamsFromObject(op.params)}${realUserParam}`);
+                    url = buildApiUrl("hideHistoryEntry", `${paramsString}${realUserParam}`);
                     break;
                 case "cancelHistoryEntry":
-                    url = buildApiUrl("cancelHistoryEntry", `${buildParamsFromObject(op.params)}${realUserParam}`);
+                    url = buildApiUrl("cancelHistoryEntry", `${paramsString}${realUserParam}`);
                     break;
                 case "savePrivacy":
                     const privacyData = encodeURIComponent(JSON.stringify(op.params));
                     url = buildApiUrl("savePrivacy", `&data=${privacyData}${realUserParam}`);
                     break;
                 case "cancelBooking":
-                    url = buildApiUrl("cancelBooking", `${buildParamsFromObject(op.params)}${realUserParam}`);
+                    url = buildApiUrl("cancelBooking", `${paramsString}${realUserParam}`);
                     break;
                 case "uploadPhoto":
                     isFormData = true;
@@ -152,7 +163,7 @@ async function processPendingOperations(silent = false) {
                     url = buildApiUrl("syncFullComments", `&data=${commentsData}${realUserParam}`);
                     break;
                 default:
-                    url = buildApiUrl(op.action, `${buildParamsFromObject(op.params)}${realUserParam}`);
+                    url = buildApiUrl(op.action, paramsString);
             }
             
             let response;
@@ -196,6 +207,7 @@ async function processPendingOperations(silent = false) {
 }
 
 function addPendingOperation(action, params) {
+    // Сохраняем timestamp для возможности очистки старых операций
     pendingOperations.push({ action: action, params: params, timestamp: Date.now() });
     savePendingOperations();
     if (isOnline) {
