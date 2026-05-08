@@ -25,8 +25,8 @@
     --shadow: rgba(0, 0, 0, 0.1);
     --select-border: #c9c7c7;
     --reset-color: #121212;
-    --progress-bg: #ffe0a3;
-    --progress-bar: #121212;
+    --progress-bg: #c9c7c7;
+    --progress-bar: #22c55e;
     --modal-bg: white;
     --modal-overlay: rgba(0, 0, 0, 0.7);
     --toast-bg: #2ecc71;
