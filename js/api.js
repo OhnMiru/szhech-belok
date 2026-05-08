@@ -1,28 +1,75 @@
-// ========== API ФУНКЦИИ (ПОЛНАЯ ВЕРСИЯ) ==========
-console.log("🔧 api.js начал загрузку");
+// ========== API ФУНКЦИИ (JSONP версия - без CORS) ==========
+console.log("🔧 api.js начал загрузку (JSONP версия)");
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
-function buildApiUrl(action, extraParams = "") {
+// ========== JSONP ФУНКЦИЯ ДЛЯ ОБХОДА CORS ==========
+async function jsonpRequest(action, extraParams = "") {
+    return new Promise((resolve, reject) => {
+        const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        let url = buildJsonpUrl(action, extraParams, callbackName);
+        
+        // Ограничиваем длину URL (JSONP имеет ограничения)
+        if (url.length > 2000) {
+            console.warn(`URL слишком длинный (${url.length} символов) для ${action}`);
+            reject(new Error('URL too long for JSONP'));
+            return;
+        }
+        
+        window[callbackName] = (data) => {
+            delete window[callbackName];
+            if (script.parentNode) document.body.removeChild(script);
+            resolve(data);
+        };
+        
+        const script = document.createElement('script');
+        script.src = url;
+        script.onerror = () => {
+            delete window[callbackName];
+            if (script.parentNode) document.body.removeChild(script);
+            reject(new Error(`JSONP request failed for ${action}`));
+        };
+        
+        document.body.appendChild(script);
+        
+        // Таймаут на случай зависания
+        setTimeout(() => {
+            if (window[callbackName]) {
+                delete window[callbackName];
+                if (script.parentNode) document.body.removeChild(script);
+                reject(new Error(`JSONP timeout for ${action}`));
+            }
+        }, 30000);
+    });
+}
+
+function buildJsonpUrl(action, extraParams = "", callbackName) {
     if (!window.CURRENT_USER?.id) return "#";
     
-    // Добавляем параметр realUser если организатор действует от лица другого пользователя
     let realUserParam = "";
     if (typeof window.getRealUserParam === 'function') {
         realUserParam = window.getRealUserParam();
     }
     
-    if (action === "getPhotoUrl" || action === "getComment") {
-        return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}${realUserParam}&_=${Date.now()}`;
+    // Для данных большого размера используем POST через iframe? Нет, JSONP только GET
+    return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}${realUserParam}&callback=${callbackName}&_=${Date.now()}`;
+}
+
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+function buildApiUrl(action, extraParams = "") {
+    // Для обратной совместимости, но теперь используем jsonpRequest
+    if (!window.CURRENT_USER?.id) return "#";
+    
+    let realUserParam = "";
+    if (typeof window.getRealUserParam === 'function') {
+        realUserParam = window.getRealUserParam();
     }
+    
     return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}${realUserParam}&t=${Date.now()}`;
 }
 
 // ========== ФУНКЦИИ ДЛЯ ЗАГРУЗКИ КОНФИГУРАЦИИ ТИПОВ МЕРЧА ==========
 
-// Загрузить конфигурацию типов мерча с сервера
 async function loadMerchTypesConfig() {
     if (!window.isOnline) {
-        // Пробуем загрузить из localStorage
         const saved = localStorage.getItem('merch_types_config');
         if (saved) {
             try {
@@ -30,37 +77,27 @@ async function loadMerchTypesConfig() {
                 window.merchTypesConfig = config.types || [];
                 updateMerchTypesCache();
                 window.merchTypesLoaded = true;
-                console.log("✅ Конфигурация типов загружена из localStorage:", window.merchTypesConfig.length);
+                console.log("✅ Конфигурация типов из localStorage:", window.merchTypesConfig.length);
                 return true;
-            } catch(e) {
-                console.error("Ошибка загрузки из localStorage:", e);
-            }
+            } catch(e) { console.error(e); }
         }
         return false;
     }
     
     try {
-        const response = await fetch(buildApiUrl("getMerchTypes"));
-        const result = await response.json();
+        const result = await jsonpRequest("getMerchTypes");
         
         if (result && result.types) {
             window.merchTypesConfig = result.types;
             updateMerchTypesCache();
             window.merchTypesLoaded = true;
-            
-            // Сохраняем в localStorage
             localStorage.setItem('merch_types_config', JSON.stringify({ types: result.types, loaded: Date.now() }));
-            
-            console.log("✅ Конфигурация типов загружена с сервера:", window.merchTypesConfig.length);
+            console.log("✅ Конфигурация типов загружена:", window.merchTypesConfig.length);
             return true;
-        } else {
-            console.warn("⚠️ Нет данных о типах мерча");
-            return false;
         }
+        return false;
     } catch(e) {
-        console.error("Ошибка загрузки конфигурации типов:", e);
-        
-        // Пробуем загрузить из localStorage при ошибке
+        console.error("Ошибка загрузки:", e);
         const saved = localStorage.getItem('merch_types_config');
         if (saved) {
             try {
@@ -68,17 +105,13 @@ async function loadMerchTypesConfig() {
                 window.merchTypesConfig = config.types || [];
                 updateMerchTypesCache();
                 window.merchTypesLoaded = true;
-                console.log("✅ Конфигурация типов загружена из localStorage (fallback):", window.merchTypesConfig.length);
                 return true;
-            } catch(e2) {
-                console.error("Ошибка загрузки из localStorage:", e2);
-            }
+            } catch(e2) { }
         }
         return false;
     }
 }
 
-// Обновить кэш типов для быстрого доступа
 function updateMerchTypesCache() {
     window.merchTypesCache.clear();
     for (const typeConfig of window.merchTypesConfig) {
@@ -88,21 +121,11 @@ function updateMerchTypesCache() {
     }
 }
 
-// Получить конфигурацию для конкретного типа
 function getTypeConfigFromCache(typeName) {
     if (!typeName) return null;
     return window.merchTypesCache.get(typeName.toLowerCase()) || null;
 }
 
-// Проверить, есть ли у типа атрибуты
-function hasAttributesForType(typeName) {
-    const config = getTypeConfigFromCache(typeName);
-    if (!config) return false;
-    return (config.attribute1 && config.attribute1.values && config.attribute1.values.length > 0) ||
-           (config.attribute2 && config.attribute2.values && config.attribute2.values.length > 0);
-}
-
-// Получить список всех типов мерча
 function getAllMerchTypes() {
     return window.merchTypesConfig.map(t => t.type);
 }
@@ -125,13 +148,10 @@ async function loadData(showLoading = true, showProgress = false) {
     }
     
     try {
-        const response = await fetch(buildApiUrl("get"));
-        const data = await response.json();
+        const data = await jsonpRequest("get");
         console.log("Данные получены:", data?.length || 0);
         
-        // Проверяем наличие атрибутов в данных (для обратной совместимости)
         if (data && data.length > 0) {
-            // Если у товаров нет полей attribute1/attribute2, добавляем их
             for (const item of data) {
                 if (item.attribute1 === undefined) item.attribute1 = "";
                 if (item.attribute2 === undefined) item.attribute2 = "";
@@ -152,7 +172,7 @@ async function loadData(showLoading = true, showProgress = false) {
         console.error("loadData error:", error);
         if (showLoading && !isAutoRefresh) {
             const container = document.getElementById('cards-container');
-            if (container) container.innerHTML = '<div class="loading">Ошибка загрузки. Проверьте интернет и ссылку.</div>';
+            if (container) container.innerHTML = '<div class="loading">Ошибка загрузки. Проверьте интернет.</div>';
         }
     } finally {
         window.isLoading = false;
@@ -164,7 +184,6 @@ async function loadData(showLoading = true, showProgress = false) {
     }
 }
 
-// ОБНОВЛЕНА: добавлены параметры attribute1 и attribute2
 async function updateFullItem(id, type, name, stock, total, price, cost, attribute1 = "", attribute2 = "") {
     if (!window.isOnline) {
         if (typeof window.addPendingOperation === 'function') {
@@ -177,8 +196,8 @@ async function updateFullItem(id, type, name, stock, total, price, cost, attribu
     }
     try {
         const params = `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}&attribute1=${encodeURIComponent(attribute1)}&attribute2=${encodeURIComponent(attribute2)}`;
-        const response = await fetch(buildApiUrl("updateFullItem", params));
-        return await response.json();
+        const result = await jsonpRequest("updateFullItem", params);
+        return result;
     } catch(e) {
         if (typeof window.addPendingOperation === 'function') {
             window.addPendingOperation("updateFullItem", { 
@@ -190,7 +209,6 @@ async function updateFullItem(id, type, name, stock, total, price, cost, attribu
     }
 }
 
-// ОБНОВЛЕНА: добавлены параметры attribute1 и attribute2
 async function sendAddItemRequest(type, name, total, stock, price, cost, attribute1 = "", attribute2 = "") {
     if (!window.isOnline) {
         if (typeof window.addPendingOperation === 'function') {
@@ -214,8 +232,7 @@ async function sendAddItemRequest(type, name, total, stock, price, cost, attribu
     
     try {
         const params = `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}&attribute1=${encodeURIComponent(attribute1)}&attribute2=${encodeURIComponent(attribute2)}`;
-        const response = await fetch(buildApiUrl("addItem", params));
-        const result = await response.json();
+        const result = await jsonpRequest("addItem", params);
         if (result.success) {
             const newItem = { 
                 id: result.id, type: type, name: name, total: total, 
@@ -239,6 +256,18 @@ async function sendAddItemRequest(type, name, total, stock, price, cost, attribu
     }
 }
 
+async function updateStock(id, delta) {
+    if (!window.isOnline) {
+        return { success: true, offline: true };
+    }
+    try {
+        const result = await jsonpRequest("update", `&id=${id}&delta=${delta}`);
+        return result;
+    } catch(e) {
+        return { success: false, error: e.message };
+    }
+}
+
 // ========== ФУНКЦИИ ДЛЯ КОММЕНТАРИЕВ ==========
 
 async function loadAllComments() {
@@ -248,8 +277,7 @@ async function loadAllComments() {
     }
     
     try {
-        const response = await fetch(buildApiUrl("getAllComments"));
-        const result = await response.json();
+        const result = await jsonpRequest("getAllComments");
         if (result.success && result.comments) {
             window.commentsCache.clear();
             for (const item of result.comments) {
@@ -284,29 +312,8 @@ async function saveComment(itemId, comment) {
     }
     
     try {
-        const params = new URLSearchParams();
-        params.append('action', 'saveComment');
-        params.append('participant', window.CURRENT_USER.id);
-        params.append('itemId', itemId.toString());
-        params.append('userId', window.CURRENT_USER.id);
-        params.append('comment', comment);
-        
-        // Добавляем realUser если есть
-        if (typeof window.getRealUserParam === 'function') {
-            const realUserParam = window.getRealUserParam();
-            if (realUserParam) {
-                const realUserValue = realUserParam.replace('&realUser=', '');
-                params.append('realUser', realUserValue);
-            }
-        }
-        
-        const response = await fetch(window.CENTRAL_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        });
-        
-        const result = await response.json();
+        const params = `&itemId=${itemId}&comment=${encodeURIComponent(comment)}&userId=${window.CURRENT_USER.id}`;
+        const result = await jsonpRequest("saveComment", params);
         
         if (result.success) {
             window.commentsCache.set(itemId, { comment: comment, lastUpdated: new Date().toISOString() });
@@ -340,8 +347,7 @@ async function getComment(itemId) {
     }
     
     try {
-        const response = await fetch(buildApiUrl("getComment", `&itemId=${itemId}&userId=${window.CURRENT_USER.id}`));
-        const result = await response.json();
+        const result = await jsonpRequest("getComment", `&itemId=${itemId}&userId=${window.CURRENT_USER.id}`);
         
         if (result.success && result.comment !== null) {
             window.commentsCache.set(itemId, { comment: result.comment, lastUpdated: result.lastUpdated });
@@ -375,9 +381,7 @@ function loadCommentsFromLocal() {
             if (typeof window.updateCommentIndicators === 'function') {
                 window.updateCommentIndicators();
             }
-        } catch(e) {
-            console.error("Error loading comments from localStorage:", e);
-        }
+        } catch(e) { console.error(e); }
     }
 }
 
@@ -387,7 +391,6 @@ async function addSupply(itemId, quantity) {
     console.log("addSupply called:", itemId, quantity);
     
     if (!window.isOnline) {
-        // Офлайн режим - обновляем локально
         const card = window.originalCardsData?.find(c => c.id === itemId);
         if (card) {
             card.total += quantity;
@@ -399,29 +402,8 @@ async function addSupply(itemId, quantity) {
     }
     
     try {
-        const params = new URLSearchParams();
-        params.append('action', 'addSupply');
-        params.append('participant', window.CURRENT_USER.id);
-        params.append('userId', window.CURRENT_USER.id);
-        params.append('itemId', itemId.toString());
-        params.append('quantity', quantity.toString());
-        
-        // Добавляем realUser если есть
-        if (typeof window.getRealUserParam === 'function') {
-            const realUserParam = window.getRealUserParam();
-            if (realUserParam) {
-                const realUserValue = realUserParam.replace('&realUser=', '');
-                params.append('realUser', realUserValue);
-            }
-        }
-        
-        const response = await fetch(window.CENTRAL_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        });
-        
-        const result = await response.json();
+        const params = `&itemId=${itemId}&quantity=${quantity}&userId=${window.CURRENT_USER.id}`;
+        const result = await jsonpRequest("addSupply", params);
         
         if (result.success) {
             const card = window.originalCardsData?.find(c => c.id === itemId);
@@ -443,229 +425,193 @@ async function addSupply(itemId, quantity) {
     }
 }
 
-// ========== ФУНКЦИИ ДЛЯ ФОТО ==========
+// ========== ФУНКЦИИ ДЛЯ СИНХРОНИЗАЦИИ (через JSONP) ==========
+
+async function syncFullHistory(historyData) {
+    if (!window.isOnline) return;
+    try {
+        const data = encodeURIComponent(JSON.stringify(historyData));
+        // Ограничиваем длину URL для JSONP
+        if (data.length > 1500) {
+            console.warn("History data too large for JSONP, skipping sync");
+            return;
+        }
+        await jsonpRequest("syncFullHistory", `&data=${data}`);
+    } catch(e) {
+        console.error("Sync history error:", e);
+    }
+}
+
+async function syncFullRules(rulesData) {
+    if (!window.isOnline) return;
+    try {
+        const data = encodeURIComponent(JSON.stringify(rulesData));
+        await jsonpRequest("syncFullRules", `&data=${data}`);
+    } catch(e) {
+        console.error("Sync rules error:", e);
+    }
+}
+
+async function syncFullBookings(bookingsData) {
+    if (!window.isOnline) return;
+    try {
+        const data = encodeURIComponent(JSON.stringify(bookingsData));
+        await jsonpRequest("syncFullBookings", `&data=${data}`);
+    } catch(e) {
+        console.error("Sync bookings error:", e);
+    }
+}
+
+async function syncExtraCosts(costsData) {
+    if (!window.isOnline) return;
+    try {
+        const data = encodeURIComponent(JSON.stringify(costsData));
+        await jsonpRequest("syncExtraCosts", `&data=${data}`);
+    } catch(e) {
+        console.error("Sync costs error:", e);
+    }
+}
+
+async function syncExtraIncomes(incomesData) {
+    if (!window.isOnline) return;
+    try {
+        const data = encodeURIComponent(JSON.stringify(incomesData));
+        await jsonpRequest("syncExtraIncomes", `&data=${data}`);
+    } catch(e) {
+        console.error("Sync incomes error:", e);
+    }
+}
+
+async function syncFullComments(commentsData) {
+    if (!window.isOnline) return;
+    try {
+        const data = encodeURIComponent(JSON.stringify(commentsData));
+        await jsonpRequest("syncFullComments", `&data=${data}`);
+    } catch(e) {
+        console.error("Sync comments error:", e);
+    }
+}
+
+async function savePrivacy(privacyData) {
+    if (!window.isOnline) return;
+    try {
+        const data = encodeURIComponent(JSON.stringify(privacyData));
+        await jsonpRequest("savePrivacy", `&data=${data}`);
+    } catch(e) {
+        console.error("Save privacy error:", e);
+    }
+}
+
+async function getPrivacy() {
+    if (!window.isOnline) {
+        const saved = localStorage.getItem('merch_privacy');
+        if (saved) return JSON.parse(saved);
+        return { shareStats: false, hideStats: false };
+    }
+    try {
+        const result = await jsonpRequest("getPrivacy");
+        return result;
+    } catch(e) {
+        console.error("Get privacy error:", e);
+        return { shareStats: false, hideStats: false };
+    }
+}
+
+async function getFullHistory() {
+    if (!window.isOnline) {
+        const saved = localStorage.getItem('merch_sales_history');
+        if (saved) return JSON.parse(saved);
+        return [];
+    }
+    try {
+        const result = await jsonpRequest("getFullHistory");
+        return result.history || [];
+    } catch(e) {
+        console.error("Get history error:", e);
+        return [];
+    }
+}
+
+async function getRules() {
+    if (!window.isOnline) {
+        const saved = localStorage.getItem('merch_rules_structured');
+        if (saved) return JSON.parse(saved);
+        return [];
+    }
+    try {
+        const result = await jsonpRequest("getRules");
+        return result.rules || [];
+    } catch(e) {
+        console.error("Get rules error:", e);
+        return [];
+    }
+}
+
+async function getExtraCosts() {
+    if (!window.isOnline) {
+        const saved = localStorage.getItem('merch_extra_costs');
+        if (saved) return JSON.parse(saved);
+        return [];
+    }
+    try {
+        const result = await jsonpRequest("getExtraCosts");
+        return result.costs || [];
+    } catch(e) {
+        console.error("Get costs error:", e);
+        return [];
+    }
+}
+
+async function getExtraIncomes() {
+    if (!window.isOnline) {
+        const saved = localStorage.getItem('merch_extra_incomes');
+        if (saved) return JSON.parse(saved);
+        return [];
+    }
+    try {
+        const result = await jsonpRequest("getExtraIncomes");
+        return result.incomes || [];
+    } catch(e) {
+        console.error("Get incomes error:", e);
+        return [];
+    }
+}
+
+async function getFullBookings() {
+    if (!window.isOnline) {
+        const saved = localStorage.getItem('merch_bookings');
+        if (saved) return JSON.parse(saved);
+        return [];
+    }
+    try {
+        const result = await jsonpRequest("getFullBookings");
+        return result.bookings || [];
+    } catch(e) {
+        console.error("Get bookings error:", e);
+        return [];
+    }
+}
+
+// ========== ФУНКЦИИ ДЛЯ ФОТО (НЕ РАБОТАЮТ, ВОЗВРАЩАЮТ ЗАГЛУШКУ) ==========
 
 async function getPhotoUrl(itemId) {
-    if (!window.isOnline) {
-        return null;
-    }
-    
-    if (!itemId) {
-        console.error("getPhotoUrl called without itemId");
-        return null;
-    }
-    
-    try {
-        const url = `${window.CENTRAL_API_URL}?action=getPhotoUrl&participant=${window.CURRENT_USER.id}&itemId=${itemId}&userId=${window.CURRENT_USER.id}&_=${Date.now()}`;
-        
-        // Добавляем realUser если есть
-        if (typeof window.getRealUserParam === 'function') {
-            const realUserParam = window.getRealUserParam();
-            if (realUserParam) {
-                // Параметр уже включает &, поэтому просто добавляем
-                window.tempPhotoUrl = url + realUserParam;
-                // Используем временную переменную, так как дальше код может быть сложным
-            }
-        }
-        
-        const finalUrl = window.tempPhotoUrl || url;
-        delete window.tempPhotoUrl;
-        
-        console.log("🔍 Fetching photo URL:", finalUrl);
-        
-        const response = await fetch(finalUrl);
-        const result = await response.json();
-        
-        console.log("📸 Photo API response:", result);
-        
-        if (result.success && result.hasPhoto && result.url) {
-            let fileId = null;
-            if (result.url.includes('id=')) {
-                fileId = result.url.split('id=')[1];
-            } else if (result.url.includes('/d/')) {
-                fileId = result.url.split('/d/')[1].split('/')[0];
-            }
-            
-            if (fileId) {
-                const proxyUrl = `https://szhech-belochek.pages.dev/api/image?id=${fileId}`;
-                console.log("✅ Proxy URL:", proxyUrl);
-                
-                if (window.photoCache) window.photoCache.set(itemId, proxyUrl);
-                return proxyUrl;
-            }
-            
-            if (window.photoCache) window.photoCache.set(itemId, result.url);
-            return result.url;
-        }
-        
-        console.log("❌ No photo found for item", itemId);
-        return null;
-    } catch(e) {
-        console.error("Error getting photo:", e);
-        return null;
-    }
+    console.warn("Фото не поддерживается в JSONP версии");
+    return null;
 }
 
 async function uploadPhoto(itemId, file) {
-    if (!window.isOnline) {
-        if (typeof window.showToast === 'function') window.showToast("Загрузка фото доступна только онлайн", false);
-        return false;
-    }
-    
-    if (!file.type.startsWith('image/')) {
-        if (typeof window.showToast === 'function') window.showToast("Пожалуйста, выберите изображение", false);
-        return false;
-    }
-    
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = async function() {
-            try {
-                const base64Data = reader.result;
-                
-                const params = new URLSearchParams();
-                params.append('action', 'uploadPhoto');
-                params.append('participant', window.CURRENT_USER.id);
-                params.append('itemId', itemId.toString());
-                params.append('userId', window.CURRENT_USER.id);
-                params.append('base64Data', base64Data);
-                params.append('fileName', file.name);
-                
-                // Добавляем realUser если есть
-                if (typeof window.getRealUserParam === 'function') {
-                    const realUserParam = window.getRealUserParam();
-                    if (realUserParam) {
-                        const realUserValue = realUserParam.replace('&realUser=', '');
-                        params.append('realUser', realUserValue);
-                    }
-                }
-                
-                console.log("📤 Загрузка фото:");
-                console.log("  - itemId:", itemId);
-                console.log("  - userId:", window.CURRENT_USER.id);
-                console.log("  - fileName:", file.name);
-                console.log("  - fileSize:", (file.size / 1024).toFixed(2), "KB");
-                
-                const response = await fetch(window.CENTRAL_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: params.toString()
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    console.log("✅ Фото загружено на сервер!");
-                    
-                    if (typeof window.showToast === 'function') window.showToast("Обработка фото...", true);
-                    await new Promise(r => setTimeout(r, 2000));
-                    
-                    let photoFound = false;
-                    for (let attempt = 1; attempt <= 3; attempt++) {
-                        console.log(`Попытка получить фото #${attempt}...`);
-                        
-                        if (window.photoCache) window.photoCache.delete(itemId);
-                        
-                        let checkUrl = `${window.CENTRAL_API_URL}?action=getPhotoUrl&participant=${window.CURRENT_USER.id}&itemId=${itemId}&userId=${window.CURRENT_USER.id}&_=${Date.now()}`;
-                        if (typeof window.getRealUserParam === 'function') {
-                            const realUserParam = window.getRealUserParam();
-                            if (realUserParam) {
-                                checkUrl += realUserParam;
-                            }
-                        }
-                        const checkResponse = await fetch(checkUrl);
-                        const checkResult = await checkResponse.json();
-                        
-                        console.log(`Попытка ${attempt}:`, checkResult);
-                        
-                        if (checkResult.success && checkResult.hasPhoto && checkResult.url) {
-                            photoFound = true;
-                            let fileId = null;
-                            if (checkResult.url.includes('id=')) {
-                                fileId = checkResult.url.split('id=')[1];
-                            }
-                            if (fileId) {
-                                const proxyUrl = `https://szhech-belochek.pages.dev/api/image?id=${fileId}`;
-                                if (window.photoCache) window.photoCache.set(itemId, proxyUrl);
-                            }
-                            break;
-                        }
-                        
-                        if (attempt < 3) await new Promise(r => setTimeout(r, 1500));
-                    }
-                    
-                    if (photoFound) {
-                        if (typeof window.showToast === 'function') window.showToast("Фото загружено", true);
-                        resolve(true);
-                    } else {
-                        if (typeof window.showToast === 'function') window.showToast("Фото загружено, но не отображается. Обновите страницу.", false);
-                        resolve(true);
-                    }
-                } else {
-                    console.error("❌ Ошибка:", result.error);
-                    if (typeof window.showToast === 'function') window.showToast("Ошибка: " + (result.error || "неизвестная"), false);
-                    resolve(false);
-                }
-            } catch(e) {
-                console.error("Upload error:", e);
-                if (typeof window.showToast === 'function') window.showToast("Ошибка: " + e.message, false);
-                resolve(false);
-            }
-        };
-        reader.onerror = function() {
-            if (typeof window.showToast === 'function') window.showToast("Ошибка чтения файла", false);
-            resolve(false);
-        };
-        reader.readAsDataURL(file);
-    });
+    console.warn("Загрузка фото не поддерживается в JSONP версии");
+    if (typeof window.showToast === 'function') window.showToast("Загрузка фото недоступна в этой версии", false);
+    return false;
 }
 
 async function deletePhoto(itemId) {
-    if (!window.isOnline) {
-        if (typeof window.showToast === 'function') window.showToast("Удаление фото доступно только онлайн", false);
-        return false;
-    }
-    
-    try {
-        const params = new URLSearchParams();
-        params.append('action', 'deletePhoto');
-        params.append('participant', window.CURRENT_USER.id);
-        params.append('itemId', itemId.toString());
-        params.append('userId', window.CURRENT_USER.id);
-        
-        // Добавляем realUser если есть
-        if (typeof window.getRealUserParam === 'function') {
-            const realUserParam = window.getRealUserParam();
-            if (realUserParam) {
-                const realUserValue = realUserParam.replace('&realUser=', '');
-                params.append('realUser', realUserValue);
-            }
-        }
-        
-        const response = await fetch(window.CENTRAL_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            if (window.photoCache) window.photoCache.delete(itemId);
-            if (typeof window.showToast === 'function') window.showToast("Фото удалено", true);
-            return true;
-        } else {
-            if (typeof window.showToast === 'function') window.showToast("Ошибка: " + (result.error || "неизвестная"), false);
-            return false;
-        }
-    } catch(e) {
-        console.error("Delete error:", e);
-        if (typeof window.showToast === 'function') window.showToast("Ошибка удаления", false);
-        return false;
-    }
+    console.warn("Удаление фото не поддерживается в JSONP версии");
+    if (typeof window.showToast === 'function') window.showToast("Удаление фото недоступно в этой версии", false);
+    return false;
 }
 
-// ========== ЭКСПОРТ ФУНКЦИЙ В ГЛОБАЛЬНУЮ ОБЛАСТЬ ==========
+// ========== ЭКСПОРТ ФУНКЦИЙ ==========
 window.buildApiUrl = buildApiUrl;
 window.loadData = loadData;
 window.updateFullItem = updateFullItem;
@@ -679,13 +625,27 @@ window.addSupply = addSupply;
 window.getPhotoUrl = getPhotoUrl;
 window.uploadPhoto = uploadPhoto;
 window.deletePhoto = deletePhoto;
+window.updateStock = updateStock;
 
-// Новые функции для работы с типами мерча
+// Функции для работы с типами мерча
 window.loadMerchTypesConfig = loadMerchTypesConfig;
 window.getTypeConfigFromCache = getTypeConfigFromCache;
-window.hasAttributesForType = hasAttributesForType;
 window.getAllMerchTypes = getAllMerchTypes;
 
-console.log("✅ api.js загружен, getComment определена:", typeof window.getComment);
-console.log("✅ api.js загружен, loadData определена:", typeof window.loadData);
-console.log("✅ api.js загружен, loadMerchTypesConfig определена:", typeof window.loadMerchTypesConfig);
+// Функции синхронизации
+window.syncFullHistory = syncFullHistory;
+window.syncFullRules = syncFullRules;
+window.syncFullBookings = syncFullBookings;
+window.syncExtraCosts = syncExtraCosts;
+window.syncExtraIncomes = syncExtraIncomes;
+window.syncFullComments = syncFullComments;
+window.savePrivacy = savePrivacy;
+window.getPrivacy = getPrivacy;
+window.getFullHistory = getFullHistory;
+window.getRules = getRules;
+window.getExtraCosts = getExtraCosts;
+window.getExtraIncomes = getExtraIncomes;
+window.getFullBookings = getFullBookings;
+
+console.log("✅ api.js загружен (JSONP версия)");
+console.log("✅ Фото загрузка отключена");
