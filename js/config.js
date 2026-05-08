@@ -1,5 +1,5 @@
 // ========== НАСТРОЙКА ==========
-var CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbzxSHcB7jc1WJbp8QIh0y8ulmtPEcvYG1aJGyyyU4DNFIpazD944jKUZcKvQAxNVyN1/exec";
+var CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbyhb-7PiAD0DKGMGvHqTIhmb881_hOdsKDQjDZBka_XOFLPXx132yaEWTkmBZND7qZ9/exec";
 
 var CURRENT_USER = {
     id: null,
