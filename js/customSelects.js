@@ -285,6 +285,44 @@ function initCustomGlobalStatsDateTimeSelects() {
     // Можно добавить позже по аналогии
 }
 
+// ========== ФУНКЦИИ ДЛЯ ОБНОВЛЕНИЯ КАСТОМНЫХ СЕЛЕКТОРОВ ==========
+
+// Обновить значение в кастомном селекторе по ID контейнера
+function updateCustomSelectValue(containerId, value) {
+    const container = document.getElementById(containerId);
+    if (!container) return false;
+    
+    const trigger = container.querySelector('div[style*="cursor: pointer"]');
+    if (!trigger) return false;
+    
+    const dropdown = container.querySelector('div[style*="position: absolute"][style*="display: none"]');
+    if (!dropdown) return false;
+    
+    const options = dropdown.querySelectorAll('div[style*="cursor: pointer"]');
+    for (const opt of options) {
+        if (opt.dataset.value == value) {
+            trigger.childNodes[0].textContent = opt.textContent;
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Обновить всю группу даты "с"
+function updateCustomDateFromValues(dayValue, monthValue, yearValue) {
+    updateCustomSelectValue('dateFromDateGroup_day', dayValue);
+    updateCustomSelectValue('dateFromDateGroup_month', monthValue);
+    updateCustomSelectValue('dateFromDateGroup_year', yearValue);
+}
+
+// Обновить всю группу даты "по"
+function updateCustomDateToValues(dayValue, monthValue, yearValue) {
+    updateCustomSelectValue('dateToDateGroup_day', dayValue);
+    updateCustomSelectValue('dateToDateGroup_month', monthValue);
+    updateCustomSelectValue('dateToDateGroup_year', yearValue);
+}
+
 // ========== СЕЛЕКТОРЫ ДЛЯ ТИПОВ ТОВАРОВ ==========
 
 // Создать кастомный селектор из массива опций (для типов товаров)
@@ -390,7 +428,7 @@ async function initEditTypeSelector(selectedType) {
     createCustomSelectForOptions('editTypeContainer', options, selectedType, handleSelect);
 }
 
-// Инициализация селектора типа в добавлении (ИСПРАВЛЕНА - правильный порядок)
+// Инициализация селектора типа в добавлении
 async function initAddTypeSelector() {
     const container = document.getElementById('addItemTypeContainer');
     if (!container) return;
@@ -403,20 +441,16 @@ async function initAddTypeSelector() {
     const options = types.map(type => ({ value: type, label: type }));
     
     const handleSelect = (value, label) => {
-        // СНАЧАЛА устанавливаем значение в скрытое поле
         const hiddenSelect = document.getElementById('addItemType');
         if (hiddenSelect) hiddenSelect.value = value;
         
         const newTypeInput = document.getElementById('addItemNewType');
         if (newTypeInput) newTypeInput.style.display = 'none';
         
-        // ПОТОМ вызываем onAddTypeChange (из editing.js)
         if (typeof onAddTypeChange === 'function') {
             onAddTypeChange();
         }
         
-        // И наконец вызываем onTypeSelectChange (из ui.js) для отображения атрибутов
-        // делаем с небольшой задержкой, чтобы hiddenSelect уже точно имел значение
         setTimeout(() => {
             if (typeof onTypeSelectChange === 'function') {
                 onTypeSelectChange();
@@ -448,7 +482,6 @@ function createCustomAttributeSelect(containerId, options, selectedValue, onSele
     let container = document.getElementById(containerId);
     if (!container) return null;
     
-    // Полностью очищаем контейнер
     container.innerHTML = '';
     container.style.display = 'inline-block';
     container.style.width = '100%';
@@ -526,7 +559,6 @@ function createCustomAttributeSelect(containerId, options, selectedValue, onSele
 
 // Инициализация кастомных селекторов для атрибутов (редактирование)
 function initEditAttributeSelects(attr1Value, attr2Value, attr1Options, attr2Options) {
-    // Атрибут 1
     if (attr1Options && attr1Options.length > 0) {
         const container1 = document.getElementById('edit_attr1_container');
         if (container1) {
@@ -542,7 +574,6 @@ function initEditAttributeSelects(attr1Value, attr2Value, attr1Options, attr2Opt
         if (container1) container1.innerHTML = '';
     }
     
-    // Атрибут 2
     if (attr2Options && attr2Options.length > 0) {
         const container2 = document.getElementById('edit_attr2_container');
         if (container2) {
@@ -591,3 +622,8 @@ function initAddAttributeSelects(attr1Options, attr2Options) {
         if (container2) container2.innerHTML = '';
     }
 }
+
+// Экспортируем функции в глобальную область
+window.updateCustomSelectValue = updateCustomSelectValue;
+window.updateCustomDateFromValues = updateCustomDateFromValues;
+window.updateCustomDateToValues = updateCustomDateToValues;
