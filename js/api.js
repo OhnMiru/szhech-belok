@@ -487,7 +487,7 @@ async function getPhotoUrl(itemId) {
             }
             
             if (fileId) {
-                const proxyUrl = `https://szhech-belochek.pages.dev/api/image?id=${fileId}`;
+                const proxyUrl = `${window.CENTRAL_API_URL}/image?id=${fileId}`;
                 console.log("✅ Proxy URL:", proxyUrl);
                 
                 if (window.photoCache) window.photoCache.set(itemId, proxyUrl);
