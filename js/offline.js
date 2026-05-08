@@ -72,8 +72,16 @@ async function processPendingOperations(silent = false) {
                     url = buildApiUrl("update", paramsString);
                     break;
                 case "syncFullHistory":
-                    const historyData = encodeURIComponent(JSON.stringify(op.params));
-                    url = buildApiUrl("syncFullHistory", `&data=${historyData}${realUserParam}`);
+                    // Используем новую функцию с разбивкой на части
+                    if (typeof window.syncFullHistoryChunked === 'function') {
+                        await window.syncFullHistoryChunked(op.params);
+                        // Помечаем как успешно выполненное
+                        continue;
+                    } else {
+                        // fallback на старый метод
+                        const historyData = encodeURIComponent(JSON.stringify(op.params));
+                        url = buildApiUrl("syncFullHistory", `&data=${historyData}${realUserParam}`);
+                    }
                     break;
                 case "syncFullBookings":
                     const bookingsData = encodeURIComponent(JSON.stringify(op.params));
