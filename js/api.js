@@ -1,25 +1,40 @@
 // ========== API ФУНКЦИИ (JSONP версия - без CORS) ==========
 console.log("🔧 api.js начал загрузку (JSONP версия)");
 
+// ========== ПРЯМОЙ URL GOOGLE APPS SCRIPT ==========
+const GS_API_URL = "https://script.google.com/macros/s/AKfycbwxDZU33tlxqiTDpCI9PExR-JMLUfDcEu56nwNLvE0ttS1Gk8sUPRsTP_j5Jl1GWpai/exec";
+
 // ========== JSONP ФУНКЦИЯ ДЛЯ ОБХОДА CORS ==========
 async function jsonpRequest(action, extraParams = "") {
     return new Promise((resolve, reject) => {
         const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-        let url = buildJsonpUrl(action, extraParams, callbackName);
         
-        // Ограничиваем длину URL (JSONP имеет ограничения)
+        // Строим URL
+        let url = `${GS_API_URL}?action=${action}&participant=${window.CURRENT_USER?.id || ''}${extraParams}&callback=${callbackName}&_=${Date.now()}`;
+        
+        // Добавляем realUser параметр если есть
+        if (typeof window.getRealUserParam === 'function') {
+            const realUserParam = window.getRealUserParam();
+            if (realUserParam) {
+                url += realUserParam;
+            }
+        }
+        
+        // Ограничиваем длину URL (JSONP имеет ограничения ~2000 символов)
         if (url.length > 2000) {
             console.warn(`URL слишком длинный (${url.length} символов) для ${action}`);
             reject(new Error('URL too long for JSONP'));
             return;
         }
         
+        // Создаём глобальную callback функцию
         window[callbackName] = (data) => {
             delete window[callbackName];
             if (script.parentNode) document.body.removeChild(script);
             resolve(data);
         };
         
+        // Создаём и добавляем script тег
         const script = document.createElement('script');
         script.src = url;
         script.onerror = () => {
@@ -41,21 +56,88 @@ async function jsonpRequest(action, extraParams = "") {
     });
 }
 
-function buildJsonpUrl(action, extraParams = "", callbackName) {
-    if (!window.CURRENT_USER?.id) return "#";
-    
-    let realUserParam = "";
-    if (typeof window.getRealUserParam === 'function') {
-        realUserParam = window.getRealUserParam();
+// ========== ПЕРЕХВАТ ВСЕХ FETCH ЗАПРОСОВ ==========
+// Сохраняем оригинальный fetch
+window.originalFetch = window.fetch;
+
+// Переопределяем fetch для перехвата запросов к Google Apps Script
+window.fetch = function(url, options) {
+    // Проверяем, является ли запрос к нашему API
+    if (typeof url === 'string' && (url.includes(GS_API_URL) || url.includes(window.CENTRAL_API_URL))) {
+        console.log(`🔄 Перехват fetch запроса: ${url.substring(0, 100)}...`);
+        
+        try {
+            // Парсим URL
+            const urlObj = new URL(url);
+            const action = urlObj.searchParams.get('action');
+            
+            if (!action) {
+                console.warn('Нет action в URL');
+                return window.originalFetch(url, options);
+            }
+            
+            // Собираем все параметры кроме action, participant, callback, t
+            const params = {};
+            for (const [key, value] of urlObj.searchParams.entries()) {
+                if (key !== 'action' && key !== 'participant' && key !== 'callback' && key !== 't' && key !== '_') {
+                    params[key] = value;
+                }
+            }
+            
+            // Строим строку параметров
+            let paramsStr = '';
+            for (const [key, value] of Object.entries(params)) {
+                paramsStr += `&${key}=${value}`;
+            }
+            
+            // Для POST запросов с body, данные могут быть в options.body
+            if (options?.body && typeof options.body === 'string') {
+                // Добавляем параметры из body
+                const bodyParams = new URLSearchParams(options.body);
+                for (const [key, value] of bodyParams.entries()) {
+                    if (key !== 'action' && key !== 'participant') {
+                        paramsStr += `&${key}=${encodeURIComponent(value)}`;
+                    }
+                }
+            }
+            
+            // Выполняем JSONP запрос
+            return jsonpRequest(action, paramsStr).then(data => {
+                // Возвращаем объект, имитирующий Response
+                return {
+                    ok: true,
+                    status: 200,
+                    statusText: 'OK',
+                    headers: new Map(),
+                    json: () => Promise.resolve(data),
+                    text: () => Promise.resolve(JSON.stringify(data)),
+                    clone: function() { return this; }
+                };
+            }).catch(error => {
+                console.error(`❌ JSONP запрос failed для ${action}:`, error);
+                return {
+                    ok: false,
+                    status: 500,
+                    statusText: error.message,
+                    headers: new Map(),
+                    json: () => Promise.resolve({ success: false, error: error.message }),
+                    text: () => Promise.resolve(JSON.stringify({ success: false, error: error.message })),
+                    clone: function() { return this; }
+                };
+            });
+        } catch(e) {
+            console.error('Ошибка перехвата fetch:', e);
+            return window.originalFetch(url, options);
+        }
     }
     
-    // Для данных большого размера используем POST через iframe? Нет, JSONP только GET
-    return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}${realUserParam}&callback=${callbackName}&_=${Date.now()}`;
-}
+    // Для всех остальных запросов используем оригинальный fetch
+    return window.originalFetch(url, options);
+};
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function buildApiUrl(action, extraParams = "") {
-    // Для обратной совместимости, но теперь используем jsonpRequest
+    // Для обратной совместимости
     if (!window.CURRENT_USER?.id) return "#";
     
     let realUserParam = "";
@@ -63,7 +145,7 @@ function buildApiUrl(action, extraParams = "") {
         realUserParam = window.getRealUserParam();
     }
     
-    return `${window.CENTRAL_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}${realUserParam}&t=${Date.now()}`;
+    return `${GS_API_URL}?action=${action}&participant=${window.CURRENT_USER.id}${extraParams}${realUserParam}&t=${Date.now()}`;
 }
 
 // ========== ФУНКЦИИ ДЛЯ ЗАГРУЗКИ КОНФИГУРАЦИИ ТИПОВ МЕРЧА ==========
@@ -184,468 +266,14 @@ async function loadData(showLoading = true, showProgress = false) {
     }
 }
 
-async function updateFullItem(id, type, name, stock, total, price, cost, attribute1 = "", attribute2 = "") {
-    if (!window.isOnline) {
-        if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("updateFullItem", { 
-                id: id, type: type, name: name, stock: stock, total: total, 
-                price: price, cost: cost, attribute1: attribute1, attribute2: attribute2 
-            });
-        }
-        return { success: true, offline: true };
-    }
-    try {
-        const params = `&id=${id}&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&stock=${stock}&total=${total}&price=${price}&cost=${cost}&attribute1=${encodeURIComponent(attribute1)}&attribute2=${encodeURIComponent(attribute2)}`;
-        const result = await jsonpRequest("updateFullItem", params);
-        return result;
-    } catch(e) {
-        if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("updateFullItem", { 
-                id: id, type: type, name: name, stock: stock, total: total, 
-                price: price, cost: cost, attribute1: attribute1, attribute2: attribute2 
-            });
-        }
-        return { success: true, offline: true };
-    }
-}
-
-async function sendAddItemRequest(type, name, total, stock, price, cost, attribute1 = "", attribute2 = "") {
-    if (!window.isOnline) {
-        if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("addItem", { 
-                type: type, name: name, total: total, stock: stock, 
-                price: price, cost: cost, attribute1: attribute1, attribute2: attribute2 
-            });
-        }
-        const tempId = -Date.now();
-        const newItem = { 
-            id: tempId, type: type, name: name, total: total, 
-            stock: stock, price: price, cost: cost || 0,
-            attribute1: attribute1, attribute2: attribute2 
-        };
-        window.originalCardsData.push(newItem);
-        if (typeof window.updateTypeOptions === 'function') window.updateTypeOptions();
-        if (typeof window.filterAndSort === 'function') window.filterAndSort();
-        if (typeof window.showToast === 'function') window.showToast(`Товар "${name}" добавлен (будет синхронизирован)`, true);
-        return { success: true, offline: true, id: tempId };
-    }
-    
-    try {
-        const params = `&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&total=${total}&stock=${stock}&price=${price}&cost=${cost}&attribute1=${encodeURIComponent(attribute1)}&attribute2=${encodeURIComponent(attribute2)}`;
-        const result = await jsonpRequest("addItem", params);
-        if (result.success) {
-            const newItem = { 
-                id: result.id, type: type, name: name, total: total, 
-                stock: stock, price: price, cost: cost || 0,
-                attribute1: attribute1, attribute2: attribute2 
-            };
-            window.originalCardsData.push(newItem);
-            if (typeof window.updateTypeOptions === 'function') window.updateTypeOptions();
-            if (typeof window.filterAndSort === 'function') window.filterAndSort();
-            if (typeof window.showToast === 'function') window.showToast(`Товар "${name}" добавлен!`, true);
-        }
-        return result;
-    } catch(e) {
-        if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("addItem", { 
-                type: type, name: name, total: total, stock: stock, 
-                price: price, cost: cost, attribute1: attribute1, attribute2: attribute2 
-            });
-        }
-        return { success: true, offline: true };
-    }
-}
-
-async function updateStock(id, delta) {
-    if (!window.isOnline) {
-        return { success: true, offline: true };
-    }
-    try {
-        const result = await jsonpRequest("update", `&id=${id}&delta=${delta}`);
-        return result;
-    } catch(e) {
-        return { success: false, error: e.message };
-    }
-}
-
-// ========== ФУНКЦИИ ДЛЯ КОММЕНТАРИЕВ ==========
-
-async function loadAllComments() {
-    if (!window.isOnline) {
-        loadCommentsFromLocal();
-        return;
-    }
-    
-    try {
-        const result = await jsonpRequest("getAllComments");
-        if (result.success && result.comments) {
-            window.commentsCache.clear();
-            for (const item of result.comments) {
-                window.commentsCache.set(item.itemId, {
-                    comment: item.comment,
-                    lastUpdated: item.lastUpdated
-                });
-            }
-            saveCommentsToLocal();
-            if (typeof window.updateCommentIndicators === 'function') {
-                window.updateCommentIndicators();
-            }
-        }
-    } catch(e) {
-        console.error("Error loading comments:", e);
-        loadCommentsFromLocal();
-    }
-}
-
-async function saveComment(itemId, comment) {
-    if (!window.isOnline) {
-        if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("saveComment", { itemId: itemId, comment: comment });
-        }
-        window.commentsCache.set(itemId, { comment: comment, lastUpdated: new Date().toISOString() });
-        saveCommentsToLocal();
-        if (typeof window.updateCommentIndicators === 'function') {
-            window.updateCommentIndicators();
-        }
-        if (typeof window.showToast === 'function') window.showToast("Комментарий сохранён локально", true);
-        return true;
-    }
-    
-    try {
-        const params = `&itemId=${itemId}&comment=${encodeURIComponent(comment)}&userId=${window.CURRENT_USER.id}`;
-        const result = await jsonpRequest("saveComment", params);
-        
-        if (result.success) {
-            window.commentsCache.set(itemId, { comment: comment, lastUpdated: new Date().toISOString() });
-            saveCommentsToLocal();
-            if (typeof window.updateCommentIndicators === 'function') {
-                window.updateCommentIndicators();
-            }
-            if (typeof window.showToast === 'function') window.showToast("Комментарий сохранён", true);
-            return true;
-        } else {
-            if (typeof window.showToast === 'function') window.showToast("Ошибка: " + (result.error || "неизвестная"), false);
-            return false;
-        }
-    } catch(e) {
-        console.error("Save comment error:", e);
-        if (typeof window.addPendingOperation === 'function') {
-            window.addPendingOperation("saveComment", { itemId: itemId, comment: comment });
-        }
-        if (typeof window.showToast === 'function') window.showToast("Комментарий сохранён локально", true);
-        return true;
-    }
-}
-
-async function getComment(itemId) {
-    if (window.commentsCache?.has(itemId)) {
-        return window.commentsCache.get(itemId);
-    }
-    
-    if (!window.isOnline) {
-        return null;
-    }
-    
-    try {
-        const result = await jsonpRequest("getComment", `&itemId=${itemId}&userId=${window.CURRENT_USER.id}`);
-        
-        if (result.success && result.comment !== null) {
-            window.commentsCache.set(itemId, { comment: result.comment, lastUpdated: result.lastUpdated });
-            saveCommentsToLocal();
-            return window.commentsCache.get(itemId);
-        }
-        return null;
-    } catch(e) {
-        console.error("Error getting comment:", e);
-        return null;
-    }
-}
-
-function saveCommentsToLocal() {
-    const commentsObj = {};
-    for (const [key, value] of window.commentsCache.entries()) {
-        commentsObj[key] = value;
-    }
-    localStorage.setItem('merch_comments', JSON.stringify(commentsObj));
-}
-
-function loadCommentsFromLocal() {
-    const saved = localStorage.getItem('merch_comments');
-    if (saved) {
-        try {
-            const commentsObj = JSON.parse(saved);
-            window.commentsCache.clear();
-            for (const [key, value] of Object.entries(commentsObj)) {
-                window.commentsCache.set(parseInt(key), value);
-            }
-            if (typeof window.updateCommentIndicators === 'function') {
-                window.updateCommentIndicators();
-            }
-        } catch(e) { console.error(e); }
-    }
-}
-
-// ========== ФУНКЦИИ ДЛЯ ПОСТАВКИ ==========
-
-async function addSupply(itemId, quantity) {
-    console.log("addSupply called:", itemId, quantity);
-    
-    if (!window.isOnline) {
-        const card = window.originalCardsData?.find(c => c.id === itemId);
-        if (card) {
-            card.total += quantity;
-            card.stock += quantity;
-            if (typeof window.filterAndSort === 'function') window.filterAndSort();
-            if (typeof window.showToast === 'function') window.showToast(`Поставка добавлена локально (${quantity} шт)`, true);
-        }
-        return true;
-    }
-    
-    try {
-        const params = `&itemId=${itemId}&quantity=${quantity}&userId=${window.CURRENT_USER.id}`;
-        const result = await jsonpRequest("addSupply", params);
-        
-        if (result.success) {
-            const card = window.originalCardsData?.find(c => c.id === itemId);
-            if (card) {
-                card.total = result.newTotal;
-                card.stock = result.newStock;
-                if (typeof window.filterAndSort === 'function') window.filterAndSort();
-            }
-            if (typeof window.showToast === 'function') window.showToast(`Поставка добавлена: +${quantity} шт`, true);
-            return true;
-        } else {
-            if (typeof window.showToast === 'function') window.showToast("Ошибка: " + (result.error || "неизвестная"), false);
-            return false;
-        }
-    } catch(e) {
-        console.error("Add supply error:", e);
-        if (typeof window.showToast === 'function') window.showToast("Ошибка при добавлении поставки", false);
-        return false;
-    }
-}
-
-// ========== ФУНКЦИИ ДЛЯ СИНХРОНИЗАЦИИ (через JSONP) ==========
-
-async function syncFullHistory(historyData) {
-    if (!window.isOnline) return;
-    try {
-        const data = encodeURIComponent(JSON.stringify(historyData));
-        // Ограничиваем длину URL для JSONP
-        if (data.length > 1500) {
-            console.warn("History data too large for JSONP, skipping sync");
-            return;
-        }
-        await jsonpRequest("syncFullHistory", `&data=${data}`);
-    } catch(e) {
-        console.error("Sync history error:", e);
-    }
-}
-
-async function syncFullRules(rulesData) {
-    if (!window.isOnline) return;
-    try {
-        const data = encodeURIComponent(JSON.stringify(rulesData));
-        await jsonpRequest("syncFullRules", `&data=${data}`);
-    } catch(e) {
-        console.error("Sync rules error:", e);
-    }
-}
-
-async function syncFullBookings(bookingsData) {
-    if (!window.isOnline) return;
-    try {
-        const data = encodeURIComponent(JSON.stringify(bookingsData));
-        await jsonpRequest("syncFullBookings", `&data=${data}`);
-    } catch(e) {
-        console.error("Sync bookings error:", e);
-    }
-}
-
-async function syncExtraCosts(costsData) {
-    if (!window.isOnline) return;
-    try {
-        const data = encodeURIComponent(JSON.stringify(costsData));
-        await jsonpRequest("syncExtraCosts", `&data=${data}`);
-    } catch(e) {
-        console.error("Sync costs error:", e);
-    }
-}
-
-async function syncExtraIncomes(incomesData) {
-    if (!window.isOnline) return;
-    try {
-        const data = encodeURIComponent(JSON.stringify(incomesData));
-        await jsonpRequest("syncExtraIncomes", `&data=${data}`);
-    } catch(e) {
-        console.error("Sync incomes error:", e);
-    }
-}
-
-async function syncFullComments(commentsData) {
-    if (!window.isOnline) return;
-    try {
-        const data = encodeURIComponent(JSON.stringify(commentsData));
-        await jsonpRequest("syncFullComments", `&data=${data}`);
-    } catch(e) {
-        console.error("Sync comments error:", e);
-    }
-}
-
-async function savePrivacy(privacyData) {
-    if (!window.isOnline) return;
-    try {
-        const data = encodeURIComponent(JSON.stringify(privacyData));
-        await jsonpRequest("savePrivacy", `&data=${data}`);
-    } catch(e) {
-        console.error("Save privacy error:", e);
-    }
-}
-
-async function getPrivacy() {
-    if (!window.isOnline) {
-        const saved = localStorage.getItem('merch_privacy');
-        if (saved) return JSON.parse(saved);
-        return { shareStats: false, hideStats: false };
-    }
-    try {
-        const result = await jsonpRequest("getPrivacy");
-        return result;
-    } catch(e) {
-        console.error("Get privacy error:", e);
-        return { shareStats: false, hideStats: false };
-    }
-}
-
-async function getFullHistory() {
-    if (!window.isOnline) {
-        const saved = localStorage.getItem('merch_sales_history');
-        if (saved) return JSON.parse(saved);
-        return [];
-    }
-    try {
-        const result = await jsonpRequest("getFullHistory");
-        return result.history || [];
-    } catch(e) {
-        console.error("Get history error:", e);
-        return [];
-    }
-}
-
-async function getRules() {
-    if (!window.isOnline) {
-        const saved = localStorage.getItem('merch_rules_structured');
-        if (saved) return JSON.parse(saved);
-        return [];
-    }
-    try {
-        const result = await jsonpRequest("getRules");
-        return result.rules || [];
-    } catch(e) {
-        console.error("Get rules error:", e);
-        return [];
-    }
-}
-
-async function getExtraCosts() {
-    if (!window.isOnline) {
-        const saved = localStorage.getItem('merch_extra_costs');
-        if (saved) return JSON.parse(saved);
-        return [];
-    }
-    try {
-        const result = await jsonpRequest("getExtraCosts");
-        return result.costs || [];
-    } catch(e) {
-        console.error("Get costs error:", e);
-        return [];
-    }
-}
-
-async function getExtraIncomes() {
-    if (!window.isOnline) {
-        const saved = localStorage.getItem('merch_extra_incomes');
-        if (saved) return JSON.parse(saved);
-        return [];
-    }
-    try {
-        const result = await jsonpRequest("getExtraIncomes");
-        return result.incomes || [];
-    } catch(e) {
-        console.error("Get incomes error:", e);
-        return [];
-    }
-}
-
-async function getFullBookings() {
-    if (!window.isOnline) {
-        const saved = localStorage.getItem('merch_bookings');
-        if (saved) return JSON.parse(saved);
-        return [];
-    }
-    try {
-        const result = await jsonpRequest("getFullBookings");
-        return result.bookings || [];
-    } catch(e) {
-        console.error("Get bookings error:", e);
-        return [];
-    }
-}
-
-// ========== ФУНКЦИИ ДЛЯ ФОТО (НЕ РАБОТАЮТ, ВОЗВРАЩАЮТ ЗАГЛУШКУ) ==========
-
-async function getPhotoUrl(itemId) {
-    console.warn("Фото не поддерживается в JSONP версии");
-    return null;
-}
-
-async function uploadPhoto(itemId, file) {
-    console.warn("Загрузка фото не поддерживается в JSONP версии");
-    if (typeof window.showToast === 'function') window.showToast("Загрузка фото недоступна в этой версии", false);
-    return false;
-}
-
-async function deletePhoto(itemId) {
-    console.warn("Удаление фото не поддерживается в JSONP версии");
-    if (typeof window.showToast === 'function') window.showToast("Удаление фото недоступно в этой версии", false);
-    return false;
-}
-
-// ========== ЭКСПОРТ ФУНКЦИЙ ==========
+// Экспорт функций в глобальную область
 window.buildApiUrl = buildApiUrl;
 window.loadData = loadData;
-window.updateFullItem = updateFullItem;
-window.sendAddItemRequest = sendAddItemRequest;
-window.loadAllComments = loadAllComments;
-window.saveComment = saveComment;
-window.getComment = getComment;
-window.saveCommentsToLocal = saveCommentsToLocal;
-window.loadCommentsFromLocal = loadCommentsFromLocal;
-window.addSupply = addSupply;
-window.getPhotoUrl = getPhotoUrl;
-window.uploadPhoto = uploadPhoto;
-window.deletePhoto = deletePhoto;
-window.updateStock = updateStock;
-
-// Функции для работы с типами мерча
 window.loadMerchTypesConfig = loadMerchTypesConfig;
 window.getTypeConfigFromCache = getTypeConfigFromCache;
 window.getAllMerchTypes = getAllMerchTypes;
-
-// Функции синхронизации
-window.syncFullHistory = syncFullHistory;
-window.syncFullRules = syncFullRules;
-window.syncFullBookings = syncFullBookings;
-window.syncExtraCosts = syncExtraCosts;
-window.syncExtraIncomes = syncExtraIncomes;
-window.syncFullComments = syncFullComments;
-window.savePrivacy = savePrivacy;
-window.getPrivacy = getPrivacy;
-window.getFullHistory = getFullHistory;
-window.getRules = getRules;
-window.getExtraCosts = getExtraCosts;
-window.getExtraIncomes = getExtraIncomes;
-window.getFullBookings = getFullBookings;
+window.jsonpRequest = jsonpRequest;
 
 console.log("✅ api.js загружен (JSONP версия)");
-console.log("✅ Фото загрузка отключена");
+console.log("✅ GS_API_URL:", GS_API_URL);
+console.log("✅ Fetch перехват активирован");
