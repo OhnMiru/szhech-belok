@@ -5,7 +5,6 @@ console.log("🔧 api.js начал загрузку");
 function buildApiUrl(action, extraParams = "") {
     if (!window.CURRENT_USER?.id) return "#";
     
-    // Добавляем параметр realUser если организатор действует от лица другого пользователя
     let realUserParam = "";
     if (typeof window.getRealUserParam === 'function') {
         realUserParam = window.getRealUserParam();
@@ -19,10 +18,8 @@ function buildApiUrl(action, extraParams = "") {
 
 // ========== ФУНКЦИИ ДЛЯ ЗАГРУЗКИ КОНФИГУРАЦИИ ТИПОВ МЕРЧА ==========
 
-// Загрузить конфигурацию типов мерча с сервера
 async function loadMerchTypesConfig() {
     if (!window.isOnline) {
-        // Пробуем загрузить из localStorage
         const saved = localStorage.getItem('merch_types_config');
         if (saved) {
             try {
@@ -30,11 +27,9 @@ async function loadMerchTypesConfig() {
                 window.merchTypesConfig = config.types || [];
                 updateMerchTypesCache();
                 window.merchTypesLoaded = true;
-                console.log("✅ Конфигурация типов загружена из localStorage:", window.merchTypesConfig.length);
+                console.log("✅ Конфигурация типов из localStorage:", window.merchTypesConfig.length);
                 return true;
-            } catch(e) {
-                console.error("Ошибка загрузки из localStorage:", e);
-            }
+            } catch(e) { console.error(e); }
         }
         return false;
     }
@@ -47,20 +42,13 @@ async function loadMerchTypesConfig() {
             window.merchTypesConfig = result.types;
             updateMerchTypesCache();
             window.merchTypesLoaded = true;
-            
-            // Сохраняем в localStorage
             localStorage.setItem('merch_types_config', JSON.stringify({ types: result.types, loaded: Date.now() }));
-            
             console.log("✅ Конфигурация типов загружена с сервера:", window.merchTypesConfig.length);
             return true;
-        } else {
-            console.warn("⚠️ Нет данных о типах мерча");
-            return false;
         }
+        return false;
     } catch(e) {
-        console.error("Ошибка загрузки конфигурации типов:", e);
-        
-        // Пробуем загрузить из localStorage при ошибке
+        console.error("Ошибка загрузки:", e);
         const saved = localStorage.getItem('merch_types_config');
         if (saved) {
             try {
@@ -68,17 +56,13 @@ async function loadMerchTypesConfig() {
                 window.merchTypesConfig = config.types || [];
                 updateMerchTypesCache();
                 window.merchTypesLoaded = true;
-                console.log("✅ Конфигурация типов загружена из localStorage (fallback):", window.merchTypesConfig.length);
                 return true;
-            } catch(e2) {
-                console.error("Ошибка загрузки из localStorage:", e2);
-            }
+            } catch(e2) { }
         }
         return false;
     }
 }
 
-// Обновить кэш типов для быстрого доступа
 function updateMerchTypesCache() {
     window.merchTypesCache.clear();
     for (const typeConfig of window.merchTypesConfig) {
@@ -88,21 +72,11 @@ function updateMerchTypesCache() {
     }
 }
 
-// Получить конфигурацию для конкретного типа
 function getTypeConfigFromCache(typeName) {
     if (!typeName) return null;
     return window.merchTypesCache.get(typeName.toLowerCase()) || null;
 }
 
-// Проверить, есть ли у типа атрибуты
-function hasAttributesForType(typeName) {
-    const config = getTypeConfigFromCache(typeName);
-    if (!config) return false;
-    return (config.attribute1 && config.attribute1.values && config.attribute1.values.length > 0) ||
-           (config.attribute2 && config.attribute2.values && config.attribute2.values.length > 0);
-}
-
-// Получить список всех типов мерча
 function getAllMerchTypes() {
     return window.merchTypesConfig.map(t => t.type);
 }
@@ -129,9 +103,7 @@ async function loadData(showLoading = true, showProgress = false) {
         const data = await response.json();
         console.log("Данные получены:", data?.length || 0);
         
-        // Проверяем наличие атрибутов в данных (для обратной совместимости)
         if (data && data.length > 0) {
-            // Если у товаров нет полей attribute1/attribute2, добавляем их
             for (const item of data) {
                 if (item.attribute1 === undefined) item.attribute1 = "";
                 if (item.attribute2 === undefined) item.attribute2 = "";
@@ -164,7 +136,6 @@ async function loadData(showLoading = true, showProgress = false) {
     }
 }
 
-// ОБНОВЛЕНА: добавлены параметры attribute1 и attribute2
 async function updateFullItem(id, type, name, stock, total, price, cost, attribute1 = "", attribute2 = "") {
     if (!window.isOnline) {
         if (typeof window.addPendingOperation === 'function') {
@@ -190,7 +161,6 @@ async function updateFullItem(id, type, name, stock, total, price, cost, attribu
     }
 }
 
-// ОБНОВЛЕНА: добавлены параметры attribute1 и attribute2
 async function sendAddItemRequest(type, name, total, stock, price, cost, attribute1 = "", attribute2 = "") {
     if (!window.isOnline) {
         if (typeof window.addPendingOperation === 'function') {
@@ -291,7 +261,6 @@ async function saveComment(itemId, comment) {
         params.append('userId', window.CURRENT_USER.id);
         params.append('comment', comment);
         
-        // Добавляем realUser если есть
         if (typeof window.getRealUserParam === 'function') {
             const realUserParam = window.getRealUserParam();
             if (realUserParam) {
@@ -375,9 +344,7 @@ function loadCommentsFromLocal() {
             if (typeof window.updateCommentIndicators === 'function') {
                 window.updateCommentIndicators();
             }
-        } catch(e) {
-            console.error("Error loading comments from localStorage:", e);
-        }
+        } catch(e) { console.error(e); }
     }
 }
 
@@ -387,7 +354,6 @@ async function addSupply(itemId, quantity) {
     console.log("addSupply called:", itemId, quantity);
     
     if (!window.isOnline) {
-        // Офлайн режим - обновляем локально
         const card = window.originalCardsData?.find(c => c.id === itemId);
         if (card) {
             card.total += quantity;
@@ -406,7 +372,6 @@ async function addSupply(itemId, quantity) {
         params.append('itemId', itemId.toString());
         params.append('quantity', quantity.toString());
         
-        // Добавляем realUser если есть
         if (typeof window.getRealUserParam === 'function') {
             const realUserParam = window.getRealUserParam();
             if (realUserParam) {
@@ -446,59 +411,19 @@ async function addSupply(itemId, quantity) {
 // ========== ФУНКЦИИ ДЛЯ ФОТО ==========
 
 async function getPhotoUrl(itemId) {
-    if (!window.isOnline) {
-        return null;
-    }
-    
-    if (!itemId) {
-        console.error("getPhotoUrl called without itemId");
-        return null;
-    }
+    if (!window.isOnline || !itemId) return null;
     
     try {
-        const url = `${window.CENTRAL_API_URL}?action=getPhotoUrl&participant=${window.CURRENT_USER.id}&itemId=${itemId}&userId=${window.CURRENT_USER.id}&_=${Date.now()}`;
+        const url = buildApiUrl("getPhotoUrl", `&itemId=${itemId}&userId=${window.CURRENT_USER.id}`);
+        console.log("🔍 Fetching photo URL:", url);
         
-        // Добавляем realUser если есть
-        if (typeof window.getRealUserParam === 'function') {
-            const realUserParam = window.getRealUserParam();
-            if (realUserParam) {
-                // Параметр уже включает &, поэтому просто добавляем
-                window.tempPhotoUrl = url + realUserParam;
-                // Используем временную переменную, так как дальше код может быть сложным
-            }
-        }
-        
-        const finalUrl = window.tempPhotoUrl || url;
-        delete window.tempPhotoUrl;
-        
-        console.log("🔍 Fetching photo URL:", finalUrl);
-        
-        const response = await fetch(finalUrl);
+        const response = await fetch(url);
         const result = await response.json();
         
-        console.log("📸 Photo API response:", result);
-        
         if (result.success && result.hasPhoto && result.url) {
-            let fileId = null;
-            if (result.url.includes('id=')) {
-                fileId = result.url.split('id=')[1];
-            } else if (result.url.includes('/d/')) {
-                fileId = result.url.split('/d/')[1].split('/')[0];
-            }
-            
-            if (fileId) {
-                const proxyUrl = `${window.CENTRAL_API_URL}/image?id=${fileId}`;
-                console.log("✅ Proxy URL:", proxyUrl);
-                
-                if (window.photoCache) window.photoCache.set(itemId, proxyUrl);
-                return proxyUrl;
-            }
-            
             if (window.photoCache) window.photoCache.set(itemId, result.url);
             return result.url;
         }
-        
-        console.log("❌ No photo found for item", itemId);
         return null;
     } catch(e) {
         console.error("Error getting photo:", e);
@@ -521,30 +446,20 @@ async function uploadPhoto(itemId, file) {
         const reader = new FileReader();
         reader.onloadend = async function() {
             try {
-                const base64Data = reader.result;
-                
                 const params = new URLSearchParams();
                 params.append('action', 'uploadPhoto');
                 params.append('participant', window.CURRENT_USER.id);
                 params.append('itemId', itemId.toString());
                 params.append('userId', window.CURRENT_USER.id);
-                params.append('base64Data', base64Data);
+                params.append('base64Data', reader.result);
                 params.append('fileName', file.name);
                 
-                // Добавляем realUser если есть
                 if (typeof window.getRealUserParam === 'function') {
                     const realUserParam = window.getRealUserParam();
                     if (realUserParam) {
-                        const realUserValue = realUserParam.replace('&realUser=', '');
-                        params.append('realUser', realUserValue);
+                        params.append('realUser', realUserParam.replace('&realUser=', ''));
                     }
                 }
-                
-                console.log("📤 Загрузка фото:");
-                console.log("  - itemId:", itemId);
-                console.log("  - userId:", window.CURRENT_USER.id);
-                console.log("  - fileName:", file.name);
-                console.log("  - fileSize:", (file.size / 1024).toFixed(2), "KB");
                 
                 const response = await fetch(window.CENTRAL_API_URL, {
                     method: 'POST',
@@ -555,54 +470,10 @@ async function uploadPhoto(itemId, file) {
                 const result = await response.json();
                 
                 if (result.success) {
-                    console.log("✅ Фото загружено на сервер!");
-                    
-                    if (typeof window.showToast === 'function') window.showToast("Обработка фото...", true);
-                    await new Promise(r => setTimeout(r, 2000));
-                    
-                    let photoFound = false;
-                    for (let attempt = 1; attempt <= 3; attempt++) {
-                        console.log(`Попытка получить фото #${attempt}...`);
-                        
-                        if (window.photoCache) window.photoCache.delete(itemId);
-                        
-                        let checkUrl = `${window.CENTRAL_API_URL}?action=getPhotoUrl&participant=${window.CURRENT_USER.id}&itemId=${itemId}&userId=${window.CURRENT_USER.id}&_=${Date.now()}`;
-                        if (typeof window.getRealUserParam === 'function') {
-                            const realUserParam = window.getRealUserParam();
-                            if (realUserParam) {
-                                checkUrl += realUserParam;
-                            }
-                        }
-                        const checkResponse = await fetch(checkUrl);
-                        const checkResult = await checkResponse.json();
-                        
-                        console.log(`Попытка ${attempt}:`, checkResult);
-                        
-                        if (checkResult.success && checkResult.hasPhoto && checkResult.url) {
-                            photoFound = true;
-                            let fileId = null;
-                            if (checkResult.url.includes('id=')) {
-                                fileId = checkResult.url.split('id=')[1];
-                            }
-                            if (fileId) {
-                                const proxyUrl = `${window.CENTRAL_API_URL}/image?id=${fileId}`;
-                                if (window.photoCache) window.photoCache.set(itemId, proxyUrl);
-                            }
-                            break;
-                        }
-                        
-                        if (attempt < 3) await new Promise(r => setTimeout(r, 1500));
-                    }
-                    
-                    if (photoFound) {
-                        if (typeof window.showToast === 'function') window.showToast("Фото загружено", true);
-                        resolve(true);
-                    } else {
-                        if (typeof window.showToast === 'function') window.showToast("Фото загружено, но не отображается. Обновите страницу.", false);
-                        resolve(true);
-                    }
+                    if (window.photoCache) window.photoCache.delete(itemId);
+                    if (typeof window.showToast === 'function') window.showToast("Фото загружено", true);
+                    resolve(true);
                 } else {
-                    console.error("❌ Ошибка:", result.error);
                     if (typeof window.showToast === 'function') window.showToast("Ошибка: " + (result.error || "неизвестная"), false);
                     resolve(false);
                 }
@@ -633,12 +504,10 @@ async function deletePhoto(itemId) {
         params.append('itemId', itemId.toString());
         params.append('userId', window.CURRENT_USER.id);
         
-        // Добавляем realUser если есть
         if (typeof window.getRealUserParam === 'function') {
             const realUserParam = window.getRealUserParam();
             if (realUserParam) {
-                const realUserValue = realUserParam.replace('&realUser=', '');
-                params.append('realUser', realUserValue);
+                params.append('realUser', realUserParam.replace('&realUser=', ''));
             }
         }
         
@@ -665,6 +534,63 @@ async function deletePhoto(itemId) {
     }
 }
 
+// ========== НОВАЯ ФУНКЦИЯ: СИНХРОНИЗАЦИЯ ИСТОРИИ ПО ЧАСТЯМ ==========
+async function syncFullHistoryChunked(historyData) {
+    if (!window.isOnline) return;
+    if (!historyData || historyData.length === 0) return;
+    
+    // Разбиваем на части по 5 записей
+    const CHUNK_SIZE = 5;
+    const chunks = [];
+    
+    for (let i = 0; i < historyData.length; i += CHUNK_SIZE) {
+        chunks.push(historyData.slice(i, i + CHUNK_SIZE));
+    }
+    
+    console.log(`📦 Синхронизация истории: ${historyData.length} записей, разбито на ${chunks.length} частей`);
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (let i = 0; i < chunks.length; i++) {
+        try {
+            const chunk = chunks[i];
+            const data = encodeURIComponent(JSON.stringify(chunk));
+            
+            // Проверяем длину URL (безопасный лимит ~1800 символов)
+            if (data.length > 1800) {
+                console.warn(`Часть ${i + 1} слишком большая (${data.length} символов), разбиваем дальше`);
+                // Рекурсивно разбиваем эту часть ещё мельче
+                await syncFullHistoryChunked(chunk);
+                continue;
+            }
+            
+            const url = buildApiUrl("syncFullHistory", `&data=${data}`);
+            const response = await fetch(url);
+            const result = await response.json();
+            
+            if (result.success) {
+                successCount++;
+                console.log(`✅ Часть ${i + 1}/${chunks.length} синхронизирована`);
+            } else {
+                failCount++;
+                console.warn(`❌ Ошибка синхронизации части ${i + 1}:`, result.error);
+            }
+            
+            // Небольшая задержка между запросами
+            if (i < chunks.length - 1) {
+                await new Promise(r => setTimeout(r, 200));
+            }
+        } catch(e) {
+            failCount++;
+            console.error(`Ошибка при синхронизации части ${i + 1}:`, e);
+        }
+    }
+    
+    console.log(`📊 Синхронизация истории завершена: успешно ${successCount}, ошибок ${failCount}`);
+    return { success: failCount === 0, successCount, failCount };
+}
+
 // ========== ЭКСПОРТ ФУНКЦИЙ В ГЛОБАЛЬНУЮ ОБЛАСТЬ ==========
 window.buildApiUrl = buildApiUrl;
 window.loadData = loadData;
@@ -679,6 +605,7 @@ window.addSupply = addSupply;
 window.getPhotoUrl = getPhotoUrl;
 window.uploadPhoto = uploadPhoto;
 window.deletePhoto = deletePhoto;
+window.syncFullHistoryChunked = syncFullHistoryChunked;
 
 // Новые функции для работы с типами мерча
 window.loadMerchTypesConfig = loadMerchTypesConfig;
@@ -689,3 +616,4 @@ window.getAllMerchTypes = getAllMerchTypes;
 console.log("✅ api.js загружен, getComment определена:", typeof window.getComment);
 console.log("✅ api.js загружен, loadData определена:", typeof window.loadData);
 console.log("✅ api.js загружен, loadMerchTypesConfig определена:", typeof window.loadMerchTypesConfig);
+console.log("✅ api.js загружен, syncFullHistoryChunked определена:", typeof window.syncFullHistoryChunked);
