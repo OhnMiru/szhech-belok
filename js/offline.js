@@ -72,13 +72,22 @@ async function processPendingOperations(silent = false) {
                     url = buildApiUrl("update", paramsString);
                     break;
                 case "syncFullHistory":
-                    // Используем новую функцию с разбивкой на части
-                    if (typeof window.syncFullHistoryChunked === 'function') {
+                    // Используем POST запрос (нет ограничения на длину URL)
+                    if (typeof window.syncFullHistoryPost === 'function') {
+                        const success = await window.syncFullHistoryPost(op.params);
+                        if (success) {
+                            continue; // успешно, переходим к следующей операции
+                        } else {
+                            failed.push(op); // не удалось, пробуем позже
+                            if (!silent) console.warn(`syncFullHistory не удалась, будет повторена позже`);
+                            continue;
+                        }
+                    } else if (typeof window.syncFullHistoryChunked === 'function') {
+                        // fallback на chunked метод
                         await window.syncFullHistoryChunked(op.params);
-                        // Помечаем как успешно выполненное
                         continue;
                     } else {
-                        // fallback на старый метод
+                        // старый GET метод (не рекомендуется)
                         const historyData = encodeURIComponent(JSON.stringify(op.params));
                         url = buildApiUrl("syncFullHistory", `&data=${historyData}${realUserParam}`);
                     }
