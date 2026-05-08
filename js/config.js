@@ -1,5 +1,5 @@
 // ========== НАСТРОЙКА ==========
-var CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbyZHkyha77ljjzmzUzPtLIK6s3o2LmUtrgMhHHROQJr5JYHgXFfzw-xU4UV5fws6A2h/exec";
+var CENTRAL_API_URL = "https://gs-proxy-chi.vercel.app/";
 
 var CURRENT_USER = {
     id: null,
