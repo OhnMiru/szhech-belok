@@ -1,18 +1,15 @@
 // ========== ИСТОРИЯ ==========
 
-// Вспомогательная функция для получения полного названия товара с атрибутами
 function getItemFullName(item, card) {
-    // Если уже есть fullName в item, используем его
+
     if (item.fullName) return item.fullName;
-    
-    // Если передан card, используем его
+
     if (card) {
         const attr1 = card.attribute1 || "";
         const attr2 = card.attribute2 || "";
         return getFullNameForHistory(card.name, card.type, attr1, attr2);
     }
     
-    // Пытаемся найти карточку в originalCardsData
     const foundCard = originalCardsData.find(c => c.id === item.id);
     if (foundCard) {
         const attr1 = foundCard.attribute1 || "";
@@ -20,7 +17,6 @@ function getItemFullName(item, card) {
         return getFullNameForHistory(foundCard.name, foundCard.type, attr1, attr2);
     }
     
-    // Если ничего не нашли, возвращаем просто название
     return item.name;
 }
 
@@ -68,7 +64,6 @@ async function loadHistoryFromServer() {
         const response = await fetch(buildApiUrl("getFullHistory"));
         const data = await response.json();
         if (data && data.history) {
-            // Нормализуем записи истории
             salesHistory = data.history.map(entry => ({
                 ...entry,
                 isReturn: entry.isReturn === true,
@@ -97,7 +92,6 @@ function saveHistory() {
     syncFullHistoryToServer();
 }
 
-// Получение имени реального пользователя (организатора) для отметки в истории
 function getActedByText() {
     if (typeof window.isImpersonating !== 'undefined' && window.isImpersonating && window.originalUserName) {
         return window.originalUserName;
@@ -105,11 +99,9 @@ function getActedByText() {
     return null;
 }
 
-// ОБНОВЛЕНА: добавляет полное название товара с атрибутами
 function addToHistory(items, total, method, isReturn = false, paymentType = 'cash') {
     const actedBy = getActedByText();
-    
-    // Обогащаем items полными названиями
+
     const enrichedItems = items.map(item => {
         const card = originalCardsData.find(c => c.id === item.id);
         const fullName = getItemFullName(item, card);
@@ -139,7 +131,6 @@ function addToHistory(items, total, method, isReturn = false, paymentType = 'cas
     if (document.getElementById('historyModal')?.style.display === 'block') renderHistoryList();
 }
 
-// ОБНОВЛЕНА: добавляет полное название товара с атрибутами
 function addSingleSaleToHistory(item, qty, isReturn = false) {
     const card = originalCardsData.find(c => c.id === item.id);
     const fullName = getItemFullName(item, card);
@@ -301,8 +292,7 @@ function resetHistoryFilters() {
     const maxPrice = document.getElementById('historyMaxPrice');
     if (minPrice) minPrice.value = '0';
     if (maxPrice) maxPrice.value = '';
-
-    // Обновляем кастомные селекторы после сброса значений
+    
     if (typeof initCustomDateTimeSelects === 'function') {
         initCustomDateTimeSelects();
     }
@@ -310,7 +300,6 @@ function resetHistoryFilters() {
     renderHistoryList();
 }
 
-// ОБНОВЛЕНА: отображает полное название товара с атрибутами
 function renderHistoryList() {
     const container = document.getElementById('history-list');
     if (!container) return;
@@ -352,7 +341,7 @@ function renderHistoryList() {
         
         let itemsHtml = '';
         for (const item of entry.items) {
-            // Используем fullName если есть, иначе формируем сами
+        
             let displayName = item.fullName;
             if (!displayName) {
                 const card = originalCardsData.find(c => c.id === item.id);
@@ -401,14 +390,12 @@ function renderHistoryList() {
     container.innerHTML = html;
 }
 
-// ОБНОВЛЕНА: открытие истории с инициализацией кастомных селекторов
 function showHistory() { 
     const modal = document.getElementById('historyModal'); 
     if (modal) { 
         resetHistoryFilters(); 
         renderHistoryList(); 
         modal.style.display = 'block';
-        // Инициализируем кастомные селекторы после открытия модалки
         setTimeout(() => {
             if (typeof initCustomDateTimeSelects === 'function') {
                 initCustomDateTimeSelects();
@@ -422,7 +409,6 @@ function closeHistory() {
     if (modal) modal.style.display = 'none'; 
 }
 
-// Экспортируем функции в глобальную область
 window.getItemFullName = getItemFullName;
 window.showHistory = showHistory;
 window.closeHistory = closeHistory;
